@@ -19,6 +19,8 @@ export const previewProfile: Profile = {
   role: "head",
   can_edit: true,
   created_at: new Date().toISOString(),
+  theme_accent: "sky",
+  theme_mode: "system",
 };
 
 export const previewEngineers: Profile[] = [
@@ -185,6 +187,12 @@ function daysFromNow(n: number) {
   return d.toISOString().slice(0, 10);
 }
 
+const A = {
+  head: { id: "u-head", full_name: "Ahmed Hassan", first_name: "Ahmed" },
+  omar: { id: "u-eng-1", full_name: "Omar Khaled", first_name: "Omar" },
+  sara: { id: "u-eng-2", full_name: "Sara Nabil", first_name: "Sara" },
+};
+
 export const previewTasks: Task[] = [
   {
     id: "t-1",
@@ -192,13 +200,12 @@ export const previewTasks: Task[] = [
     description: "Hydraulic lift not raising. Bring spare pump.",
     status: "in_progress",
     priority: "high",
-    assignee_id: "u-head",
     customer_id: "cus-1",
     position: 1,
     due_date: daysFromNow(1),
     created_by: "u-head",
     created_at: "",
-    assignee: { id: "u-head", full_name: "Ahmed Hassan", first_name: "Ahmed" },
+    assignees: [A.head, A.omar],
   },
   {
     id: "t-2",
@@ -206,13 +213,12 @@ export const previewTasks: Task[] = [
     description: "New Planmeca sensor calibration.",
     status: "todo",
     priority: "medium",
-    assignee_id: "u-head",
     customer_id: "cus-2",
     position: 2,
     due_date: daysFromNow(3),
     created_by: "u-head",
     created_at: "",
-    assignee: { id: "u-head", full_name: "Ahmed Hassan", first_name: "Ahmed" },
+    assignees: [A.head],
   },
   {
     id: "t-3",
@@ -220,13 +226,12 @@ export const previewTasks: Task[] = [
     description: "Full preventive maintenance checklist.",
     status: "todo",
     priority: "low",
-    assignee_id: "u-head",
     customer_id: "cus-3",
     position: 3,
     due_date: null,
     created_by: "u-head",
     created_at: "",
-    assignee: { id: "u-head", full_name: "Ahmed Hassan", first_name: "Ahmed" },
+    assignees: [], // unassigned — claimable
   },
   {
     id: "t-4",
@@ -234,13 +239,12 @@ export const previewTasks: Task[] = [
     description: "",
     status: "done",
     priority: "medium",
-    assignee_id: "u-eng-1",
     customer_id: "cus-4",
     position: 4,
     due_date: daysFromNow(-2),
     created_by: "u-head",
     created_at: "",
-    assignee: { id: "u-eng-1", full_name: "Omar Khaled", first_name: "Omar" },
+    assignees: [A.omar],
   },
   {
     id: "t-5",
@@ -248,13 +252,12 @@ export const previewTasks: Task[] = [
     description: "Reported grinding noise on high-speed handpiece.",
     status: "in_progress",
     priority: "high",
-    assignee_id: "u-eng-2",
     customer_id: "cus-3",
     position: 5,
     due_date: daysFromNow(2),
     created_by: "u-head",
     created_at: "",
-    assignee: { id: "u-eng-2", full_name: "Sara Nabil", first_name: "Sara" },
+    assignees: [A.sara],
   },
   {
     id: "t-6",
@@ -262,13 +265,12 @@ export const previewTasks: Task[] = [
     description: "",
     status: "todo",
     priority: "medium",
-    assignee_id: "u-eng-1",
     customer_id: "cus-4",
     position: 6,
     due_date: daysFromNow(5),
     created_by: "u-head",
     created_at: "",
-    assignee: { id: "u-eng-1", full_name: "Omar Khaled", first_name: "Omar" },
+    assignees: [A.omar],
   },
 ];
 
@@ -360,25 +362,24 @@ export function makePreviewTask(input: {
   description: string;
   status: Task["status"];
   priority: Task["priority"];
-  assignee_id: string | null;
+  assignee_ids: string[];
   customer_id: string | null;
   due_date: string | null;
 }): Task {
-  const eng = previewEngineers.find((e) => e.id === input.assignee_id) ?? null;
+  const assignees = previewEngineers
+    .filter((e) => input.assignee_ids.includes(e.id))
+    .map((e) => ({ id: e.id, full_name: e.full_name, first_name: e.first_name }));
   return {
     id: `t-${Math.random().toString(36).slice(2, 9)}`,
     title: input.title,
     description: input.description,
     status: input.status,
     priority: input.priority,
-    assignee_id: input.assignee_id,
     customer_id: input.customer_id,
     position: Date.now(),
     due_date: input.due_date,
     created_by: previewProfile.id,
     created_at: new Date().toISOString(),
-    assignee: eng
-      ? { id: eng.id, full_name: eng.full_name, first_name: eng.first_name }
-      : null,
+    assignees,
   };
 }

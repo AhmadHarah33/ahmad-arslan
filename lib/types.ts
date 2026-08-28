@@ -11,7 +11,11 @@ export interface Profile {
   role: UserRole;
   can_edit: boolean;
   created_at: string;
+  theme_accent?: string;
+  theme_mode?: "light" | "dark" | "system";
 }
+
+export type AssigneeLite = Pick<Profile, "id" | "full_name" | "first_name">;
 
 export interface Company {
   id: string;
@@ -61,13 +65,13 @@ export interface Task {
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
-  assignee_id: string | null;
   customer_id: string | null;
   position: number;
   due_date: string | null;
   created_by: string | null;
   created_at: string;
-  assignee?: Pick<Profile, "id" | "full_name" | "first_name"> | null;
+  // Multiple engineers can be assigned. Empty array = unassigned.
+  assignees: AssigneeLite[];
 }
 
 export const TASK_STATUSES: { key: TaskStatus; label: string }[] = [

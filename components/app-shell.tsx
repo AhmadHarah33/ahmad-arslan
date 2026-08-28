@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useState } from "react";
 import type { Profile } from "@/lib/types";
 import { isHead } from "@/lib/permissions";
 import { PREVIEW } from "@/lib/preview";
+import SettingsModal from "@/components/theme/settings-modal";
+import type { ThemeMode } from "@/lib/theme";
 
 const NAV = [
   { href: "/", label: "Home", icon: HomeIcon },
@@ -23,6 +26,8 @@ export default function AppShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const nav = [...NAV];
   if (isHead(profile)) {
@@ -81,9 +86,17 @@ export default function AppShell({
               {profile.role === "head" ? "Head of engineers" : "Engineer"}
             </p>
           </div>
-          <button onClick={signOut} className="btn-ghost w-full">
-            Sign out
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="btn-ghost flex-1"
+            >
+              Appearance
+            </button>
+            <button onClick={signOut} className="btn-ghost flex-1">
+              Sign out
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -97,12 +110,24 @@ export default function AppShell({
             </div>
             <span className="text-sm font-semibold">Mars Support</span>
           </div>
-          <button
-            onClick={signOut}
-            className="text-sm font-medium text-ink-muted"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Appearance"
+              className="text-ink-muted"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+            </button>
+            <button
+              onClick={signOut}
+              className="text-sm font-medium text-ink-muted"
+            >
+              Sign out
+            </button>
+          </div>
         </header>
 
         {PREVIEW && (
@@ -132,6 +157,14 @@ export default function AppShell({
           </Link>
         ))}
       </nav>
+
+      {settingsOpen && (
+        <SettingsModal
+          initialAccent={profile.theme_accent ?? "sky"}
+          initialMode={(profile.theme_mode as ThemeMode) ?? "system"}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </div>
   );
 }

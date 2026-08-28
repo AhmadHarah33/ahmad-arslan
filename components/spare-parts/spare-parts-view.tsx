@@ -114,7 +114,7 @@ export default function SparePartsView({
                 No parts here yet.
               </p>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
                 {cParts.map((p) => (
                   <button
                     key={p.id}
@@ -127,7 +127,7 @@ export default function SparePartsView({
                     }
                     className="card block overflow-hidden text-left transition hover:shadow-pop"
                   >
-                    <div className="flex h-32 items-center justify-center bg-surface-soft">
+                    <div className="flex h-20 items-center justify-center bg-surface-soft">
                       {p.spare_part_photos && p.spare_part_photos[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -136,19 +136,17 @@ export default function SparePartsView({
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <span className="text-xs text-ink-faint">No photo</span>
+                        <span className="text-[10px] text-ink-faint">No photo</span>
                       )}
                     </div>
-                    <div className="p-3">
-                      <p className="font-medium text-ink">{p.name}</p>
-                      {p.part_number && (
-                        <p className="text-xs text-ink-faint">
-                          #{p.part_number}
-                        </p>
-                      )}
-                      <p className="mt-1 text-xs text-ink-muted">
-                        Qty: {p.quantity}
+                    <div className="p-2">
+                      <p className="truncate text-sm font-medium text-ink">
+                        {p.name}
                       </p>
+                      <div className="mt-0.5 flex items-center justify-between text-[11px] text-ink-faint">
+                        {p.part_number ? <span className="truncate">#{p.part_number}</span> : <span />}
+                        <span className="shrink-0">Qty {p.quantity}</span>
+                      </div>
                     </div>
                   </button>
                 ))}

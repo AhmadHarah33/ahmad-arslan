@@ -9,28 +9,30 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Mars brand-ish palette: warm rust accent on a clean neutral base.
+        // Colors are driven by CSS variables (space-separated RGB triplets) so
+        // the accent and light/dark mode can be swapped per user at runtime.
+        // See app/globals.css for the token definitions and theme presets.
         brand: {
-          50: "#fef3f0",
-          100: "#fde3dc",
-          200: "#facabd",
-          300: "#f5a48d",
-          400: "#ee7355",
-          500: "#e14e2c",
-          600: "#cf3a1c",
-          700: "#ac2c19",
-          800: "#8d271b",
-          900: "#75261c",
+          50: "rgb(var(--brand-50) / <alpha-value>)",
+          100: "rgb(var(--brand-100) / <alpha-value>)",
+          200: "rgb(var(--brand-200) / <alpha-value>)",
+          300: "rgb(var(--brand-300) / <alpha-value>)",
+          400: "rgb(var(--brand-400) / <alpha-value>)",
+          500: "rgb(var(--brand-500) / <alpha-value>)",
+          600: "rgb(var(--brand-600) / <alpha-value>)",
+          700: "rgb(var(--brand-700) / <alpha-value>)",
+          800: "rgb(var(--brand-800) / <alpha-value>)",
+          900: "rgb(var(--brand-900) / <alpha-value>)",
         },
         ink: {
-          DEFAULT: "#1f2430",
-          muted: "#5b6472",
-          faint: "#8a93a3",
+          DEFAULT: "rgb(var(--ink) / <alpha-value>)",
+          muted: "rgb(var(--ink-muted) / <alpha-value>)",
+          faint: "rgb(var(--ink-faint) / <alpha-value>)",
         },
         surface: {
-          DEFAULT: "#ffffff",
-          soft: "#f7f8fa",
-          border: "#e6e8ec",
+          DEFAULT: "rgb(var(--surface) / <alpha-value>)",
+          soft: "rgb(var(--surface-soft) / <alpha-value>)",
+          border: "rgb(var(--surface-border) / <alpha-value>)",
         },
       },
       fontFamily: {

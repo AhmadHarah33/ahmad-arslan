@@ -39,6 +39,69 @@ export default function CustomersView({
     );
   }, [query, initialCustomers]);
 
+  // The Brand custom field is used to group customers (like Spare parts group
+  // by vendor). Falls back to a flat list if no Brand field exists.
+  const brandDef = useMemo(
+    () =>
+      fieldDefs.find(
+        (d) =>
+          (d.field_type === "select" || d.field_type === "multi_select") &&
+          d.label.trim().toLowerCase() === "brand"
+      ),
+    [fieldDefs]
+  );
+
+  const groups = useMemo(() => {
+    if (!brandDef)
+      return [{ key: "all", label: null as string | null, items: filtered }];
+    const buckets = new Map<string, Customer[]>();
+    for (const c of filtered) {
+      const v = fieldValues[c.id]?.[brandDef.id];
+      const optId = Array.isArray(v) ? v[0] : v;
+      const key =
+        optId && brandDef.options.some((o) => o.id === optId)
+          ? String(optId)
+          : "__none";
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key)!.push(c);
+    }
+    const ordered: { key: string; label: string | null; items: Customer[] }[] =
+      brandDef.options
+        .filter((o) => buckets.has(o.id))
+        .map((o) => ({ key: o.id, label: o.label, items: buckets.get(o.id)! }));
+    if (buckets.has("__none"))
+      ordered.push({
+        key: "__none",
+        label: "Unspecified",
+        items: buckets.get("__none")!,
+      });
+    return ordered;
+  }, [filtered, brandDef, fieldValues]);
+
+  const renderCard = (c: Customer) => (
+    <button
+      key={c.id}
+      onClick={() => setModal({ open: true, customer: c })}
+      className="card block p-4 text-left transition hover:shadow-pop"
+    >
+      <p className="font-semibold text-ink">{c.name}</p>
+      {c.location && (
+        <p className="mt-0.5 text-sm text-ink-muted">📍 {c.location}</p>
+      )}
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-faint">
+        {c.machine && <span>Model: {c.machine}</span>}
+        {c.serial_number && <span>SN: {c.serial_number}</span>}
+      </div>
+      <CustomerTags customerId={c.id} defs={fieldDefs} values={fieldValues} />
+      {c.customer_links && c.customer_links.length > 0 && (
+        <p className="mt-2 text-xs font-medium text-brand-600">
+          {c.customer_links.length} link
+          {c.customer_links.length === 1 ? "" : "s"} attached
+        </p>
+      )}
+    </button>
+  );
+
   return (
     <div>
       <div className="mb-5 flex items-center justify-between gap-3">
@@ -70,33 +133,21 @@ export default function CustomersView({
           No customers found.
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {filtered.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setModal({ open: true, customer: c })}
-              className="card block p-4 text-left transition hover:shadow-pop"
-            >
-              <p className="font-semibold text-ink">{c.name}</p>
-              {c.location && (
-                <p className="mt-0.5 text-sm text-ink-muted">📍 {c.location}</p>
+        <div className="space-y-6">
+          {groups.map((g) => (
+            <section key={g.key}>
+              {g.label && (
+                <h2 className="mb-2 text-base font-semibold text-ink">
+                  {g.label}
+                  <span className="ml-2 text-xs font-normal text-ink-faint">
+                    {g.items.length}
+                  </span>
+                </h2>
               )}
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-faint">
-                {c.machine && <span>Model: {c.machine}</span>}
-                {c.serial_number && <span>SN: {c.serial_number}</span>}
+              <div className="grid gap-3 sm:grid-cols-2">
+                {g.items.map(renderCard)}
               </div>
-              <CustomerTags
-                customerId={c.id}
-                defs={fieldDefs}
-                values={fieldValues}
-              />
-              {c.customer_links && c.customer_links.length > 0 && (
-                <p className="mt-2 text-xs font-medium text-brand-600">
-                  {c.customer_links.length} link
-                  {c.customer_links.length === 1 ? "" : "s"} attached
-                </p>
-              )}
-            </button>
+            </section>
           ))}
         </div>
       )}

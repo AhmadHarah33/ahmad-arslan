@@ -1,8 +1,9 @@
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { loadFields } from "@/lib/fields.server";
+import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import TasksBoard from "@/components/tasks/board";
-import type { Customer, Profile, Task } from "@/lib/types";
+import type { Customer, Profile } from "@/lib/types";
 import {
   PREVIEW,
   previewCustomers,
@@ -34,13 +35,13 @@ export default async function TasksPage() {
     await Promise.all([
       supabase
         .from("tasks")
-        .select("*, assignee:assignee_id(id, full_name, first_name)")
+        .select(TASK_SELECT)
         .order("position", { ascending: true }),
       supabase.from("profiles").select("*").order("full_name"),
       supabase.from("customers").select("id, name").order("name"),
     ]);
 
-  const taskList = (tasks ?? []) as Task[];
+  const taskList = normalizeTasks(tasks);
   const { defs, valueMap } = await loadFields(
     "task",
     taskList.map((t) => t.id)

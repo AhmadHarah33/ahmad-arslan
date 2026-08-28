@@ -2,8 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===========================================================================
+   Design tokens as CSS variables (space-separated RGB triplets).
+   - Neutral tokens (surface/ink) switch with light/dark mode.
+   - Accent tokens (--brand-*) switch with the chosen accent preset.
+   The default is a light "sky" (light-blue) accent in light mode.
+   =========================================================================== */
 :root {
+  /* neutral — light */
+  --surface: 255 255 255;
+  --surface-soft: 247 248 250;
+  --surface-border: 230 232 236;
+  --ink: 31 36 48;
+  --ink-muted: 91 100 114;
+  --ink-faint: 138 147 163;
+
+  /* accent — sky (default) */
+  --brand-50: 240 249 255;
+  --brand-100: 224 242 254;
+  --brand-200: 186 230 253;
+  --brand-300: 125 211 252;
+  --brand-400: 56 189 248;
+  --brand-500: 14 165 233;
+  --brand-600: 2 132 199;
+  --brand-700: 3 105 161;
+  --brand-800: 7 89 133;
+  --brand-900: 12 74 110;
+
   color-scheme: light;
+}
+
+/* ---- Neutral tokens: dark mode (system + explicit) ---------------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-mode="light"]) {
+    --surface: 23 25 34;
+    --surface-soft: 15 17 23;
+    --surface-border: 42 46 58;
+    --ink: 231 233 238;
+    --ink-muted: 162 169 184;
+    --ink-faint: 122 130 145;
+    color-scheme: dark;
+  }
+}
+:root[data-mode="dark"] {
+  --surface: 23 25 34;
+  --surface-soft: 15 17 23;
+  --surface-border: 42 46 58;
+  --ink: 231 233 238;
+  --ink-muted: 162 169 184;
+  --ink-faint: 122 130 145;
+  color-scheme: dark;
+}
+:root[data-mode="light"] {
+  --surface: 255 255 255;
+  --surface-soft: 247 248 250;
+  --surface-border: 230 232 236;
+  --ink: 31 36 48;
+  --ink-muted: 91 100 114;
+  --ink-faint: 138 147 163;
+  color-scheme: light;
+}
+
+/* ===========================================================================
+   Accent presets — override the --brand-* ramp.
+   =========================================================================== */
+:root[data-accent="blue"] {
+  --brand-50: 239 246 255;  --brand-100: 219 234 254; --brand-200: 191 219 254;
+  --brand-300: 147 197 253; --brand-400: 96 165 250;  --brand-500: 59 130 246;
+  --brand-600: 37 99 235;   --brand-700: 29 78 216;   --brand-800: 30 64 175;
+  --brand-900: 30 58 138;
+}
+:root[data-accent="violet"] {
+  --brand-50: 245 243 255;  --brand-100: 237 233 254; --brand-200: 221 214 254;
+  --brand-300: 196 181 253; --brand-400: 167 139 250; --brand-500: 139 92 246;
+  --brand-600: 124 58 237;  --brand-700: 109 40 217;  --brand-800: 91 33 182;
+  --brand-900: 76 29 149;
+}
+:root[data-accent="emerald"] {
+  --brand-50: 236 253 245;  --brand-100: 209 250 229; --brand-200: 167 243 208;
+  --brand-300: 110 231 183; --brand-400: 52 211 153;  --brand-500: 16 185 129;
+  --brand-600: 5 150 105;   --brand-700: 4 120 87;    --brand-800: 6 95 70;
+  --brand-900: 6 78 59;
+}
+:root[data-accent="amber"] {
+  --brand-50: 255 251 235;  --brand-100: 254 243 199; --brand-200: 253 230 138;
+  --brand-300: 252 211 77;  --brand-400: 251 191 36;  --brand-500: 245 158 11;
+  --brand-600: 217 119 6;   --brand-700: 180 83 9;    --brand-800: 146 64 14;
+  --brand-900: 120 53 15;
+}
+:root[data-accent="rose"] {
+  --brand-50: 255 241 242;  --brand-100: 255 228 230; --brand-200: 254 205 211;
+  --brand-300: 253 164 175; --brand-400: 251 113 133; --brand-500: 244 63 94;
+  --brand-600: 225 29 72;   --brand-700: 190 18 60;   --brand-800: 159 18 57;
+  --brand-900: 136 19 55;
+}
+:root[data-accent="slate"] {
+  --brand-50: 248 250 252;  --brand-100: 241 245 249; --brand-200: 226 232 240;
+  --brand-300: 203 213 225; --brand-400: 148 163 184; --brand-500: 100 116 139;
+  --brand-600: 71 85 105;   --brand-700: 51 65 85;    --brand-800: 30 41 59;
+  --brand-900: 15 23 42;
 }
 
 html,

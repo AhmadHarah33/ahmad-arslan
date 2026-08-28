@@ -9,10 +9,17 @@ import type {
   TaskPriority,
   TaskStatus,
 } from "@/lib/types";
-import { canEditData, canEditTask } from "@/lib/permissions";
-import { createTask, deleteTask, updateTask } from "@/app/(app)/tasks/actions";
+import { canEditData, canEditTask, isHead } from "@/lib/permissions";
+import {
+  addAssignee,
+  createTask,
+  deleteTask,
+  removeAssignee,
+  updateTask,
+} from "@/app/(app)/tasks/actions";
 import Modal from "@/components/modal";
 import CustomFields from "@/components/fields/CustomFields";
+import type { AssigneeLite } from "@/lib/types";
 
 export default function TaskModal({
   profile,
@@ -40,8 +47,10 @@ export default function TaskModal({
   const [priority, setPriority] = useState<TaskPriority>(
     task?.priority ?? "medium"
   );
-  const [assignee, setAssignee] = useState<string>(
-    task?.assignee_id ?? (profile.role === "head" ? "" : profile.id)
+  // Assignees. New tasks collect ids locally (saved with createTask); existing
+  // tasks manage membership live via add/remove actions.
+  const [assignees, setAssignees] = useState<AssigneeLite[]>(
+    task?.assignees ?? (isNew && !isHead(profile) ? [selfLite(profile)] : [])
   );
   const [customerId, setCustomerId] = useState<string>(task?.customer_id ?? "");
   const [dueDate, setDueDate] = useState<string>(task?.due_date ?? "");
@@ -55,18 +64,17 @@ export default function TaskModal({
     }
     setSaving(true);
     setError(null);
-    const payload = {
+    const base = {
       title,
       description,
       status,
       priority,
-      assignee_id: assignee || null,
       customer_id: customerId || null,
       due_date: dueDate || null,
     };
     const res = isNew
-      ? await createTask(payload)
-      : await updateTask(task!.id, payload);
+      ? await createTask({ ...base, assignee_ids: assignees.map((a) => a.id) })
+      : await updateTask(task!.id, base);
     setSaving(false);
     if (res?.error) {
       setError(res.error);
@@ -148,33 +156,27 @@ export default function TaskModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">Assignee</label>
-            <select
-              className="input"
-              value={assignee}
-              disabled={!editable || profile.role !== "head"}
-              onChange={(e) => setAssignee(e.target.value)}
-            >
-              <option value="">Unassigned</option>
-              {engineers.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.full_name || e.first_name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label">Due date</label>
-            <input
-              type="date"
-              className="input"
-              value={dueDate}
-              disabled={!editable}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
-          </div>
+        <div>
+          <label className="label">Due date</label>
+          <input
+            type="date"
+            className="input"
+            value={dueDate}
+            disabled={!editable}
+            onChange={(e) => setDueDate(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="label">Assignees</label>
+          <AssigneeSection
+            isNew={isNew}
+            taskId={task?.id}
+            profile={profile}
+            engineers={engineers}
+            assignees={assignees}
+            setAssignees={setAssignees}
+          />
         </div>
 
         <div>
@@ -238,5 +240,118 @@ export default function TaskModal({
         )}
       </div>
     </Modal>
+  );
+}
+
+function selfLite(p: Profile): AssigneeLite {
+  return { id: p.id, full_name: p.full_name, first_name: p.first_name };
+}
+
+// Assignee management. Head can toggle anyone. An engineer can claim an
+// unassigned task (add only themselves) or leave a task they're on; they can't
+// add others or change a task already assigned to other people.
+function AssigneeSection({
+  isNew,
+  taskId,
+  profile,
+  engineers,
+  assignees,
+  setAssignees,
+}: {
+  isNew: boolean;
+  taskId?: string;
+  profile: Profile;
+  engineers: Profile[];
+  assignees: AssigneeLite[];
+  setAssignees: (v: AssigneeLite[]) => void;
+}) {
+  const head = isHead(profile);
+  const ids = new Set(assignees.map((a) => a.id));
+  const amMember = ids.has(profile.id);
+  const isUnassigned = assignees.length === 0;
+
+  async function toggle(p: Profile) {
+    const lite = selfLite(p);
+    const on = ids.has(p.id);
+    const next = on
+      ? assignees.filter((a) => a.id !== p.id)
+      : [...assignees, lite];
+    setAssignees(next);
+    if (isNew) return; // saved with createTask
+    const res = on
+      ? await removeAssignee(taskId!, p.id)
+      : await addAssignee(taskId!, p.id);
+    if (res?.error) {
+      setAssignees(assignees); // revert
+      alert(res.error);
+    }
+  }
+
+  // Head: full multi-select of engineers.
+  if (head) {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {engineers.map((e) => {
+          const on = ids.has(e.id);
+          return (
+            <button
+              key={e.id}
+              type="button"
+              onClick={() => toggle(e)}
+              className={`chip cursor-pointer ${
+                on
+                  ? "bg-brand-50 text-brand-700 ring-2 ring-brand-300"
+                  : "bg-surface-soft text-ink-muted"
+              }`}
+            >
+              {e.full_name || e.first_name}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Engineer view.
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {assignees.length > 0 ? (
+          assignees.map((a) => (
+            <span key={a.id} className="chip bg-surface-soft text-ink-muted">
+              {a.full_name || a.first_name}
+            </span>
+          ))
+        ) : (
+          <span className="text-sm text-ink-faint">Unassigned</span>
+        )}
+      </div>
+      {isNew ? (
+        <label className="flex items-center gap-2 text-sm text-ink-muted">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-surface-border text-brand-600"
+            checked={amMember}
+            onChange={() => toggle(profile)}
+          />
+          Assign to me
+        </label>
+      ) : isUnassigned ? (
+        <button className="btn-ghost px-3 py-1.5 text-sm" onClick={() => toggle(profile)}>
+          Claim this task
+        </button>
+      ) : amMember ? (
+        <button
+          className="btn-ghost px-3 py-1.5 text-sm"
+          onClick={() => toggle(profile)}
+        >
+          Leave task
+        </button>
+      ) : (
+        <p className="text-xs text-ink-faint">
+          Assigned to someone else — only the head can change this.
+        </p>
+      )}
+    </div>
   );
 }

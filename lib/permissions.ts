@@ -13,14 +13,18 @@ export function canEditData(profile: Profile | null | undefined): boolean {
 }
 
 // Can the user edit this specific task? Head edits all; engineers edit tasks
-// they own (assigned to them or created by them).
+// they own (an assignee, or the creator).
 export function canEditTask(
   profile: Profile | null | undefined,
-  task: { assignee_id: string | null; created_by: string | null }
+  task: {
+    created_by: string | null;
+    assignees?: { id: string }[];
+  }
 ): boolean {
   if (!profile) return false;
   if (profile.role === "head") return true;
-  return task.assignee_id === profile.id || task.created_by === profile.id;
+  if (task.created_by === profile.id) return true;
+  return !!task.assignees?.some((a) => a.id === profile.id);
 }
 
 export function greeting(date = new Date()): string {

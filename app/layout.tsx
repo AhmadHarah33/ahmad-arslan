@@ -17,13 +17,22 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#cf3a1c",
+  themeColor: "#0284c7",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
 };
+
+// Applies the saved accent/mode from localStorage before paint (no flash).
+const themeScript = `(function(){try{
+  var el=document.documentElement;
+  var a=localStorage.getItem('theme_accent');
+  var m=localStorage.getItem('theme_mode');
+  if(a){el.setAttribute('data-accent',a);}
+  if(m&&m!=='system'){el.setAttribute('data-mode',m);}
+}catch(e){}})();`;
 
 export default function RootLayout({
   children,
@@ -32,7 +41,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {children}
+      </body>
     </html>
   );
 }

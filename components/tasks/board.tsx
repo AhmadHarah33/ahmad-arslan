@@ -326,11 +326,13 @@ function CardBody({
       {fieldDefs && fieldValues && (
         <TaskTags taskId={task.id} defs={fieldDefs} values={fieldValues} />
       )}
-      {task.assignee && (
-        <p className="mt-2 text-xs text-ink-muted">
-          {task.assignee.full_name || task.assignee.first_name}
-        </p>
-      )}
+      <p className="mt-2 text-xs text-ink-muted">
+        {task.assignees.length > 0 ? (
+          task.assignees.map((a) => a.first_name || a.full_name).join(", ")
+        ) : (
+          <span className="text-ink-faint">Unassigned</span>
+        )}
+      </p>
     </div>
   );
 }
@@ -372,11 +374,11 @@ function ListView({
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-ink">{t.title}</p>
-            {t.assignee && (
-              <p className="truncate text-xs text-ink-faint">
-                {t.assignee.full_name || t.assignee.first_name}
-              </p>
-            )}
+            <p className="truncate text-xs text-ink-faint">
+              {t.assignees.length > 0
+                ? t.assignees.map((a) => a.first_name || a.full_name).join(", ")
+                : "Unassigned"}
+            </p>
           </div>
           <div className="hidden sm:block">
             <TaskTags taskId={t.id} defs={fieldDefs} values={fieldValues} max={2} />
