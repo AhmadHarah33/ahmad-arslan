@@ -4,9 +4,32 @@ import { createClient } from "@/lib/supabase/server";
 import { greeting } from "@/lib/permissions";
 import { PriorityChip, StatusChip } from "@/components/ui";
 import type { Task } from "@/lib/types";
+import {
+  PREVIEW,
+  previewCustomers,
+  previewSpareParts,
+  previewTasks,
+} from "@/lib/preview";
 
 export default async function DashboardPage() {
   const profile = await requireProfile();
+
+  if (PREVIEW) {
+    const mine = previewTasks.filter(
+      (t) => t.assignee_id === profile.id && t.status !== "done"
+    );
+    return (
+      <DashboardContent
+        firstName={profile.first_name}
+        isHead={profile.role === "head"}
+        tasks={mine}
+        openCount={mine.length}
+        customerCount={previewCustomers.length}
+        sparePartCount={previewSpareParts.length}
+      />
+    );
+  }
+
   const supabase = createClient();
 
   const [{ data: myTasks }, customers, spareParts, openTasks] = await Promise.all([
@@ -27,8 +50,34 @@ export default async function DashboardPage() {
       .neq("status", "done"),
   ]);
 
-  const tasks = (myTasks ?? []) as Task[];
-  const name = profile.first_name || profile.full_name || "there";
+  return (
+    <DashboardContent
+      firstName={profile.first_name || profile.full_name}
+      isHead={profile.role === "head"}
+      tasks={(myTasks ?? []) as Task[]}
+      openCount={openTasks.count ?? 0}
+      customerCount={customers.count ?? 0}
+      sparePartCount={spareParts.count ?? 0}
+    />
+  );
+}
+
+function DashboardContent({
+  firstName,
+  isHead,
+  tasks,
+  openCount,
+  customerCount,
+  sparePartCount,
+}: {
+  firstName: string;
+  isHead: boolean;
+  tasks: Task[];
+  openCount: number;
+  customerCount: number;
+  sparePartCount: number;
+}) {
+  const name = firstName || "there";
 
   return (
     <div className="space-y-8">
@@ -37,7 +86,7 @@ export default async function DashboardPage() {
         <h1 className="mt-1 text-2xl font-bold text-ink md:text-3xl">
           {greeting()}, {name} 👋
         </h1>
-        {profile.role === "head" && (
+        {isHead && (
           <p className="mt-1 text-sm text-ink-muted">
             You have full access to manage the team and all data.
           </p>
@@ -97,19 +146,19 @@ export default async function DashboardPage() {
           <Tile
             href="/tasks"
             title="Tasks"
-            value={`${openTasks.count ?? 0} open`}
+            value={`${openCount} open`}
             desc="Kanban board & list"
           />
           <Tile
             href="/customers"
             title="Customers"
-            value={`${customers.count ?? 0} total`}
+            value={`${customerCount} total`}
             desc="Machines, SNs & links"
           />
           <Tile
             href="/spare-parts"
             title="Spare parts"
-            value={`${spareParts.count ?? 0} items`}
+            value={`${sparePartCount} items`}
             desc="Inventory by company"
           />
         </div>

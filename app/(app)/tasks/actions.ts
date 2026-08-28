@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { TaskPriority, TaskStatus } from "@/lib/types";
+import { PREVIEW, makePreviewTask } from "@/lib/preview";
 
 async function currentUserId() {
   const supabase = createClient();
@@ -21,6 +22,8 @@ export async function createTask(input: {
   customer_id: string | null;
   due_date: string | null;
 }) {
+  if (PREVIEW) return { ok: true, task: makePreviewTask(input) };
+
   const supabase = createClient();
   const uid = await currentUserId();
   if (!uid) return { error: "Not signed in" };
@@ -59,6 +62,8 @@ export async function updateTask(
     due_date: string | null;
   }
 ) {
+  if (PREVIEW) return { ok: true, task: { ...makePreviewTask(input), id } };
+
   const supabase = createClient();
   const { data, error } = await supabase
     .from("tasks")
@@ -83,6 +88,7 @@ export async function updateTask(
 
 // Move a card to a new status/position (used by drag-and-drop).
 export async function moveTask(id: string, status: TaskStatus, position: number) {
+  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   const { error } = await supabase
     .from("tasks")
@@ -96,6 +102,7 @@ export async function moveTask(id: string, status: TaskStatus, position: number)
 }
 
 export async function deleteTask(id: string) {
+  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   const { error } = await supabase.from("tasks").delete().eq("id", id);
   if (error) return { error: error.message };

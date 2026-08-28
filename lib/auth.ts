@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
 import type { Profile } from "./types";
+import { PREVIEW, previewProfile } from "./preview";
 
 // Returns the current user's profile, or null if not signed in.
 export async function getProfile(): Promise<Profile | null> {
+  if (PREVIEW) return previewProfile;
   const supabase = createClient();
   const {
     data: { user },

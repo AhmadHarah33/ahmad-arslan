@@ -2,9 +2,27 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import TasksBoard from "@/components/tasks/board";
 import type { Customer, Profile, Task } from "@/lib/types";
+import {
+  PREVIEW,
+  previewCustomers,
+  previewEngineers,
+  previewTasks,
+} from "@/lib/preview";
 
 export default async function TasksPage() {
   const profile = await requireProfile();
+
+  if (PREVIEW) {
+    return (
+      <TasksBoard
+        profile={profile}
+        initialTasks={previewTasks}
+        engineers={previewEngineers}
+        customers={previewCustomers.map((c) => ({ id: c.id, name: c.name }))}
+      />
+    );
+  }
+
   const supabase = createClient();
 
   const [{ data: tasks }, { data: engineers }, { data: customers }] =

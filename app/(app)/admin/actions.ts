@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getProfile } from "@/lib/auth";
 import type { UserRole } from "@/lib/types";
+import { PREVIEW } from "@/lib/preview";
 
 // Create a new user account. Head-only (verified server-side). Uses the
 // service-role admin client because auth user creation requires it.
@@ -20,6 +21,7 @@ export async function createUser(input: {
   if (!input.email.trim() || input.password.length < 6) {
     return { error: "Email and a password (6+ chars) are required" };
   }
+  if (PREVIEW) return { ok: true };
 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.createUser({
@@ -41,6 +43,7 @@ export async function updateProfile(
 ) {
   const me = await getProfile();
   if (me?.role !== "head") return { error: "Not authorized" };
+  if (PREVIEW) return { ok: true };
 
   const supabase = createClient();
   const update: Record<string, unknown> = {};

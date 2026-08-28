@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 import { isHead } from "@/lib/permissions";
+import { PREVIEW } from "@/lib/preview";
 
 const NAV = [
   { href: "/", label: "Home", icon: HomeIcon },
@@ -103,6 +104,12 @@ export default function AppShell({
             Sign out
           </button>
         </header>
+
+        {PREVIEW && (
+          <div className="bg-brand-600 px-4 py-1.5 text-center text-xs font-medium text-white">
+            Preview mode — sample data, nothing is saved
+          </div>
+        )}
 
         <main className="flex-1 px-4 pb-24 pt-4 md:px-8 md:pb-10 md:pt-8">
           <div className="mx-auto w-full max-w-5xl">{children}</div>
