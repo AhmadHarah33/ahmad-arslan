@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Profile } from "@/lib/types";
 import { isHead } from "@/lib/permissions";
 import { PREVIEW } from "@/lib/preview";
 import SettingsModal from "@/components/theme/settings-modal";
+import CommandPalette from "@/components/search/command-palette";
 import type { ThemeMode } from "@/lib/theme";
 
 const NAV = [
@@ -28,6 +29,18 @@ export default function AppShell({
   const router = useRouter();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   const nav = [...NAV];
   if (isHead(profile)) {
@@ -58,6 +71,20 @@ export default function AppShell({
             <p className="text-sm font-semibold text-ink">Mars Support</p>
             <p className="text-xs text-ink-faint">Med Dent</p>
           </div>
+        </div>
+
+        <div className="px-3 pb-2">
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="flex w-full items-center gap-2 rounded-xl border border-surface-border px-3 py-2 text-sm text-ink-faint hover:bg-surface-soft"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3-3" />
+            </svg>
+            Search
+            <span className="ml-auto text-xs">⌘K</span>
+          </button>
         </div>
 
         <nav className="flex-1 space-y-1 px-3">
@@ -112,6 +139,16 @@ export default function AppShell({
           </div>
           <div className="flex items-center gap-3">
             <button
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search"
+              className="text-ink-muted"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3-3" />
+              </svg>
+            </button>
+            <button
               onClick={() => setSettingsOpen(true)}
               aria-label="Appearance"
               className="text-ink-muted"
@@ -165,6 +202,8 @@ export default function AppShell({
           onClose={() => setSettingsOpen(false)}
         />
       )}
+
+      <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

@@ -19,6 +19,8 @@ import { canEditTask } from "@/lib/permissions";
 import { moveTask } from "@/app/(app)/tasks/actions";
 import type { FieldDefinition } from "@/lib/customFields";
 import FieldValue from "@/components/fields/FieldValue";
+import { AvatarGroup } from "@/components/avatar";
+import { DUE_STYLES, dueStatus, formatDate } from "@/lib/dates";
 import TaskModal from "./task-modal";
 
 type Engineer = Profile;
@@ -316,24 +318,28 @@ function CardBody({
     <div className="card p-3">
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <PriorityChip priority={task.priority} />
-        {task.due_date && (
-          <span className="text-xs text-ink-faint">
-            {new Date(task.due_date).toLocaleDateString()}
-          </span>
-        )}
+        <DueBadge due={task.due_date} />
       </div>
       <p className="text-sm font-medium text-ink">{task.title}</p>
       {fieldDefs && fieldValues && (
         <TaskTags taskId={task.id} defs={fieldDefs} values={fieldValues} />
       )}
-      <p className="mt-2 text-xs text-ink-muted">
-        {task.assignees.length > 0 ? (
-          task.assignees.map((a) => a.first_name || a.full_name).join(", ")
-        ) : (
-          <span className="text-ink-faint">Unassigned</span>
-        )}
-      </p>
+      <div className="mt-2.5">
+        <AvatarGroup people={task.assignees} />
+      </div>
     </div>
+  );
+}
+
+function DueBadge({ due }: { due: string | null }) {
+  if (!due) return null;
+  const st = dueStatus(due);
+  if (st === "none")
+    return <span className="text-xs text-ink-faint">{formatDate(due)}</span>;
+  return (
+    <span className={`chip ${DUE_STYLES[st]}`}>
+      {st === "overdue" ? "Overdue" : "Due soon"}
+    </span>
   );
 }
 
@@ -374,15 +380,14 @@ function ListView({
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-ink">{t.title}</p>
-            <p className="truncate text-xs text-ink-faint">
-              {t.assignees.length > 0
-                ? t.assignees.map((a) => a.first_name || a.full_name).join(", ")
-                : "Unassigned"}
-            </p>
+            <div className="mt-1">
+              <AvatarGroup people={t.assignees} size={18} />
+            </div>
           </div>
           <div className="hidden sm:block">
             <TaskTags taskId={t.id} defs={fieldDefs} values={fieldValues} max={2} />
           </div>
+          <DueBadge due={t.due_date} />
           <PriorityChip priority={t.priority} />
         </button>
       ))}

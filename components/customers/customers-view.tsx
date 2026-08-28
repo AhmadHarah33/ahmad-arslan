@@ -15,14 +15,16 @@ export default function CustomersView({
   initialCustomers,
   fieldDefs,
   fieldValues,
+  initialQuery = "",
 }: {
   profile: Profile;
   initialCustomers: Customer[];
   fieldDefs: FieldDefinition[];
   fieldValues: ValueMap;
+  initialQuery?: string;
 }) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [modal, setModal] = useState<{ open: boolean; customer: Customer | null }>(
     { open: false, customer: null }
   );

@@ -5,6 +5,7 @@ import type { Customer } from "@/lib/types";
 import { saveCustomer, deleteCustomer } from "@/app/(app)/customers/actions";
 import Modal from "@/components/modal";
 import CustomFields from "@/components/fields/CustomFields";
+import ServiceHistory from "./service-history";
 
 type LinkRow = { label: string; url: string };
 
@@ -182,6 +183,13 @@ export default function CustomerModal({
               canManage={editable}
               canEditValues={editable}
             />
+          </div>
+        )}
+
+        {!isNew && (
+          <div className="border-t border-surface-border pt-4">
+            <p className="label">Service history</p>
+            <ServiceHistory customerId={customer!.id} />
           </div>
         )}
 

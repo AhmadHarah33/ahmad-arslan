@@ -5,6 +5,8 @@ import Modal from "@/components/modal";
 import { ACCENTS, MODES, applyTheme } from "@/lib/theme";
 import type { ThemeMode } from "@/lib/theme";
 import { saveTheme } from "@/app/(app)/settings/actions";
+import { createClient } from "@/lib/supabase/client";
+import { PREVIEW } from "@/lib/preview";
 
 export default function SettingsModal({
   initialAccent,
@@ -92,7 +94,60 @@ export default function SettingsModal({
             {saving ? "Saving…" : "Save"}
           </button>
         </div>
+
+        <div className="border-t border-surface-border pt-4">
+          <PasswordChange />
+        </div>
       </div>
     </Modal>
+  );
+}
+
+function PasswordChange() {
+  const [pw, setPw] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function change() {
+    if (pw.length < 6) {
+      setMsg("Password must be at least 6 characters.");
+      return;
+    }
+    setBusy(true);
+    setMsg(null);
+    if (PREVIEW) {
+      setBusy(false);
+      setMsg("Not available in preview mode.");
+      return;
+    }
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    setBusy(false);
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+    setPw("");
+    setMsg("Password updated.");
+  }
+
+  return (
+    <div>
+      <p className="label">Change password</p>
+      <div className="flex gap-2">
+        <input
+          type="password"
+          className="input"
+          placeholder="New password"
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          autoComplete="new-password"
+        />
+        <button className="btn-ghost shrink-0" onClick={change} disabled={busy}>
+          {busy ? "…" : "Update"}
+        </button>
+      </div>
+      {msg && <p className="mt-1.5 text-xs text-ink-muted">{msg}</p>}
+    </div>
   );
 }

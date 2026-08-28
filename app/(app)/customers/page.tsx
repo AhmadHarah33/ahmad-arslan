@@ -10,8 +10,13 @@ import {
   previewFieldValues,
 } from "@/lib/preview";
 
-export default async function CustomersPage() {
+export default async function CustomersPage({
+  searchParams,
+}: {
+  searchParams: { q?: string };
+}) {
   const profile = await requireProfile();
+  const initialQuery = searchParams.q ?? "";
 
   if (PREVIEW) {
     return (
@@ -20,6 +25,7 @@ export default async function CustomersPage() {
         initialCustomers={previewCustomers}
         fieldDefs={previewFieldDefinitions.customer ?? []}
         fieldValues={previewFieldValues}
+        initialQuery={initialQuery}
       />
     );
   }
@@ -43,6 +49,7 @@ export default async function CustomersPage() {
       initialCustomers={customers}
       fieldDefs={defs}
       fieldValues={valueMap}
+      initialQuery={initialQuery}
     />
   );
 }

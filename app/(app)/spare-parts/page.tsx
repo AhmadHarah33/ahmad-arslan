@@ -4,8 +4,13 @@ import SparePartsView from "@/components/spare-parts/spare-parts-view";
 import type { Company, SparePart } from "@/lib/types";
 import { PREVIEW, previewCompanies, previewSpareParts } from "@/lib/preview";
 
-export default async function SparePartsPage() {
+export default async function SparePartsPage({
+  searchParams,
+}: {
+  searchParams: { q?: string };
+}) {
   const profile = await requireProfile();
+  const initialQuery = searchParams.q ?? "";
 
   if (PREVIEW) {
     return (
@@ -13,6 +18,7 @@ export default async function SparePartsPage() {
         profile={profile}
         companies={previewCompanies}
         parts={previewSpareParts}
+        initialQuery={initialQuery}
       />
     );
   }
@@ -32,6 +38,7 @@ export default async function SparePartsPage() {
       profile={profile}
       companies={(companies ?? []) as Company[]}
       parts={(parts ?? []) as SparePart[]}
+      initialQuery={initialQuery}
     />
   );
 }

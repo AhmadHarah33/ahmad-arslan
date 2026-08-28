@@ -100,9 +100,22 @@ from (values
   ('customer', 'Warranty', 'select',
     '[{"id":"o_in","label":"IN","color":"green"},
       {"id":"o_out","label":"OUT","color":"red"}]', 3.0),
-  ('customer', 'Service History', 'files', '[]', 4.0)
+  ('customer', 'Service History', 'files', '[]', 4.0),
+  ('customer', 'Warranty End', 'date', '[]', 5.0)
 ) as d(entity, label, field_type, options, position)
 where not exists (
   select 1 from public.field_definitions f
   where f.entity = d.entity::public.field_entity and f.label = d.label
+);
+
+-- Starter task templates (editors can add/remove more in-app).
+insert into public.task_templates (name, description, priority)
+select t.name, t.description, t.priority::public.task_priority
+from (values
+  ('Installation', 'New machine installation and calibration.', 'medium'),
+  ('Repair', 'On-site repair visit.', 'high'),
+  ('Preventive maintenance', 'Routine preventive maintenance checklist.', 'low')
+) as t(name, description, priority)
+where not exists (
+  select 1 from public.task_templates x where x.name = t.name
 );

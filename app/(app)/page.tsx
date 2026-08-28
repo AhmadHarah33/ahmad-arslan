@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { greeting } from "@/lib/permissions";
 import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import { PriorityChip, StatusChip } from "@/components/ui";
+import { AvatarGroup } from "@/components/avatar";
+import { DUE_STYLES, dueStatus, formatDate } from "@/lib/dates";
 import type { Task } from "@/lib/types";
 import {
   PREVIEW,
@@ -159,14 +161,26 @@ function TaskGrid({ tasks }: { tasks: Task[] }) {
           <div className="mb-2 flex items-center gap-2">
             <StatusChip status={t.status} />
             <PriorityChip priority={t.priority} />
+            {t.due_date &&
+              dueStatus(t.due_date) !== "none" &&
+              (() => {
+                const st = dueStatus(t.due_date) as "overdue" | "soon";
+                return (
+                  <span className={`chip ${DUE_STYLES[st]}`}>
+                    {st === "overdue" ? "Overdue" : "Due soon"}
+                  </span>
+                );
+              })()}
           </div>
           <p className="font-medium text-ink">{t.title}</p>
-          <p className="mt-2 text-xs text-ink-faint">
-            {t.assignees.length > 0
-              ? t.assignees.map((a) => a.first_name || a.full_name).join(", ")
-              : "Unassigned"}
-            {t.due_date && ` · Due ${new Date(t.due_date).toLocaleDateString()}`}
-          </p>
+          <div className="mt-2.5 flex items-center justify-between">
+            <AvatarGroup people={t.assignees} size={20} />
+            {t.due_date && (
+              <span className="text-xs text-ink-faint">
+                {formatDate(t.due_date)}
+              </span>
+            )}
+          </div>
         </Link>
       ))}
     </div>

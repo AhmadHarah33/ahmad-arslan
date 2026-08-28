@@ -13,14 +13,16 @@ export default function SparePartsView({
   profile,
   companies,
   parts,
+  initialQuery = "",
 }: {
   profile: Profile;
   companies: Company[];
   parts: SparePart[];
+  initialQuery?: string;
 }) {
   const router = useRouter();
   const editable = canEditData(profile);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [companyModal, setCompanyModal] = useState(false);
   const [companyName, setCompanyName] = useState("");
   const [savingCompany, setSavingCompany] = useState(false);
