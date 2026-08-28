@@ -8,6 +8,7 @@
 // -----------------------------------------------------------------------------
 
 import type { Company, Customer, Profile, SparePart, Task } from "./types";
+import type { FieldDefinition } from "./customFields";
 
 export const PREVIEW = process.env.NEXT_PUBLIC_PREVIEW === "1";
 
@@ -270,6 +271,87 @@ export const previewTasks: Task[] = [
     assignee: { id: "u-eng-1", full_name: "Omar Khaled", first_name: "Omar" },
   },
 ];
+
+// --- Custom-field sample data (mirrors the seeded preset fields) -----------
+
+export const previewFieldDefinitions: Record<string, FieldDefinition[]> = {
+  task: [
+    {
+      id: "fd-task-mudahale",
+      entity: "task",
+      label: "Müdahale şekli",
+      field_type: "select",
+      position: 1,
+      options: [
+        { id: "o_musteride", label: "müşteride", color: "amber" },
+        { id: "o_uzaktan", label: "uzaktan", color: "blue" },
+        { id: "o_serviste", label: "serviste", color: "green" },
+      ],
+    },
+    {
+      id: "fd-task-yer",
+      entity: "task",
+      label: "Yer",
+      field_type: "select",
+      position: 2,
+      options: [
+        { id: "o_istanbul", label: "İstanbul", color: "amber" },
+        { id: "o_ankara", label: "Ankara", color: "blue" },
+        { id: "o_izmir", label: "İzmir", color: "green" },
+      ],
+    },
+    {
+      id: "fd-task-makina",
+      entity: "task",
+      label: "Makina",
+      field_type: "select",
+      position: 3,
+      options: [{ id: "o_riton", label: "RITON D-150", color: "purple" }],
+    },
+    { id: "fd-task-teshis", entity: "task", label: "TEŞHİS", field_type: "text", position: 4, options: [] },
+    { id: "fd-task-cozum", entity: "task", label: "ÇÖZÜM", field_type: "text", position: 5, options: [] },
+    { id: "fd-task-rapor", entity: "task", label: "Rapor", field_type: "files", position: 6, options: [] },
+  ],
+  customer: [
+    {
+      id: "fd-cus-brand",
+      entity: "customer",
+      label: "Brand",
+      field_type: "select",
+      position: 1,
+      options: [{ id: "o_micronx", label: "MicroNX", color: "blue" }],
+    },
+    { id: "fd-cus-install", entity: "customer", label: "Installation Date", field_type: "date", position: 2, options: [] },
+    {
+      id: "fd-cus-warranty",
+      entity: "customer",
+      label: "Warranty",
+      field_type: "select",
+      position: 3,
+      options: [
+        { id: "o_in", label: "IN", color: "green" },
+        { id: "o_out", label: "OUT", color: "red" },
+      ],
+    },
+    { id: "fd-cus-service", entity: "customer", label: "Service History", field_type: "files", position: 4, options: [] },
+  ],
+  spare_part: [],
+};
+
+// record_id -> { field_id -> value }
+export const previewFieldValues: Record<string, Record<string, unknown>> = {
+  "t-1": {
+    "fd-task-mudahale": "o_musteride",
+    "fd-task-yer": "o_istanbul",
+    "fd-task-makina": "o_riton",
+    "fd-task-teshis": "Hidrolik pompa arızası tespit edildi.",
+  },
+  "cus-1": {
+    "fd-cus-brand": "o_micronx",
+    "fd-cus-install": "2025-02-10",
+    "fd-cus-warranty": "o_in",
+  },
+};
 
 // Build a mock task from create-form input so the board updates locally in
 // preview mode without a backend.

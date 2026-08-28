@@ -67,3 +67,42 @@ insert into public.companies (name)
 select v.name
 from (values ('Sirona'), ('Planmeca'), ('KaVo'), ('W&H'), ('NSK')) as v(name)
 where not exists (select 1 from public.companies c where c.name = v.name);
+
+-- ---------------------------------------------------------------------------
+-- Preset custom fields (matches the team's Notion setup). These are ordinary
+-- field_definitions rows, so they behave exactly like fields added via the
+-- "+ Add a property" button — editors can rename, reorder, or remove them.
+-- Built-ins already cover: tasks -> Status/Assignee/Due/Priority/Customer;
+-- customers -> Name/City(location)/Model(machine)/SN(serial_number).
+-- ---------------------------------------------------------------------------
+insert into public.field_definitions (entity, label, field_type, options, position)
+select d.entity::public.field_entity, d.label, d.field_type::public.field_type,
+       d.options::jsonb, d.position
+from (values
+  -- Tasks / report card
+  ('task', 'Müdahale şekli', 'select',
+    '[{"id":"o_musteride","label":"müşteride","color":"amber"},
+      {"id":"o_uzaktan","label":"uzaktan","color":"blue"},
+      {"id":"o_serviste","label":"serviste","color":"green"}]', 1.0),
+  ('task', 'Yer', 'select',
+    '[{"id":"o_istanbul","label":"İstanbul","color":"amber"},
+      {"id":"o_ankara","label":"Ankara","color":"blue"},
+      {"id":"o_izmir","label":"İzmir","color":"green"}]', 2.0),
+  ('task', 'Makina', 'select',
+    '[{"id":"o_riton","label":"RITON D-150","color":"purple"}]', 3.0),
+  ('task', 'TEŞHİS', 'text', '[]', 4.0),
+  ('task', 'ÇÖZÜM', 'text', '[]', 5.0),
+  ('task', 'Rapor', 'files', '[]', 6.0),
+  -- Customers
+  ('customer', 'Brand', 'select',
+    '[{"id":"o_micronx","label":"MicroNX","color":"blue"}]', 1.0),
+  ('customer', 'Installation Date', 'date', '[]', 2.0),
+  ('customer', 'Warranty', 'select',
+    '[{"id":"o_in","label":"IN","color":"green"},
+      {"id":"o_out","label":"OUT","color":"red"}]', 3.0),
+  ('customer', 'Service History', 'files', '[]', 4.0)
+) as d(entity, label, field_type, options, position)
+where not exists (
+  select 1 from public.field_definitions f
+  where f.entity = d.entity::public.field_entity and f.label = d.label
+);

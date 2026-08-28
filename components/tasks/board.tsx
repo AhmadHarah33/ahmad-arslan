@@ -17,21 +17,53 @@ import { TASK_STATUSES } from "@/lib/types";
 import type { Customer, Profile, Task, TaskStatus } from "@/lib/types";
 import { canEditTask } from "@/lib/permissions";
 import { moveTask } from "@/app/(app)/tasks/actions";
+import type { FieldDefinition } from "@/lib/customFields";
+import FieldValue from "@/components/fields/FieldValue";
 import TaskModal from "./task-modal";
 
 type Engineer = Profile;
 type CustomerLite = Pick<Customer, "id" | "name">;
+type ValueMap = Record<string, Record<string, unknown>>;
+
+// Render up to `max` tag-style custom fields (select/multi-select) as chips.
+function TaskTags({
+  taskId,
+  defs,
+  values,
+  max = 3,
+}: {
+  taskId: string;
+  defs: FieldDefinition[];
+  values: ValueMap;
+  max?: number;
+}) {
+  const recVals = values[taskId];
+  if (!recVals) return null;
+  const tagDefs = defs.filter(
+    (d) => d.field_type === "select" || d.field_type === "multi_select"
+  );
+  const chips = tagDefs
+    .filter((d) => recVals[d.id] != null && recVals[d.id] !== "")
+    .slice(0, max)
+    .map((d) => <FieldValue key={d.id} def={d} value={recVals[d.id]} />);
+  if (chips.length === 0) return null;
+  return <div className="mt-2 flex flex-wrap gap-1">{chips}</div>;
+}
 
 export default function TasksBoard({
   profile,
   initialTasks,
   engineers,
   customers,
+  fieldDefs,
+  fieldValues,
 }: {
   profile: Profile;
   initialTasks: Task[];
   engineers: Engineer[];
   customers: CustomerLite[];
+  fieldDefs: FieldDefinition[];
+  fieldValues: ValueMap;
 }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [view, setView] = useState<"board" | "list">("board");
@@ -151,6 +183,8 @@ export default function TasksBoard({
                 label={col.label}
                 tasks={byStatus[col.key]}
                 profile={profile}
+                fieldDefs={fieldDefs}
+                fieldValues={fieldValues}
                 onOpen={(task) => setModal({ open: true, task })}
               />
             ))}
@@ -162,6 +196,8 @@ export default function TasksBoard({
       ) : (
         <ListView
           tasks={tasks}
+          fieldDefs={fieldDefs}
+          fieldValues={fieldValues}
           onOpen={(task) => setModal({ open: true, task })}
         />
       )}
@@ -192,12 +228,16 @@ function Column({
   label,
   tasks,
   profile,
+  fieldDefs,
+  fieldValues,
   onOpen,
 }: {
   status: TaskStatus;
   label: string;
   tasks: Task[];
   profile: Profile;
+  fieldDefs: FieldDefinition[];
+  fieldValues: ValueMap;
   onOpen: (t: Task) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
@@ -218,6 +258,8 @@ function Column({
             key={t.id}
             task={t}
             draggable={canEditTask(profile, t)}
+            fieldDefs={fieldDefs}
+            fieldValues={fieldValues}
             onOpen={onOpen}
           />
         ))}
@@ -234,10 +276,14 @@ function Column({
 function DraggableCard({
   task,
   draggable,
+  fieldDefs,
+  fieldValues,
   onOpen,
 }: {
   task: Task;
   draggable: boolean;
+  fieldDefs: FieldDefinition[];
+  fieldValues: ValueMap;
   onOpen: (t: Task) => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -252,12 +298,20 @@ function DraggableCard({
       onClick={() => onOpen(task)}
       className={`cursor-pointer ${isDragging ? "opacity-40" : ""}`}
     >
-      <CardBody task={task} />
+      <CardBody task={task} fieldDefs={fieldDefs} fieldValues={fieldValues} />
     </div>
   );
 }
 
-function CardBody({ task }: { task: Task }) {
+function CardBody({
+  task,
+  fieldDefs,
+  fieldValues,
+}: {
+  task: Task;
+  fieldDefs?: FieldDefinition[];
+  fieldValues?: ValueMap;
+}) {
   return (
     <div className="card p-3">
       <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -269,6 +323,9 @@ function CardBody({ task }: { task: Task }) {
         )}
       </div>
       <p className="text-sm font-medium text-ink">{task.title}</p>
+      {fieldDefs && fieldValues && (
+        <TaskTags taskId={task.id} defs={fieldDefs} values={fieldValues} />
+      )}
       {task.assignee && (
         <p className="mt-2 text-xs text-ink-muted">
           {task.assignee.full_name || task.assignee.first_name}
@@ -280,9 +337,13 @@ function CardBody({ task }: { task: Task }) {
 
 function ListView({
   tasks,
+  fieldDefs,
+  fieldValues,
   onOpen,
 }: {
   tasks: Task[];
+  fieldDefs: FieldDefinition[];
+  fieldValues: ValueMap;
   onOpen: (t: Task) => void;
 }) {
   if (tasks.length === 0) {
@@ -316,6 +377,9 @@ function ListView({
                 {t.assignee.full_name || t.assignee.first_name}
               </p>
             )}
+          </div>
+          <div className="hidden sm:block">
+            <TaskTags taskId={t.id} defs={fieldDefs} values={fieldValues} max={2} />
           </div>
           <PriorityChip priority={t.priority} />
         </button>

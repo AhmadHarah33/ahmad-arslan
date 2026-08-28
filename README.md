@@ -25,6 +25,11 @@ Docker.
 - 📦 **Spare parts** — inventory grouped by vendor company, with uploaded photos.
 - ✅ **Tasks** — drag-and-drop Kanban (To do / In progress / Done) with a list-view
   toggle, assigned per engineer.
+- 🧩 **Custom properties** — a Notion-style **"+ Add a property"** on every card
+  (Tasks, Customers, Spare parts) with a small set of field types (text, number,
+  date, select, multi-select, checkbox, URL, files). Fields are database-wide, and
+  the team's real fields (Müdahale şekli, Yer, Makina, TEŞHİS, ÇÖZÜM, Rapor;
+  Brand, Warranty, …) come pre-built. Tag-style fields also show as chips on cards.
 
 ## Tech stack
 

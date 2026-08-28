@@ -12,6 +12,7 @@ import {
   saveSparePart,
 } from "@/app/(app)/spare-parts/actions";
 import Modal from "@/components/modal";
+import CustomFields from "@/components/fields/CustomFields";
 
 export default function PartModal({
   editable,
@@ -211,6 +212,18 @@ export default function PartModal({
             </p>
           )}
         </div>
+
+        {!isNew && (
+          <div className="border-t border-surface-border pt-4">
+            <p className="label">Properties</p>
+            <CustomFields
+              entity="spare_part"
+              recordId={part!.id}
+              canManage={editable}
+              canEditValues={editable}
+            />
+          </div>
+        )}
 
         {error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">

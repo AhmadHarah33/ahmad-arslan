@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Customer } from "@/lib/types";
 import { saveCustomer, deleteCustomer } from "@/app/(app)/customers/actions";
 import Modal from "@/components/modal";
+import CustomFields from "@/components/fields/CustomFields";
 
 type LinkRow = { label: string; url: string };
 
@@ -85,7 +86,7 @@ export default function CustomerModal({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Location</label>
+            <label className="label">City</label>
             <input
               className="input"
               value={location}
@@ -94,7 +95,7 @@ export default function CustomerModal({
             />
           </div>
           <div>
-            <label className="label">Machine</label>
+            <label className="label">Model</label>
             <input
               className="input"
               value={machine}
@@ -104,7 +105,7 @@ export default function CustomerModal({
           </div>
         </div>
         <div>
-          <label className="label">Serial number (SN)</label>
+          <label className="label">SN</label>
           <input
             className="input"
             value={serial}
@@ -171,6 +172,18 @@ export default function CustomerModal({
             )}
           </div>
         </div>
+
+        {!isNew && (
+          <div className="border-t border-surface-border pt-4">
+            <p className="label">Properties</p>
+            <CustomFields
+              entity="customer"
+              recordId={customer!.id}
+              canManage={editable}
+              canEditValues={editable}
+            />
+          </div>
+        )}
 
         {error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">

@@ -1,11 +1,14 @@
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { loadFields } from "@/lib/fields.server";
 import TasksBoard from "@/components/tasks/board";
 import type { Customer, Profile, Task } from "@/lib/types";
 import {
   PREVIEW,
   previewCustomers,
   previewEngineers,
+  previewFieldDefinitions,
+  previewFieldValues,
   previewTasks,
 } from "@/lib/preview";
 
@@ -19,6 +22,8 @@ export default async function TasksPage() {
         initialTasks={previewTasks}
         engineers={previewEngineers}
         customers={previewCustomers.map((c) => ({ id: c.id, name: c.name }))}
+        fieldDefs={previewFieldDefinitions.task ?? []}
+        fieldValues={previewFieldValues}
       />
     );
   }
@@ -35,12 +40,20 @@ export default async function TasksPage() {
       supabase.from("customers").select("id, name").order("name"),
     ]);
 
+  const taskList = (tasks ?? []) as Task[];
+  const { defs, valueMap } = await loadFields(
+    "task",
+    taskList.map((t) => t.id)
+  );
+
   return (
     <TasksBoard
       profile={profile}
-      initialTasks={(tasks ?? []) as Task[]}
+      initialTasks={taskList}
       engineers={(engineers ?? []) as Profile[]}
       customers={(customers ?? []) as Pick<Customer, "id" | "name">[]}
+      fieldDefs={defs}
+      fieldValues={valueMap}
     />
   );
 }
