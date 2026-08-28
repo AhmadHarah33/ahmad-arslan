@@ -110,6 +110,22 @@ restarts.
 
 ---
 
+## Deploy to Vercel (UI preview)
+
+This branch ships a **preview/demo mode** for reviewing the UI with no backend.
+`vercel.json` sets `NEXT_PUBLIC_PREVIEW=1` at build time, so a Vercel deployment
+of this branch:
+
+- skips login and fills every screen with sample data,
+- shows a "Preview mode — sample data" banner,
+- persists nothing (all writes are no-ops).
+
+Just import the repo in Vercel (Next.js is auto-detected — no env vars needed) and
+deploy. Pushes to this branch auto-rebuild.
+
+> For a **real** deployment (login + saving), remove `vercel.json` (or set the flag
+> to `0`) and add the Supabase env vars from `.env.example`.
+
 ## Project structure
 
 ```
