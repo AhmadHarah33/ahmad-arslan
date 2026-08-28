@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-surface-soft text-ink antialiased;
+  /* Respect iOS safe areas when installed to the home screen. */
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Reusable component classes for a consistent, clean design system. */
+@layer components {
+  .card {
+    @apply rounded-2xl border border-surface-border bg-surface shadow-card;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+      text-sm font-medium transition active:scale-[0.98] disabled:opacity-50
+      disabled:pointer-events-none;
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-600 text-white hover:bg-brand-700;
+  }
+
+  .btn-ghost {
+    @apply btn border border-surface-border bg-surface text-ink hover:bg-surface-soft;
+  }
+
+  .btn-danger {
+    @apply btn border border-red-200 bg-red-50 text-red-700 hover:bg-red-100;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-surface-border bg-surface px-3.5 py-2.5
+      text-sm text-ink placeholder:text-ink-faint outline-none
+      focus:border-brand-400 focus:ring-2 focus:ring-brand-100;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-muted;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+}
+
+/* Hide scrollbars on the horizontal kanban board while keeping it scrollable. */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
