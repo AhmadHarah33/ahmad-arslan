@@ -7,6 +7,7 @@ import { canEditData } from "@/lib/permissions";
 import { photoUrl } from "@/lib/storage";
 import { saveCompany } from "@/app/(app)/spare-parts/actions";
 import Modal from "@/components/modal";
+import ImportExport from "@/components/data/import-export";
 import PartModal from "./part-modal";
 
 export default function SparePartsView({
@@ -71,11 +72,25 @@ export default function SparePartsView({
             {parts.length} items · {companies.length} companies
           </p>
         </div>
-        {editable && (
-          <button className="btn-ghost" onClick={() => setCompanyModal(true)}>
-            + Company
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {editable && (
+            <ImportExport
+              kind="parts"
+              columns={["company", "name", "part_number", "quantity"]}
+              exportRows={parts.map((p) => ({
+                company: companies.find((c) => c.id === p.company_id)?.name ?? "",
+                name: p.name,
+                part_number: p.part_number,
+                quantity: p.quantity,
+              }))}
+            />
+          )}
+          {editable && (
+            <button className="btn-ghost" onClick={() => setCompanyModal(true)}>
+              + Company
+            </button>
+          )}
+        </div>
       </div>
 
       <input

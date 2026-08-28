@@ -6,6 +6,8 @@ import { canEditData } from "@/lib/permissions";
 import { useRouter } from "next/navigation";
 import type { FieldDefinition } from "@/lib/customFields";
 import FieldValue from "@/components/fields/FieldValue";
+import ImportExport from "@/components/data/import-export";
+import { dueStatus, formatDate } from "@/lib/dates";
 import CustomerModal from "./customer-modal";
 
 type ValueMap = Record<string, Record<string, unknown>>;
@@ -80,6 +82,43 @@ export default function CustomersView({
     return ordered;
   }, [filtered, brandDef, fieldValues]);
 
+  function brandLabel(c: Customer): string {
+    if (!brandDef) return "";
+    const v = fieldValues[c.id]?.[brandDef.id];
+    const opt = brandDef.options.find((o) => o.id === v);
+    return opt?.label ?? "";
+  }
+
+  const exportRows = initialCustomers.map((c) => ({
+    name: c.name,
+    city: c.location,
+    model: c.machine,
+    sn: c.serial_number,
+    brand: brandLabel(c),
+  }));
+
+  // Expiring warranties: customers whose "Warranty End" date is within 30 days.
+  const warrantyDef = useMemo(
+    () =>
+      fieldDefs.find(
+        (d) => d.field_type === "date" && d.label.trim().toLowerCase() === "warranty end"
+      ),
+    [fieldDefs]
+  );
+  const expiring = useMemo(() => {
+    if (!warrantyDef) return [] as { c: Customer; date: string }[];
+    const soon = Date.now() + 30 * 86400000;
+    return initialCustomers
+      .map((c) => ({ c, date: fieldValues[c.id]?.[warrantyDef.id] as string }))
+      .filter(
+        (x) =>
+          x.date &&
+          new Date(`${x.date}T00:00:00`).getTime() <= soon &&
+          dueStatus(x.date) !== "overdue"
+      )
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [initialCustomers, warrantyDef, fieldValues]);
+
   const renderCard = (c: Customer) => (
     <button
       key={c.id}
@@ -113,15 +152,43 @@ export default function CustomersView({
             {initialCustomers.length} total
           </p>
         </div>
-        {editable && (
-          <button
-            className="btn-primary"
-            onClick={() => setModal({ open: true, customer: null })}
-          >
-            + New
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {editable && (
+            <ImportExport
+              kind="customers"
+              columns={["name", "city", "model", "sn", "brand"]}
+              exportRows={exportRows}
+            />
+          )}
+          {editable && (
+            <button
+              className="btn-primary"
+              onClick={() => setModal({ open: true, customer: null })}
+            >
+              + New
+            </button>
+          )}
+        </div>
       </div>
+
+      {expiring.length > 0 && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-semibold text-amber-800">
+            Warranties expiring soon
+          </p>
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-amber-700">
+            {expiring.slice(0, 8).map(({ c, date }) => (
+              <button
+                key={c.id}
+                onClick={() => setModal({ open: true, customer: c })}
+                className="underline-offset-2 hover:underline"
+              >
+                {c.name} · {formatDate(date)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <input
         className="input mb-4"
