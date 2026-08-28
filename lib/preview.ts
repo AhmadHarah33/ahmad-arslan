@@ -365,6 +365,11 @@ export const previewFieldValues: Record<string, Record<string, unknown>> = {
   },
 };
 
+// Spread created dates across recent months so the dashboard chart shows data.
+previewTasks.forEach((t, i) => {
+  t.created_at = new Date(Date.now() - i * 27 * 86400000).toISOString();
+});
+
 export const previewTemplates: TaskTemplate[] = [
   { id: "tpl-install", name: "Installation", description: "New machine installation and calibration.", priority: "medium", field_values: {} },
   { id: "tpl-repair", name: "Repair", description: "On-site repair visit.", priority: "high", field_values: {} },

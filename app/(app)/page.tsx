@@ -5,7 +5,7 @@ import { greeting } from "@/lib/permissions";
 import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import { PriorityChip, StatusChip } from "@/components/ui";
 import { AvatarGroup } from "@/components/avatar";
-import { StatTile, ProgressRow } from "@/components/charts";
+import { StatTile, ProgressRow, Donut, MonthBars } from "@/components/charts";
 import { DUE_STYLES, dueStatus, formatDate } from "@/lib/dates";
 import type { Profile, SparePart, Task } from "@/lib/types";
 import {
@@ -83,33 +83,129 @@ export default async function DashboardPage() {
         return [{ name: "My completion", done: mine.filter((t) => t.status === "done").length, total: mine.length }];
       })();
 
+  const Header = (
+    <div>
+      <p className="text-sm text-ink-muted">{today()}</p>
+      <h1 className="mt-1 text-2xl font-bold text-ink md:text-3xl">
+        {greeting()}, {profile.first_name || profile.full_name || "there"} 👋
+      </h1>
+    </div>
+  );
+
+  const statTiles = (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatTile label="Open tasks" value={open.length} />
+      <StatTile label="Overdue" value={overdue.length} tone={overdue.length ? "danger" : "default"} />
+      <StatTile label="Done this week" value={doneThisWeek.length} tone="good" />
+      <StatTile label="Low stock" value={lowStock.length} tone={lowStock.length ? "warn" : "default"} />
+    </div>
+  );
+
+  // ---- Head: compact card dashboard --------------------------------------
+  if (head) {
+    const statusSegments = [
+      { label: "To do", value: allTasks.filter((t) => t.status === "todo").length, color: "#94a3b8" },
+      { label: "In progress", value: allTasks.filter((t) => t.status === "in_progress").length, color: "rgb(var(--brand-500))" },
+      { label: "Done", value: allTasks.filter((t) => t.status === "done").length, color: "#10b981" },
+      { label: "Overdue", value: overdue.length, color: "#ef4444" },
+    ];
+    const months = lastMonths(allTasks);
+    const unassigned = open.filter((t) => t.assignees.length === 0);
+
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          {Header}
+          <Link href="/tasks" className="text-sm font-medium text-brand-600">
+            View board →
+          </Link>
+        </div>
+
+        {statTiles}
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <Card title="Cases by status">
+            <Donut segments={statusSegments} />
+          </Card>
+
+          <Card title="Cases over the year" className="xl:col-span-2">
+            <MonthBars data={months} />
+          </Card>
+
+          <Card title="Engineers leaderboard">
+            {progress.length === 0 ? (
+              <p className="text-sm text-ink-faint">No assigned tasks yet.</p>
+            ) : (
+              <ol className="space-y-3">
+                {progress.slice(0, 6).map((r, i) => (
+                  <li key={r.name} className="flex items-center gap-3">
+                    <span className="w-4 shrink-0 text-sm font-semibold text-ink-faint">{i + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <ProgressRow label={r.name} done={r.done} total={r.total} />
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Card>
+
+          <Card title={`Unassigned (${unassigned.length})`}>
+            {unassigned.length === 0 ? (
+              <p className="text-sm text-ink-faint">Everything is assigned. 🎉</p>
+            ) : (
+              <ul className="max-h-56 space-y-1.5 overflow-y-auto">
+                {unassigned.map((t) => (
+                  <li key={t.id}>
+                    <Link href="/tasks" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-surface-soft">
+                      <StatusChip status={t.status} />
+                      <span className="min-w-0 flex-1 truncate text-sm text-ink">{t.title}</span>
+                      {t.due_date && dueStatus(t.due_date) !== "none" && (
+                        <span className={`chip ${DUE_STYLES[dueStatus(t.due_date) as "overdue" | "soon"]}`}>
+                          {dueStatus(t.due_date) === "overdue" ? "Overdue" : "Soon"}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title={`Low stock (${lowStock.length})`}>
+            {lowStock.length === 0 ? (
+              <p className="text-sm text-ink-faint">All parts above threshold.</p>
+            ) : (
+              <ul className="max-h-56 space-y-1.5 overflow-y-auto">
+                {lowStock.map((p) => (
+                  <li key={p.id} className="flex items-center justify-between px-2 py-1">
+                    <span className="min-w-0 truncate text-sm text-ink">{p.name}</span>
+                    <span className="chip shrink-0 bg-amber-50 text-amber-700">{p.quantity} / {p.min_quantity}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Tile href="/tasks" title="Tasks" value={`${open.length} open`} desc="Kanban board & list" />
+          <Tile href="/customers" title="Customers" value={`${customerCount} total`} desc="By brand & machine" />
+          <Tile href="/spare-parts" title="Spare parts" value={`${sparePartCount} items`} desc="Inventory by company" />
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Engineer: simple focused list -------------------------------------
   return (
     <div className="space-y-8">
-      <div>
-        <p className="text-sm text-ink-muted">{today()}</p>
-        <h1 className="mt-1 text-2xl font-bold text-ink md:text-3xl">
-          {greeting()}, {profile.first_name || profile.full_name || "there"} 👋
-        </h1>
-        {head && (
-          <p className="mt-1 text-sm text-ink-muted">
-            Here&apos;s everyone&apos;s open work and who&apos;s responsible.
-          </p>
-        )}
-      </div>
+      {Header}
+      {statTiles}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile label="Open tasks" value={open.length} />
-        <StatTile label="Overdue" value={overdue.length} tone={overdue.length ? "danger" : "default"} />
-        <StatTile label="Done this week" value={doneThisWeek.length} tone="good" />
-        <StatTile label="Low stock" value={lowStock.length} tone={lowStock.length ? "warn" : "default"} />
-      </div>
-
-      {/* Progress */}
       {progress.length > 0 && (
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-muted">
-            {head ? "Completion by engineer" : "Your progress"}
+            Your progress
           </h2>
           <div className="card space-y-3 p-4">
             {progress.map((r) => (
@@ -119,99 +215,62 @@ export default async function DashboardPage() {
         </section>
       )}
 
-      {/* Task list */}
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
-            {head ? "Team tasks" : "My tasks & unassigned"}
+            My tasks & unassigned
           </h2>
           <Link href="/tasks" className="text-sm font-medium text-brand-600">
             View board →
           </Link>
         </div>
-
         {visible.length === 0 ? (
           <div className="card px-5 py-8 text-center text-sm text-ink-faint">
-            {head ? "No open tasks right now. 🎉" : "Nothing assigned to you and nothing unassigned. 🎉"}
+            Nothing assigned to you and nothing unassigned. 🎉
           </div>
-        ) : head ? (
-          <HeadGroups tasks={visible} />
         ) : (
           <TaskGrid tasks={visible} />
         )}
-      </section>
-
-      {/* Low-stock widget (head) */}
-      {head && lowStock.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-muted">
-            Low stock
-          </h2>
-          <div className="card divide-y divide-surface-border overflow-hidden">
-            {lowStock.map((p) => (
-              <div key={p.id} className="flex items-center justify-between px-4 py-2.5">
-                <span className="text-sm text-ink">{p.name}</span>
-                <span className="chip bg-amber-50 text-amber-700">
-                  {p.quantity} left · min {p.min_quantity}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Quick access */}
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-muted">
-          Quick access
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Tile href="/tasks" title="Tasks" value={`${open.length} open`} desc="Kanban board & list" />
-          <Tile href="/customers" title="Customers" value={`${customerCount} total`} desc="By brand, machines & links" />
-          <Tile href="/spare-parts" title="Spare parts" value={`${sparePartCount} items`} desc="Inventory by company" />
-        </div>
       </section>
     </div>
   );
 }
 
-function HeadGroups({ tasks }: { tasks: Task[] }) {
-  const groups = new Map<string, { name: string; tasks: Task[] }>();
-  const unassigned: Task[] = [];
-  for (const t of tasks) {
-    if (t.assignees.length === 0) {
-      unassigned.push(t);
-      continue;
-    }
-    for (const a of t.assignees) {
-      const g = groups.get(a.id) ?? { name: a.full_name || a.first_name, tasks: [] };
-      g.tasks.push(t);
-      groups.set(a.id, g);
-    }
-  }
-  const ordered = [...groups.values()].sort((a, b) => a.name.localeCompare(b.name));
+function Card({
+  title,
+  className = "",
+  children,
+}: {
+  title: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="space-y-6">
-      {ordered.map((g) => (
-        <div key={g.name}>
-          <h3 className="mb-2 text-sm font-semibold text-ink">
-            {g.name}
-            <span className="ml-2 text-xs font-normal text-ink-faint">{g.tasks.length}</span>
-          </h3>
-          <TaskGrid tasks={g.tasks} />
-        </div>
-      ))}
-      {unassigned.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-sm font-semibold text-brand-700">
-            Unassigned
-            <span className="ml-2 text-xs font-normal text-ink-faint">{unassigned.length}</span>
-          </h3>
-          <TaskGrid tasks={unassigned} />
-        </div>
-      )}
+    <div className={`card p-4 ${className}`}>
+      <h3 className="mb-3 text-sm font-semibold text-ink">{title}</h3>
+      {children}
     </div>
   );
+}
+
+// Counts of tasks created per month for the last 12 months.
+function lastMonths(tasks: Task[]) {
+  const now = new Date();
+  const out: { label: string; value: number; key: string }[] = [];
+  const M = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    out.push({ label: M[d.getMonth()], value: 0, key: `${d.getFullYear()}-${d.getMonth()}` });
+  }
+  const idx = new Map(out.map((o, i) => [o.key, i]));
+  for (const t of tasks) {
+    if (!t.created_at) continue;
+    const d = new Date(t.created_at);
+    const k = `${d.getFullYear()}-${d.getMonth()}`;
+    const i = idx.get(k);
+    if (i !== undefined) out[i].value++;
+  }
+  return out.map(({ label, value }) => ({ label, value }));
 }
 
 function TaskGrid({ tasks }: { tasks: Task[] }) {

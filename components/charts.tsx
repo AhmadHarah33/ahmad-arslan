@@ -56,6 +56,76 @@ export function ProgressRow({
   );
 }
 
+// Segmented donut with legend (inline SVG, no library).
+export function Donut({
+  segments,
+  size = 132,
+}: {
+  segments: { label: string; value: number; color: string }[];
+  size?: number;
+}) {
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  const r = size / 2 - 10;
+  const c = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <div className="flex items-center gap-4">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 -rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgb(var(--surface-soft))" strokeWidth={12} />
+        {segments.map((s, i) => {
+          const len = (s.value / total) * c;
+          const el = (
+            <circle
+              key={i}
+              cx={size / 2}
+              cy={size / 2}
+              r={r}
+              fill="none"
+              stroke={s.color}
+              strokeWidth={12}
+              strokeDasharray={`${len} ${c - len}`}
+              strokeDashoffset={-offset}
+              strokeLinecap="butt"
+            />
+          );
+          offset += len;
+          return el;
+        })}
+      </svg>
+      <ul className="space-y-1 text-sm">
+        {segments.map((s) => (
+          <li key={s.label} className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+            <span className="text-ink-muted">{s.label}</span>
+            <span className="ml-auto font-semibold text-ink">{s.value}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// 12-month bar chart from labeled counts (inline SVG).
+export function MonthBars({ data }: { data: { label: string; value: number }[] }) {
+  const max = Math.max(1, ...data.map((d) => d.value));
+  return (
+    <div className="flex h-32 items-end gap-1">
+      {data.map((d, i) => (
+        <div key={i} className="flex flex-1 flex-col items-center gap-1">
+          <div className="flex w-full flex-1 items-end">
+            <div
+              className="w-full rounded-t bg-brand-500"
+              style={{ height: `${(d.value / max) * 100}%`, minHeight: d.value ? 3 : 0 }}
+              title={`${d.label}: ${d.value}`}
+            />
+          </div>
+          <span className="text-[9px] text-ink-faint">{d.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // A simple horizontal count bar (e.g. workload per engineer).
 export function CountBar({
   label,
