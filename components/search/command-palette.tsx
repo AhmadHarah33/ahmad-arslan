@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Scanner from "@/components/scan/scanner";
 import {
   PREVIEW,
   previewCustomers,
@@ -30,7 +31,22 @@ export default function CommandPalette({
   const router = useRouter();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
+  const [scanning, setScanning] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const canScan =
+    typeof window !== "undefined" && "BarcodeDetector" in window;
+
+  function onScan(value: string) {
+    setScanning(false);
+    onClose();
+    try {
+      const url = new URL(value);
+      router.push(url.pathname + url.search);
+    } catch {
+      // Not a URL — treat as a search term.
+      router.push(`/customers?q=${encodeURIComponent(value)}`);
+    }
+  }
 
   useEffect(() => {
     if (open) {
@@ -83,13 +99,28 @@ export default function CommandPalette({
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-ink/40 p-4 pt-[10vh]">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
       <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl bg-surface shadow-pop">
-        <input
-          ref={inputRef}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search customers, parts, tasks…"
-          className="w-full border-b border-surface-border bg-surface px-4 py-3.5 text-sm text-ink outline-none placeholder:text-ink-faint"
-        />
+        <div className="flex items-center border-b border-surface-border">
+          <input
+            ref={inputRef}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search customers, parts, tasks…"
+            className="w-full bg-surface px-4 py-3.5 text-sm text-ink outline-none placeholder:text-ink-faint"
+          />
+          {canScan && (
+            <button
+              onClick={() => setScanning(true)}
+              className="shrink-0 px-3 text-ink-muted hover:text-ink"
+              aria-label="Scan QR"
+              title="Scan QR code"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2" />
+                <path d="M4 12h16" />
+              </svg>
+            </button>
+          )}
+        </div>
         <div className="max-h-[50vh] overflow-y-auto p-2">
           {q.trim() && hits.length === 0 && (
             <p className="px-3 py-6 text-center text-sm text-ink-faint">
@@ -130,6 +161,8 @@ export default function CommandPalette({
           )}
         </div>
       </div>
+
+      {scanning && <Scanner onResult={onScan} onClose={() => setScanning(false)} />}
     </div>
   );
 }

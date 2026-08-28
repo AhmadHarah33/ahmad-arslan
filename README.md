@@ -30,6 +30,16 @@ Docker.
   date, select, multi-select, checkbox, URL, files). Fields are database-wide, and
   the team's real fields (Müdahale şekli, Yer, Makina, TEŞHİS, ÇÖZÜM, Rapor;
   Brand, Warranty, …) come pre-built. Tag-style fields also show as chips on cards.
+- 🎨 **Per-user theme** — light-blue default accent with presets + Light/Dark/System,
+  saved to each user's profile.
+- 🔎 **Global search** (⌘K) across customers, parts, and tasks — plus **QR scan**
+  (on supported devices) to open a machine's record.
+- 📊 **Dashboard analytics** — open/overdue/done-this-week tiles, per-engineer
+  completion bars, and low-stock alerts.
+- 🧾 **Service report PDF** — print/save any task as a branded report.
+- 💬 **Comments** per task, **task templates**, **parts-used** consumption that
+  decrements inventory, **preventive-maintenance** schedules, **expiring-warranty**
+  alerts, **CSV import/export**, an **audit trail** (head), and per-machine **QR codes**.
 
 ## Tech stack
 
@@ -153,6 +163,22 @@ supabase/
   seed.sql            First Head account + starter companies
   config.toml         Local Supabase config
 ```
+
+## Operations
+
+- **CSV import/export** — on the Customers and Spare parts pages (Import / Export).
+  - Customers CSV columns: `name, city, model, sn, brand`.
+  - Spare parts CSV columns: `company, name, part_number, quantity` (companies are
+    created automatically if new).
+- **Service report** — open a task → **Download report** opens `/print/task/<id>`,
+  which auto-launches the browser print dialog (Save as PDF). The company header
+  comes from `app_settings` (editable by the head).
+- **Preventive maintenance** — add a schedule on a customer; due schedules create
+  tasks automatically the next time anyone opens the dashboard
+  (`generate_due_maintenance()`).
+- **Backups** — run `scripts/backup.sh` (uses `pg_dump` against the local Supabase
+  Postgres on port 54322). Schedule it with cron for automated daily backups; see
+  the header of the script for the exact crontab line and restore command.
 
 ## Security notes
 

@@ -13,6 +13,7 @@ import {
 import type { Customer, Task } from "@/lib/types";
 import type { FieldDefinition } from "@/lib/customFields";
 import PrintTrigger from "./print-trigger";
+import QrCode, { customerQrValue } from "@/components/qr-code";
 
 const DEFAULT_COMPANY = {
   company_name: "Mars Med Dent",
@@ -81,9 +82,16 @@ export default async function TaskReport({
           {company.company_phone && <p className="text-sm">{company.company_phone}</p>}
           {company.company_address && <p className="text-sm">{company.company_address}</p>}
         </div>
-        <div className="text-right text-sm">
-          <p className="font-semibold">Service Report</p>
-          <p>{new Date(task.created_at || Date.now()).toLocaleDateString()}</p>
+        <div className="flex items-start gap-3 text-right text-sm">
+          <div>
+            <p className="font-semibold">Service Report</p>
+            <p>{new Date(task.created_at || Date.now()).toLocaleDateString()}</p>
+          </div>
+          {customer && (
+            <div className="rounded bg-white p-1">
+              <QrCode value={customerQrValue(customer.name)} size={72} />
+            </div>
+          )}
         </div>
       </header>
 

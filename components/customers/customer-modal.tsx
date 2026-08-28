@@ -7,6 +7,7 @@ import Modal from "@/components/modal";
 import CustomFields from "@/components/fields/CustomFields";
 import ServiceHistory from "./service-history";
 import Maintenance from "./maintenance";
+import QrCode, { customerQrValue } from "@/components/qr-code";
 
 type LinkRow = { label: string; url: string };
 
@@ -184,6 +185,21 @@ export default function CustomerModal({
               canManage={editable}
               canEditValues={editable}
             />
+          </div>
+        )}
+
+        {!isNew && (
+          <div className="border-t border-surface-border pt-4">
+            <p className="label">Machine QR</p>
+            <div className="flex items-center gap-4">
+              <div className="rounded-lg bg-white p-2">
+                <QrCode value={customerQrValue(name)} size={120} />
+              </div>
+              <p className="text-xs text-ink-faint">
+                Print and stick this on the unit. Scanning it opens this
+                customer in the app.
+              </p>
+            </div>
           </div>
         )}
 
