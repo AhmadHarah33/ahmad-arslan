@@ -19,7 +19,12 @@ import {
 } from "@/app/(app)/tasks/actions";
 import Modal from "@/components/modal";
 import CustomFields from "@/components/fields/CustomFields";
-import type { AssigneeLite } from "@/lib/types";
+import TaskActivity from "./task-activity";
+import TaskParts from "./task-parts";
+import { createClient } from "@/lib/supabase/client";
+import { PREVIEW, previewTemplates } from "@/lib/preview";
+import type { AssigneeLite, TaskTemplate } from "@/lib/types";
+import { useEffect } from "react";
 
 export default function TaskModal({
   profile,
@@ -56,6 +61,33 @@ export default function TaskModal({
   const [dueDate, setDueDate] = useState<string>(task?.due_date ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
+
+  useEffect(() => {
+    if (!isNew) return;
+    let active = true;
+    async function load() {
+      if (PREVIEW) {
+        setTemplates(previewTemplates);
+        return;
+      }
+      const supabase = createClient();
+      const { data } = await supabase.from("task_templates").select("*").order("name");
+      if (active) setTemplates((data ?? []) as TaskTemplate[]);
+    }
+    load();
+    return () => {
+      active = false;
+    };
+  }, [isNew]);
+
+  function applyTemplate(id: string) {
+    const t = templates.find((x) => x.id === id);
+    if (!t) return;
+    setTitle(t.name);
+    setDescription(t.description);
+    setPriority(t.priority);
+  }
 
   async function save() {
     if (!title.trim()) {
@@ -102,6 +134,24 @@ export default function TaskModal({
       onClose={onClose}
     >
       <div className="space-y-4">
+        {isNew && templates.length > 0 && (
+          <div>
+            <label className="label">Start from template</label>
+            <select
+              className="input"
+              defaultValue=""
+              onChange={(e) => applyTemplate(e.target.value)}
+            >
+              <option value="">Blank task</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div>
           <label className="label">Title</label>
           <input
@@ -205,6 +255,30 @@ export default function TaskModal({
               canManage={canEditData(profile)}
               canEditValues={editable}
             />
+          </div>
+        )}
+
+        {!isNew && (
+          <div className="border-t border-surface-border pt-4">
+            <p className="label">Parts used</p>
+            <TaskParts taskId={task!.id} editable={editable} />
+          </div>
+        )}
+
+        {!isNew && (
+          <div className="border-t border-surface-border pt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="label mb-0">Activity</p>
+              <a
+                href={`/print/task/${task!.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm font-medium text-brand-600"
+              >
+                ⭳ Download report
+              </a>
+            </div>
+            <TaskActivity taskId={task!.id} profile={profile} />
           </div>
         )}
 

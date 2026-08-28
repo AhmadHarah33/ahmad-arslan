@@ -31,6 +31,7 @@ export default function PartModal({
   const [name, setName] = useState(part?.name ?? "");
   const [partNumber, setPartNumber] = useState(part?.part_number ?? "");
   const [quantity, setQuantity] = useState<number>(part?.quantity ?? 0);
+  const [minQuantity, setMinQuantity] = useState<number>(part?.min_quantity ?? 0);
   const [notes, setNotes] = useState(part?.notes ?? "");
   const [photos, setPhotos] = useState<SparePartPhoto[]>(
     part?.spare_part_photos ?? []
@@ -52,6 +53,7 @@ export default function PartModal({
       name,
       part_number: partNumber,
       quantity: Number(quantity) || 0,
+      min_quantity: Number(minQuantity) || 0,
       notes,
     });
     if (res?.error || !res?.id) {
@@ -146,6 +148,18 @@ export default function PartModal({
               onChange={(e) => setQuantity(Number(e.target.value))}
             />
           </div>
+        </div>
+        <div>
+          <label className="label">Low-stock threshold</label>
+          <input
+            type="number"
+            min={0}
+            className="input"
+            value={minQuantity}
+            disabled={!editable}
+            onChange={(e) => setMinQuantity(Number(e.target.value))}
+            placeholder="0 = no alert"
+          />
         </div>
         <div>
           <label className="label">Notes</label>

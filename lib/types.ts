@@ -76,6 +76,14 @@ export interface Task {
   assignees: AssigneeLite[];
 }
 
+export interface TaskTemplate {
+  id: string;
+  name: string;
+  description: string;
+  priority: TaskPriority;
+  field_values: Record<string, unknown>;
+}
+
 export const TASK_STATUSES: { key: TaskStatus; label: string }[] = [
   { key: "todo", label: "To do" },
   { key: "in_progress", label: "In progress" },

@@ -6,6 +6,7 @@ import { saveCustomer, deleteCustomer } from "@/app/(app)/customers/actions";
 import Modal from "@/components/modal";
 import CustomFields from "@/components/fields/CustomFields";
 import ServiceHistory from "./service-history";
+import Maintenance from "./maintenance";
 
 type LinkRow = { label: string; url: string };
 
@@ -183,6 +184,13 @@ export default function CustomerModal({
               canManage={editable}
               canEditValues={editable}
             />
+          </div>
+        )}
+
+        {!isNew && (
+          <div className="border-t border-surface-border pt-4">
+            <p className="label">Preventive maintenance</p>
+            <Maintenance customerId={customer!.id} editable={editable} />
           </div>
         )}
 

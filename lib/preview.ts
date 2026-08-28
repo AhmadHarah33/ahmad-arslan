@@ -7,7 +7,14 @@
 // Remove the env var (or set it to 0) to use the real Supabase backend.
 // -----------------------------------------------------------------------------
 
-import type { Company, Customer, Profile, SparePart, Task } from "./types";
+import type {
+  Company,
+  Customer,
+  Profile,
+  SparePart,
+  Task,
+  TaskTemplate,
+} from "./types";
 import type { FieldDefinition } from "./customFields";
 
 export const PREVIEW = process.env.NEXT_PUBLIC_PREVIEW === "1";
@@ -357,6 +364,12 @@ export const previewFieldValues: Record<string, Record<string, unknown>> = {
     "fd-cus-warranty": "o_in",
   },
 };
+
+export const previewTemplates: TaskTemplate[] = [
+  { id: "tpl-install", name: "Installation", description: "New machine installation and calibration.", priority: "medium", field_values: {} },
+  { id: "tpl-repair", name: "Repair", description: "On-site repair visit.", priority: "high", field_values: {} },
+  { id: "tpl-maint", name: "Preventive maintenance", description: "Routine preventive maintenance checklist.", priority: "low", field_values: {} },
+];
 
 // Build a mock task from create-form input so the board updates locally in
 // preview mode without a backend.

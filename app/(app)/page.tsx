@@ -34,6 +34,12 @@ export default async function DashboardPage() {
     sparePartCount = previewSpareParts.length;
   } else {
     const supabase = createClient();
+    // Create any due preventive-maintenance tasks (idempotent; safe to call).
+    try {
+      await supabase.rpc("generate_due_maintenance");
+    } catch {
+      /* ignore — generation is best-effort */
+    }
     const [{ data: tasks }, { data: profs }, { data: sp }, customers] =
       await Promise.all([
         supabase.from("tasks").select(TASK_SELECT).order("position"),

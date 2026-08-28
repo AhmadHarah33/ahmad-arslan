@@ -147,7 +147,11 @@ export default function SparePartsView({
                       </p>
                       <div className="mt-0.5 flex items-center justify-between text-[11px] text-ink-faint">
                         {p.part_number ? <span className="truncate">#{p.part_number}</span> : <span />}
-                        <span className="shrink-0">Qty {p.quantity}</span>
+                        {(p.min_quantity ?? 0) > 0 && p.quantity <= (p.min_quantity ?? 0) ? (
+                          <span className="chip bg-amber-50 px-1.5 py-0 text-amber-700">Low · {p.quantity}</span>
+                        ) : (
+                          <span className="shrink-0">Qty {p.quantity}</span>
+                        )}
                       </div>
                     </div>
                   </button>

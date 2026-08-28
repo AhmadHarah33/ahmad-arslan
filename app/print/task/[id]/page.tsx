@@ -1,0 +1,160 @@
+import { createClient } from "@/lib/supabase/server";
+import { loadFields } from "@/lib/fields.server";
+import { TASK_SELECT, normalizeTask } from "@/lib/tasks.server";
+import { fieldFileUrl } from "@/lib/storage";
+import { formatDate } from "@/lib/dates";
+import {
+  PREVIEW,
+  previewCustomers,
+  previewFieldDefinitions,
+  previewFieldValues,
+  previewTasks,
+} from "@/lib/preview";
+import type { Customer, Task } from "@/lib/types";
+import type { FieldDefinition } from "@/lib/customFields";
+import PrintTrigger from "./print-trigger";
+
+const DEFAULT_COMPANY = {
+  company_name: "Mars Med Dent",
+  company_phone: "",
+  company_address: "",
+};
+
+export default async function TaskReport({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const id = params.id;
+
+  let task: Task | null;
+  let customer: Pick<Customer, "name" | "location" | "machine" | "serial_number"> | null = null;
+  let defs: FieldDefinition[];
+  let values: Record<string, unknown>;
+  let company = DEFAULT_COMPANY;
+
+  if (PREVIEW) {
+    task = previewTasks.find((t) => t.id === id) ?? null;
+    const c = previewCustomers.find((c) => c.id === task?.customer_id);
+    customer = c ? { name: c.name, location: c.location, machine: c.machine, serial_number: c.serial_number } : null;
+    defs = previewFieldDefinitions.task ?? [];
+    values = previewFieldValues[id] ?? {};
+  } else {
+    const supabase = createClient();
+    const [{ data: t }, { data: settings }] = await Promise.all([
+      supabase.from("tasks").select(TASK_SELECT).eq("id", id).single(),
+      supabase.from("app_settings").select("*").eq("id", 1).single(),
+    ]);
+    task = t ? normalizeTask(t) : null;
+    if (settings) company = settings as typeof DEFAULT_COMPANY;
+    if (task?.customer_id) {
+      const { data: c } = await supabase
+        .from("customers")
+        .select("name, location, machine, serial_number")
+        .eq("id", task.customer_id)
+        .single();
+      customer = (c as any) ?? null;
+    }
+    const loaded = await loadFields("task", [id]);
+    defs = loaded.defs;
+    values = loaded.valueMap[id] ?? {};
+  }
+
+  if (!task) {
+    return <main className="p-10 text-center">Task not found.</main>;
+  }
+
+  const textFields = defs.filter(
+    (d) => d.field_type === "text" && values[d.id]
+  );
+  const fileFields = defs.filter(
+    (d) => d.field_type === "files" && Array.isArray(values[d.id]) && (values[d.id] as string[]).length
+  );
+
+  return (
+    <main className="mx-auto max-w-3xl bg-white p-8 text-[#1f2430] print:p-0">
+      <PrintTrigger />
+
+      <header className="mb-6 flex items-start justify-between border-b-2 border-[#0284c7] pb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#0284c7]">{company.company_name}</h1>
+          {company.company_phone && <p className="text-sm">{company.company_phone}</p>}
+          {company.company_address && <p className="text-sm">{company.company_address}</p>}
+        </div>
+        <div className="text-right text-sm">
+          <p className="font-semibold">Service Report</p>
+          <p>{new Date(task.created_at || Date.now()).toLocaleDateString()}</p>
+        </div>
+      </header>
+
+      <h2 className="mb-3 text-lg font-bold">{task.title}</h2>
+
+      <table className="mb-5 w-full text-sm">
+        <tbody>
+          <Row label="Status" value={task.status.replace("_", " ")} />
+          <Row label="Priority" value={task.priority} />
+          <Row
+            label="Assignees"
+            value={task.assignees.map((a) => a.full_name || a.first_name).join(", ") || "—"}
+          />
+          {task.due_date && <Row label="Due" value={formatDate(task.due_date)} />}
+          {customer && <Row label="Customer" value={customer.name} />}
+          {customer?.location && <Row label="City" value={customer.location} />}
+          {customer?.machine && <Row label="Model" value={customer.machine} />}
+          {customer?.serial_number && <Row label="SN" value={customer.serial_number} />}
+        </tbody>
+      </table>
+
+      {task.description && (
+        <Section title="Description">
+          <p className="whitespace-pre-wrap text-sm">{task.description}</p>
+        </Section>
+      )}
+
+      {textFields.map((f) => (
+        <Section key={f.id} title={f.label}>
+          <p className="whitespace-pre-wrap text-sm">{String(values[f.id])}</p>
+        </Section>
+      ))}
+
+      {fileFields.map((f) => (
+        <Section key={f.id} title={f.label}>
+          <div className="flex flex-wrap gap-2">
+            {(values[f.id] as string[]).map((p, i) =>
+              /\.(png|jpe?g|gif|webp)$/i.test(p) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={i} src={fieldFileUrl(p)} alt="" className="h-32 rounded border object-cover" />
+              ) : (
+                <span key={i} className="text-xs">{p.split("/").pop()}</span>
+              )
+            )}
+          </div>
+        </Section>
+      ))}
+
+      <footer className="mt-10 border-t pt-3 text-xs text-gray-500">
+        Generated by {company.company_name} · Mars Technical Support
+      </footer>
+    </main>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <tr className="border-b border-gray-100">
+      <td className="w-32 py-1.5 pr-4 font-medium text-gray-500">{label}</td>
+      <td className="py-1.5 capitalize">{value}</td>
+    </tr>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-4">
+      <h3 className="mb-1 text-sm font-bold uppercase tracking-wide text-gray-500">
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+}

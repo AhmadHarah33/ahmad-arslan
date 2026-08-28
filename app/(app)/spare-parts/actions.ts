@@ -42,6 +42,7 @@ export async function saveSparePart(
     name: string;
     part_number: string;
     quantity: number;
+    min_quantity: number;
     notes: string;
   }
 ) {
@@ -56,6 +57,7 @@ export async function saveSparePart(
         name: input.name.trim(),
         part_number: input.part_number.trim(),
         quantity: input.quantity,
+        min_quantity: input.min_quantity,
         notes: input.notes.trim(),
       })
       .eq("id", id);
@@ -71,6 +73,7 @@ export async function saveSparePart(
       name: input.name.trim(),
       part_number: input.part_number.trim(),
       quantity: input.quantity,
+      min_quantity: input.min_quantity,
       notes: input.notes.trim(),
     })
     .select("id")
