@@ -54,6 +54,7 @@ export interface SparePart {
   name: string;
   part_number: string;
   quantity: number;
+  min_quantity?: number;
   notes: string;
   created_at: string;
   spare_part_photos?: SparePartPhoto[];
@@ -70,6 +71,7 @@ export interface Task {
   due_date: string | null;
   created_by: string | null;
   created_at: string;
+  completed_at?: string | null;
   // Multiple engineers can be assigned. Empty array = unassigned.
   assignees: AssigneeLite[];
 }

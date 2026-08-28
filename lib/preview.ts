@@ -145,6 +145,7 @@ export const previewSpareParts: SparePart[] = [
     name: "Tube head assembly",
     part_number: "PM-TH-51",
     quantity: 2,
+    min_quantity: 4,
     notes: "Low stock — reorder soon.",
     created_at: "",
     spare_part_photos: [photo("p3", "tubehead")],
@@ -165,6 +166,7 @@ export const previewSpareParts: SparePart[] = [
     name: "LED lamp module",
     part_number: "KV-LED-31",
     quantity: 5,
+    min_quantity: 6,
     notes: "For Estetica E70 chair light.",
     created_at: "",
     spare_part_photos: [photo("p5", "ledlamp")],
@@ -244,6 +246,7 @@ export const previewTasks: Task[] = [
     due_date: daysFromNow(-2),
     created_by: "u-head",
     created_at: "",
+    completed_at: new Date().toISOString(),
     assignees: [A.omar],
   },
   {
