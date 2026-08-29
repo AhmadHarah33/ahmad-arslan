@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PREVIEW, previewTasks } from "@/lib/preview";
 import { StatusChip } from "@/components/ui";
+import { SkeletonRows } from "@/components/skeleton";
 import { formatDate } from "@/lib/dates";
 
 type HistoryRow = {
@@ -49,8 +50,7 @@ export default function ServiceHistory({ customerId }: { customerId: string }) {
     };
   }, [customerId]);
 
-  if (rows === null)
-    return <p className="text-sm text-ink-faint">Loading history…</p>;
+  if (rows === null) return <SkeletonRows rows={3} />;
   if (rows.length === 0)
     return <p className="text-sm text-ink-faint">No tasks for this customer yet.</p>;
 

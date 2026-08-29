@@ -22,6 +22,7 @@ import type {
   FieldType,
 } from "@/lib/customFields";
 import { toastErr } from "@/lib/toast";
+import { SkeletonRows } from "@/components/skeleton";
 import {
   createField,
   deleteField,
@@ -104,7 +105,7 @@ export default function CustomFields({
   }
 
   if (loading) {
-    return <p className="text-sm text-ink-faint">Loading fields…</p>;
+    return <SkeletonRows rows={4} />;
   }
 
   return (
