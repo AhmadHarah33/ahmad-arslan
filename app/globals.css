@@ -231,6 +231,7 @@ body {
     box-sizing: border-box;
     -webkit-appearance: none;
     appearance: none;
+    line-height: 1.25rem;
   }
   input[type="date"]::-webkit-datetime-edit,
   input[type="time"]::-webkit-datetime-edit,
