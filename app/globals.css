@@ -217,6 +217,20 @@ body {
     color-scheme: dark;
   }
 
+  /* webkit's internal date/time edit box doesn't stretch to fill width:100%
+     on its own, leaving the field visibly narrower than a plain text input
+     of the same .input class — force it to fill the box like the rest. */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    width: 100%;
+  }
+  input[type="date"]::-webkit-datetime-edit,
+  input[type="time"]::-webkit-datetime-edit,
+  input[type="datetime-local"]::-webkit-datetime-edit {
+    width: 100%;
+  }
+
   .chip {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
   }
