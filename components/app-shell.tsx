@@ -61,8 +61,13 @@ export default function AppShell({
 
   return (
     <div className="min-h-screen md:flex">
+      {/* Ambient liquid-glass backdrop */}
+      <div className="app-bg" aria-hidden="true">
+        <span />
+      </div>
+
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-surface-border bg-surface md:flex">
+      <aside className="glass glass-strong hidden w-60 shrink-0 flex-col rounded-none md:flex">
         <div className="flex items-center gap-2.5 px-5 py-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white">
             M
@@ -130,7 +135,7 @@ export default function AppShell({
       {/* Main area */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
-        <header className="flex items-center justify-between border-b border-surface-border bg-surface px-4 py-3 md:hidden">
+        <header className="glass glass-strong sticky top-0 z-20 flex items-center justify-between rounded-none px-4 py-3 md:hidden">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-xs font-bold text-white">
               M
@@ -179,7 +184,7 @@ export default function AppShell({
       </div>
 
       {/* Mobile bottom tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-surface-border bg-surface/95 backdrop-blur md:hidden">
+      <nav className="glass glass-strong fixed inset-x-0 bottom-0 z-30 flex rounded-none md:hidden">
         {nav.map((item) => (
           <Link
             key={item.href}

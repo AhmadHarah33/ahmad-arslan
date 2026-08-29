@@ -30,7 +30,7 @@ export default function Modal({
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-2xl bg-surface shadow-pop sm:rounded-2xl">
+      <div className="glass glass-strong relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-2xl sm:rounded-2xl">
         <div className="flex items-center justify-between border-b border-surface-border px-5 py-3.5">
           <h2 className="text-base font-semibold text-ink">{title}</h2>
           <button

@@ -98,7 +98,7 @@ export default function CommandPalette({
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-ink/40 p-4 pt-[10vh]">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
-      <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl bg-surface shadow-pop">
+      <div className="glass glass-strong relative z-10 w-full max-w-lg overflow-hidden rounded-2xl">
         <div className="flex items-center border-b border-surface-border">
           <input
             ref={inputRef}
