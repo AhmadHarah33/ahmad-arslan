@@ -72,10 +72,31 @@ export default function CustomerModal({
     onSaved();
   }
 
+  const footer = editable ? (
+    <div className="flex items-center justify-between gap-2">
+      {!isNew ? (
+        <button className="btn-danger" onClick={remove} disabled={saving}>
+          Delete
+        </button>
+      ) : (
+        <span />
+      )}
+      <div className="flex gap-2">
+        <button className="btn-ghost" onClick={onClose} disabled={saving}>
+          Cancel
+        </button>
+        <button className="btn-primary" onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save"}
+        </button>
+      </div>
+    </div>
+  ) : undefined;
+
   return (
     <Modal
       title={isNew ? "New customer" : editable ? "Edit customer" : name}
       onClose={onClose}
+      footer={footer}
     >
       <div className="space-y-4">
         <div>
@@ -221,26 +242,6 @@ export default function CustomerModal({
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
-        )}
-
-        {editable && (
-          <div className="flex items-center justify-between gap-2 pt-2">
-            {!isNew ? (
-              <button className="btn-danger" onClick={remove} disabled={saving}>
-                Delete
-              </button>
-            ) : (
-              <span />
-            )}
-            <div className="flex gap-2">
-              <button className="btn-ghost" onClick={onClose} disabled={saving}>
-                Cancel
-              </button>
-              <button className="btn-primary" onClick={save} disabled={saving}>
-                {saving ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </div>
         )}
       </div>
     </Modal>

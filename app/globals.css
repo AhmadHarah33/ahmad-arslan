@@ -200,6 +200,32 @@ body {
   }
 }
 
+/* Prevent iOS Safari from auto-zooming when focusing a form field. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Bottom-sheet grab handle. */
+.sheet-handle {
+  width: 2.5rem;
+  height: 0.3rem;
+  border-radius: 9999px;
+  background: rgb(var(--ink) / 0.2);
+  margin: 0.5rem auto 0.25rem;
+}
+
+/* Horizontal snap scrolling (mobile kanban / KPI strip). */
+.snap-x {
+  scroll-snap-type: x mandatory;
+}
+.snap-start {
+  scroll-snap-align: start;
+}
+
 /* Hide scrollbars on the horizontal kanban board while keeping it scrollable. */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

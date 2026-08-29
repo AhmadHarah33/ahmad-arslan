@@ -9,6 +9,7 @@ import { isHead } from "@/lib/permissions";
 import { PREVIEW } from "@/lib/preview";
 import SettingsModal from "@/components/theme/settings-modal";
 import CommandPalette from "@/components/search/command-palette";
+import Toaster from "@/components/toaster";
 import type { ThemeMode } from "@/lib/theme";
 
 const NAV = [
@@ -209,6 +210,7 @@ export default function AppShell({
       )}
 
       <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <Toaster />
     </div>
   );
 }

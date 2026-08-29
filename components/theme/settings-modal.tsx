@@ -7,6 +7,7 @@ import type { ThemeMode } from "@/lib/theme";
 import { saveTheme } from "@/app/(app)/settings/actions";
 import { createClient } from "@/lib/supabase/client";
 import { PREVIEW } from "@/lib/preview";
+import { toastErr } from "@/lib/toast";
 
 export default function SettingsModal({
   initialAccent,
@@ -37,7 +38,7 @@ export default function SettingsModal({
     const res = await saveTheme(accent, mode);
     setSaving(false);
     if (res?.error) {
-      alert(res.error);
+      toastErr(res.error);
       return;
     }
     onClose();

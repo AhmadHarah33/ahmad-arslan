@@ -6,6 +6,7 @@ import { PREVIEW } from "@/lib/preview";
 import { Avatar } from "@/components/avatar";
 import { addComment, deleteComment } from "@/app/(app)/tasks/comment-actions";
 import type { Profile } from "@/lib/types";
+import { toastErr } from "@/lib/toast";
 
 type Comment = {
   id: string;
@@ -81,7 +82,7 @@ export default function TaskActivity({
     setBusy(true);
     const res = await addComment(taskId, body);
     setBusy(false);
-    if (res?.error) return alert(res.error);
+    if (res?.error) return toastErr(res.error);
     if (res?.comment) {
       const c: any = res.comment;
       setComments((prev) => [
@@ -101,7 +102,7 @@ export default function TaskActivity({
 
   async function remove(id: string) {
     const res = await deleteComment(id);
-    if (res?.error) return alert(res.error);
+    if (res?.error) return toastErr(res.error);
     setComments((prev) => prev.filter((c) => c.id !== id));
   }
 

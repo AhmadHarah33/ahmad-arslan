@@ -25,6 +25,7 @@ import { createClient } from "@/lib/supabase/client";
 import { PREVIEW, previewTemplates } from "@/lib/preview";
 import type { AssigneeLite, TaskTemplate } from "@/lib/types";
 import { useEffect } from "react";
+import { toastErr } from "@/lib/toast";
 
 export default function TaskModal({
   profile,
@@ -128,10 +129,35 @@ export default function TaskModal({
     onDeleted(task.id);
   }
 
+  const footer = editable ? (
+    <div className="flex items-center justify-between gap-2">
+      {!isNew ? (
+        <button className="btn-danger" onClick={remove} disabled={saving}>
+          Delete
+        </button>
+      ) : (
+        <span />
+      )}
+      <div className="flex gap-2">
+        <button className="btn-ghost" onClick={onClose} disabled={saving}>
+          Cancel
+        </button>
+        <button className="btn-primary" onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save"}
+        </button>
+      </div>
+    </div>
+  ) : (
+    <p className="text-center text-xs text-ink-faint">
+      You can only edit tasks assigned to you.
+    </p>
+  );
+
   return (
     <Modal
       title={isNew ? "New task" : editable ? "Edit task" : "Task"}
       onClose={onClose}
+      footer={footer}
     >
       <div className="space-y-4">
         {isNew && templates.length > 0 && (
@@ -287,31 +313,6 @@ export default function TaskModal({
             {error}
           </p>
         )}
-
-        {editable && (
-          <div className="flex items-center justify-between gap-2 pt-2">
-            {!isNew ? (
-              <button className="btn-danger" onClick={remove} disabled={saving}>
-                Delete
-              </button>
-            ) : (
-              <span />
-            )}
-            <div className="flex gap-2">
-              <button className="btn-ghost" onClick={onClose} disabled={saving}>
-                Cancel
-              </button>
-              <button className="btn-primary" onClick={save} disabled={saving}>
-                {saving ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </div>
-        )}
-        {!editable && (
-          <p className="pt-2 text-center text-xs text-ink-faint">
-            You can only edit tasks assigned to you.
-          </p>
-        )}
       </div>
     </Modal>
   );
@@ -357,7 +358,7 @@ function AssigneeSection({
       : await addAssignee(taskId!, p.id);
     if (res?.error) {
       setAssignees(assignees); // revert
-      alert(res.error);
+      toastErr(res.error);
     }
   }
 

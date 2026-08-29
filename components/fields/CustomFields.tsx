@@ -21,6 +21,7 @@ import type {
   FieldOption,
   FieldType,
 } from "@/lib/customFields";
+import { toastErr } from "@/lib/toast";
 import {
   createField,
   deleteField,
@@ -81,7 +82,7 @@ export default function CustomFields({
   async function saveValue(fieldId: string, value: unknown) {
     setValues((prev) => ({ ...prev, [fieldId]: value }));
     const res = await upsertFieldValue(fieldId, recordId, value);
-    if (res?.error) alert(res.error);
+    if (res?.error) toastErr(res.error);
   }
 
   async function onFieldCreated(def: FieldDefinition) {
@@ -173,7 +174,7 @@ function FieldRow({
     if (!confirm(`Delete the field "${def.label}"? Its values will be removed.`))
       return;
     const res = await deleteField(def.id);
-    if (res?.error) return alert(res.error);
+    if (res?.error) return toastErr(res.error);
     onDeleted();
   }
 
@@ -181,14 +182,14 @@ function FieldRow({
     const label = prompt("Rename field", def.label);
     if (!label || !label.trim()) return;
     const res = await updateField(def.id, { label: label.trim() });
-    if (res?.error) return alert(res.error);
+    if (res?.error) return toastErr(res.error);
     def.label = label.trim(); // local reflect
     setMenu(false);
   }
 
   return (
-    <div className="grid grid-cols-[7.5rem,1fr] items-start gap-3">
-      <div className="flex items-center gap-1 pt-1.5">
+    <div className="grid grid-cols-1 gap-1 sm:grid-cols-[7.5rem,1fr] sm:items-start sm:gap-3">
+      <div className="flex items-center gap-1 sm:pt-1.5">
         <span className="truncate text-xs font-semibold uppercase tracking-wide text-ink-muted">
           {def.label}
         </span>
@@ -390,7 +391,7 @@ function SelectInput({
     const opt = { id: newOptionId(), label, color };
     const options = [...def.options, opt];
     const res = await updateField(def.id, { options });
-    if (res?.error) return alert(res.error);
+    if (res?.error) return toastErr(res.error);
     onOptionsChanged(options);
     setNewLabel("");
     setAdding(false);
@@ -481,7 +482,7 @@ function FilesInput({
         .from(FIELD_FILES_BUCKET)
         .upload(path, file);
       if (up.error) {
-        alert(`Upload failed: ${up.error.message}`);
+        toastErr(`Upload failed: ${up.error.message}`);
         setBusy(false);
         return;
       }
@@ -585,7 +586,7 @@ function AddFieldForm({
         : [],
     });
     setSaving(false);
-    if (res?.error) return alert(res.error);
+    if (res?.error) return toastErr(res.error);
     if (res?.field) onCreated(res.field as FieldDefinition);
   }
 

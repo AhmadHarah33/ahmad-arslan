@@ -8,7 +8,9 @@ import { photoUrl } from "@/lib/storage";
 import { saveCompany } from "@/app/(app)/spare-parts/actions";
 import Modal from "@/components/modal";
 import ImportExport from "@/components/data/import-export";
+import Fab from "@/components/fab";
 import PartModal from "./part-modal";
+import { toastErr } from "@/lib/toast";
 
 export default function SparePartsView({
   profile,
@@ -55,7 +57,7 @@ export default function SparePartsView({
     const res = await saveCompany(null, companyName);
     setSavingCompany(false);
     if (res?.error) {
-      alert(res.error);
+      toastErr(res.error);
       return;
     }
     setCompanyName("");
@@ -86,12 +88,14 @@ export default function SparePartsView({
             />
           )}
           {editable && (
-            <button className="btn-ghost" onClick={() => setCompanyModal(true)}>
+            <button className="btn-ghost hidden md:inline-flex" onClick={() => setCompanyModal(true)}>
               + Company
             </button>
           )}
         </div>
       </div>
+
+      {editable && <Fab onClick={() => setCompanyModal(true)} label="New company" />}
 
       <input
         className="input mb-5"

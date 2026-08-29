@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { PREVIEW } from "@/lib/preview";
 import { formatDate } from "@/lib/dates";
 import { saveSchedule, deleteSchedule } from "@/app/(app)/customers/maintenance-actions";
+import { toastErr } from "@/lib/toast";
 
 type Schedule = {
   id: string;
@@ -66,7 +67,7 @@ export default function Maintenance({
       active: true,
     });
     setBusy(false);
-    if (res?.error) return alert(res.error);
+    if (res?.error) return toastErr(res.error);
     setRows((prev) => [
       ...prev,
       { id: `tmp-${Date.now()}`, title, interval_months: Number(interval) || 6, next_due: nextDue, active: true },
@@ -75,7 +76,7 @@ export default function Maintenance({
 
   async function remove(id: string) {
     const res = await deleteSchedule(id);
-    if (res?.error) return alert(res.error);
+    if (res?.error) return toastErr(res.error);
     setRows((prev) => prev.filter((r) => r.id !== id));
   }
 

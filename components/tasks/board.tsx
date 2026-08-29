@@ -22,6 +22,8 @@ import FieldValue from "@/components/fields/FieldValue";
 import { AvatarGroup } from "@/components/avatar";
 import { DUE_STYLES, dueStatus, formatDate } from "@/lib/dates";
 import TaskModal from "./task-modal";
+import { toastErr } from "@/lib/toast";
+import Fab from "@/components/fab";
 
 type Engineer = Profile;
 type CustomerLite = Pick<Customer, "id" | "name">;
@@ -69,6 +71,7 @@ export default function TasksBoard({
 }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [view, setView] = useState<"board" | "list">("board");
+  const [mobileCol, setMobileCol] = useState<TaskStatus>("todo");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [modal, setModal] = useState<{ open: boolean; task: Task | null }>({
     open: false,
@@ -117,7 +120,7 @@ export default function TasksBoard({
       setTasks((prev) =>
         prev.map((t) => (t.id === id ? { ...t, status: task.status } : t))
       );
-      alert(res.error);
+      toastErr(res.error);
     }
   }
 
@@ -163,7 +166,7 @@ export default function TasksBoard({
             </button>
           </div>
           <button
-            className="btn-primary"
+            className="btn-primary hidden md:inline-flex"
             onClick={() => setModal({ open: true, task: null })}
           >
             + New
@@ -171,24 +174,46 @@ export default function TasksBoard({
         </div>
       </div>
 
+      {/* Mobile column switcher */}
+      {view === "board" && (
+        <div className="mb-3 flex rounded-xl border border-surface-border bg-surface p-0.5 md:hidden">
+          {TASK_STATUSES.map((col) => (
+            <button
+              key={col.key}
+              onClick={() => setMobileCol(col.key)}
+              className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-medium ${
+                mobileCol === col.key ? "bg-brand-50 text-brand-700" : "text-ink-muted"
+              }`}
+            >
+              {col.label}
+              <span className="ml-1 text-ink-faint">{byStatus[col.key].length}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {view === "board" ? (
         <DndContext
           sensors={sensors}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
         >
-          <div className="no-scrollbar flex gap-4 overflow-x-auto pb-2">
+          <div className="no-scrollbar flex flex-col gap-4 md:flex-row md:overflow-x-auto md:pb-2">
             {TASK_STATUSES.map((col) => (
-              <Column
+              <div
                 key={col.key}
-                status={col.key}
-                label={col.label}
-                tasks={byStatus[col.key]}
-                profile={profile}
-                fieldDefs={fieldDefs}
-                fieldValues={fieldValues}
-                onOpen={(task) => setModal({ open: true, task })}
-              />
+                className={`${mobileCol === col.key ? "block" : "hidden"} md:block`}
+              >
+                <Column
+                  status={col.key}
+                  label={col.label}
+                  tasks={byStatus[col.key]}
+                  profile={profile}
+                  fieldDefs={fieldDefs}
+                  fieldValues={fieldValues}
+                  onOpen={(task) => setModal({ open: true, task })}
+                />
+              </div>
             ))}
           </div>
           <DragOverlay>
@@ -203,6 +228,8 @@ export default function TasksBoard({
           onOpen={(task) => setModal({ open: true, task })}
         />
       )}
+
+      <Fab onClick={() => setModal({ open: true, task: null })} />
 
       {modal.open && (
         <TaskModal
@@ -244,7 +271,7 @@ function Column({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   return (
-    <div className="w-72 shrink-0 md:w-80">
+    <div className="w-full shrink-0 md:w-80">
       <div className="mb-2 flex items-center justify-between px-1">
         <h3 className="text-sm font-semibold text-ink">{label}</h3>
         <span className="chip bg-surface-soft text-ink-faint">{tasks.length}</span>

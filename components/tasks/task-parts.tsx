@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PREVIEW, previewSpareParts } from "@/lib/preview";
 import { addTaskPart, removeTaskPart } from "@/app/(app)/tasks/parts-actions";
+import { toastErr } from "@/lib/toast";
 
 type UsedRow = { id: string; spare_part_id: string; name: string; quantity: number };
 type PartOption = { id: string; name: string };
@@ -60,7 +61,7 @@ export default function TaskParts({
     setBusy(true);
     const res = await addTaskPart(taskId, partId, Number(qty) || 1);
     setBusy(false);
-    if (res?.error) return alert(res.error);
+    if (res?.error) return toastErr(res.error);
     const name = parts.find((p) => p.id === partId)?.name ?? "Part";
     setUsed((prev) => [
       ...prev,
@@ -72,7 +73,7 @@ export default function TaskParts({
 
   async function remove(id: string) {
     const res = await removeTaskPart(id);
-    if (res?.error) return alert(res.error);
+    if (res?.error) return toastErr(res.error);
     setUsed((prev) => prev.filter((r) => r.id !== id));
   }
 

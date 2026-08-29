@@ -8,6 +8,7 @@ import type { FieldDefinition } from "@/lib/customFields";
 import FieldValue from "@/components/fields/FieldValue";
 import ImportExport from "@/components/data/import-export";
 import { dueStatus, formatDate } from "@/lib/dates";
+import Fab from "@/components/fab";
 import CustomerModal from "./customer-modal";
 
 type ValueMap = Record<string, Record<string, unknown>>;
@@ -162,7 +163,7 @@ export default function CustomersView({
           )}
           {editable && (
             <button
-              className="btn-primary"
+              className="btn-primary hidden md:inline-flex"
               onClick={() => setModal({ open: true, customer: null })}
             >
               + New
@@ -170,6 +171,10 @@ export default function CustomersView({
           )}
         </div>
       </div>
+
+      {editable && (
+        <Fab onClick={() => setModal({ open: true, customer: null })} />
+      )}
 
       {expiring.length > 0 && (
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
