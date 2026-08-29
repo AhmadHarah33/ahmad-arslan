@@ -226,6 +226,38 @@ body {
   scroll-snap-align: start;
 }
 
+/* --- Motion: window / overlay open animations --------------------------- */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-overlay { animation: fade-in 0.18s ease-out; }
+/* Mobile default: slide up like a sheet. Desktop: gentle pop. */
+.animate-window { animation: sheet-up 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
+@media (min-width: 640px) {
+  .animate-window { animation: pop-in 0.2s ease-out; }
+}
+.animate-toast { animation: toast-in 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
+.animate-pop { animation: pop-in 0.18s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-overlay,
+  .animate-window,
+  .animate-toast,
+  .animate-pop { animation: none; }
+}
+
 /* Hide scrollbars on the horizontal kanban board while keeping it scrollable. */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

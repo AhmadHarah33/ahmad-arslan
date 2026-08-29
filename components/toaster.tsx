@@ -37,7 +37,7 @@ export default function Toaster() {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`glass pointer-events-auto w-full max-w-sm rounded-xl border px-4 py-3 text-sm font-medium shadow-pop ${STYLES[t.type]}`}
+          className={`glass animate-toast pointer-events-auto w-full max-w-sm rounded-xl border px-4 py-3 text-sm font-medium shadow-pop ${STYLES[t.type]}`}
         >
           {t.message}
         </div>

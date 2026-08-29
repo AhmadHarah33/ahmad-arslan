@@ -63,8 +63,8 @@ export default function Scanner({
   }, [onResult]);
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-ink/80 p-4">
-      <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-surface">
+    <div className="animate-overlay fixed inset-0 z-[60] flex flex-col items-center justify-center bg-ink/80 p-4">
+      <div className="animate-pop w-full max-w-sm overflow-hidden rounded-2xl bg-surface">
         <div className="relative aspect-square bg-black">
           <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
           <div className="pointer-events-none absolute inset-8 rounded-xl border-2 border-white/70" />
