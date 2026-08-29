@@ -217,13 +217,20 @@ body {
     color-scheme: dark;
   }
 
-  /* webkit's internal date/time edit box doesn't stretch to fill width:100%
-     on its own, leaving the field visibly narrower than a plain text input
-     of the same .input class — force it to fill the box like the rest. */
+  /* Mobile webkit gives date/time inputs their own intrinsic sizing (native
+     picker chrome + min-content field widths) that ignores width:100% and
+     the box-sizing of sibling inputs, so the box renders wider than Title/
+     Description on phones. Strip the native appearance and force border-box
+     sizing so it's constrained exactly like every other .input field. */
   input[type="date"],
   input[type="time"],
   input[type="datetime-local"] {
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
   }
   input[type="date"]::-webkit-datetime-edit,
   input[type="time"]::-webkit-datetime-edit,
