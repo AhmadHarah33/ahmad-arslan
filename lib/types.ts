@@ -17,6 +17,19 @@ export interface Profile {
 
 export type AssigneeLite = Pick<Profile, "id" | "full_name" | "first_name">;
 
+export type BackgroundStyle = "solid" | "wallpaper";
+
+// Global, owner-controlled app settings (single row, id=1).
+export interface AppSettings {
+  id: number;
+  company_name: string;
+  company_phone: string;
+  company_address: string;
+  logo_url: string | null;
+  bg_style: BackgroundStyle;
+  bg_blur: number; // 0-100, only used when bg_style === "wallpaper"
+}
+
 export interface Company {
   id: string;
   name: string;

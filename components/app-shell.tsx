@@ -11,6 +11,7 @@ import SettingsModal from "@/components/theme/settings-modal";
 import CommandPalette from "@/components/search/command-palette";
 import Toaster from "@/components/toaster";
 import type { ThemeMode } from "@/lib/theme";
+import type { BackgroundStyle } from "@/lib/types";
 
 const NAV = [
   { href: "/", label: "Home", icon: HomeIcon },
@@ -21,9 +22,13 @@ const NAV = [
 
 export default function AppShell({
   profile,
+  bgStyle,
+  bgBlur,
   children,
 }: {
   profile: Profile;
+  bgStyle: BackgroundStyle;
+  bgBlur: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -180,9 +185,7 @@ export default function AppShell({
         )}
 
         <main className="flex-1 px-4 pb-24 pt-4 md:px-8 md:pb-10 md:pt-8">
-          <div key={pathname} className="page-enter mx-auto w-full max-w-5xl">
-            {children}
-          </div>
+          <div className="mx-auto w-full max-w-5xl">{children}</div>
         </main>
       </div>
 
@@ -207,6 +210,9 @@ export default function AppShell({
         <SettingsModal
           initialAccent={profile.theme_accent ?? "sky"}
           initialMode={(profile.theme_mode as ThemeMode) ?? "system"}
+          isOwner={isHead(profile)}
+          initialBgStyle={bgStyle}
+          initialBgBlur={bgBlur}
           onClose={() => setSettingsOpen(false)}
         />
       )}

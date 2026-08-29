@@ -104,32 +104,41 @@ body {
   padding-top: env(safe-area-inset-top);
 }
 
-/* Image backdrop so the frosted glass has real texture to refract. */
+/* Screen background. Default ("solid", the owner's default) is a clean flat
+   white in light mode / black in dark mode. The owner can switch to a
+   wallpaper backdrop (with an adjustable blur amount) from Appearance. */
+:root {
+  --bg-blur: 12px;
+}
 .app-bg {
   position: fixed;
   inset: 0;
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-  background-color: rgb(var(--surface-soft));
+  background-color: #ffffff;
 }
-/* The wallpaper, slightly blurred (inset negative to hide blur edges). */
-.app-bg::before {
+:root[data-mode="dark"] .app-bg {
+  background-color: #000000;
+}
+
+/* Wallpaper mode (owner opt-in): image backdrop, blurred by --bg-blur, with a
+   theme scrim so glass panels stay legible over it. */
+:root[data-bg="wallpaper"] .app-bg::before {
   content: "";
   position: absolute;
   inset: -40px;
   background: url("/bg/green-1.jpg") center / cover no-repeat;
-  filter: blur(12px) saturate(1.05);
+  filter: blur(var(--bg-blur)) saturate(1.05);
   transform: scale(1.02);
 }
-/* Theme scrim: brighter wash in light, deep green-black in dark. */
-.app-bg::after {
+:root[data-bg="wallpaper"] .app-bg::after {
   content: "";
   position: absolute;
   inset: 0;
   background: rgb(var(--surface-soft) / 0.55);
 }
-:root[data-mode="dark"] .app-bg::after {
+:root[data-bg="wallpaper"][data-mode="dark"] .app-bg::after {
   background: rgb(2 10 6 / 0.72);
 }
 
@@ -251,14 +260,12 @@ body {
 .animate-toast { animation: toast-in 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
 .animate-pop { animation: pop-in 0.18s ease-out; }
 
-/* Chart growth + page transitions + skeleton shimmer */
+/* Chart growth + skeleton shimmer */
 @keyframes grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes page-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 .animate-bar { transform-origin: bottom; animation: grow-y 0.5s cubic-bezier(0.32, 0.72, 0, 1) both; }
 .animate-barw { transform-origin: left; animation: grow-x 0.6s cubic-bezier(0.32, 0.72, 0, 1) both; }
-.page-enter { animation: page-in 0.26s ease-out; }
 .skeleton {
   background: linear-gradient(
     90deg,
@@ -277,7 +284,6 @@ body {
   .animate-pop,
   .animate-bar,
   .animate-barw,
-  .page-enter,
   .skeleton { animation: none; }
 }
 

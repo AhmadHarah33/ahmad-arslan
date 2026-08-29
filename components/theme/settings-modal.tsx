@@ -4,7 +4,9 @@ import { useState } from "react";
 import Modal from "@/components/modal";
 import { ACCENTS, MODES, applyTheme } from "@/lib/theme";
 import type { ThemeMode } from "@/lib/theme";
-import { saveTheme } from "@/app/(app)/settings/actions";
+import { applyBackground } from "@/lib/background";
+import type { BackgroundStyle } from "@/lib/types";
+import { saveTheme, saveBackground } from "@/app/(app)/settings/actions";
 import { createClient } from "@/lib/supabase/client";
 import { PREVIEW } from "@/lib/preview";
 import { toastErr } from "@/lib/toast";
@@ -12,14 +14,22 @@ import { toastErr } from "@/lib/toast";
 export default function SettingsModal({
   initialAccent,
   initialMode,
+  isOwner,
+  initialBgStyle,
+  initialBgBlur,
   onClose,
 }: {
   initialAccent: string;
   initialMode: ThemeMode;
+  isOwner: boolean;
+  initialBgStyle: BackgroundStyle;
+  initialBgBlur: number;
   onClose: () => void;
 }) {
   const [accent, setAccent] = useState(initialAccent || "sky");
   const [mode, setMode] = useState<ThemeMode>(initialMode || "system");
+  const [bgStyle, setBgStyle] = useState<BackgroundStyle>(initialBgStyle);
+  const [bgBlur, setBgBlur] = useState(initialBgBlur);
   const [saving, setSaving] = useState(false);
 
   // Live preview: apply immediately as the user clicks.
@@ -31,16 +41,34 @@ export default function SettingsModal({
     setMode(id);
     applyTheme(accent, id);
   }
+  function pickBgStyle(id: BackgroundStyle) {
+    setBgStyle(id);
+    applyBackground(id, bgBlur);
+  }
+  function pickBgBlur(v: number) {
+    setBgBlur(v);
+    applyBackground(bgStyle, v);
+  }
 
   async function save() {
     setSaving(true);
     applyTheme(accent, mode);
     const res = await saveTheme(accent, mode);
-    setSaving(false);
     if (res?.error) {
+      setSaving(false);
       toastErr(res.error);
       return;
     }
+    if (isOwner) {
+      applyBackground(bgStyle, bgBlur);
+      const bgRes = await saveBackground(bgStyle, bgBlur);
+      if (bgRes?.error) {
+        setSaving(false);
+        toastErr(bgRes.error);
+        return;
+      }
+    }
+    setSaving(false);
     onClose();
   }
 
@@ -86,6 +114,48 @@ export default function SettingsModal({
             ))}
           </div>
         </div>
+
+        {isOwner && (
+          <div className="border-t border-surface-border pt-4">
+            <p className="label">
+              Background <span className="font-normal normal-case">(applies to everyone)</span>
+            </p>
+            <div className="mb-3 flex rounded-xl border border-surface-border p-0.5">
+              <button
+                onClick={() => pickBgStyle("solid")}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${
+                  bgStyle === "solid" ? "bg-brand-50 text-brand-700" : "text-ink-muted"
+                }`}
+              >
+                Solid
+              </button>
+              <button
+                onClick={() => pickBgStyle("wallpaper")}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${
+                  bgStyle === "wallpaper" ? "bg-brand-50 text-brand-700" : "text-ink-muted"
+                }`}
+              >
+                Wallpaper
+              </button>
+            </div>
+            {bgStyle === "wallpaper" && (
+              <div>
+                <div className="mb-1 flex items-center justify-between text-xs text-ink-muted">
+                  <span>Blur</span>
+                  <span>{bgBlur}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={bgBlur}
+                  onChange={(e) => pickBgBlur(Number(e.target.value))}
+                  className="w-full accent-brand-600"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-end gap-2 pt-1">
           <button className="btn-ghost" onClick={onClose} disabled={saving}>

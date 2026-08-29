@@ -8,6 +8,7 @@
 // -----------------------------------------------------------------------------
 
 import type {
+  AppSettings,
   Company,
   Customer,
   Profile,
@@ -18,6 +19,16 @@ import type {
 import type { FieldDefinition } from "./customFields";
 
 export const PREVIEW = process.env.NEXT_PUBLIC_PREVIEW === "1";
+
+export const previewAppSettings: AppSettings = {
+  id: 1,
+  company_name: "Mars Med Dent",
+  company_phone: "",
+  company_address: "",
+  logo_url: null,
+  bg_style: "solid",
+  bg_blur: 40,
+};
 
 export const previewProfile: Profile = {
   id: "u-head",
