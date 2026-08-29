@@ -32,18 +32,7 @@
   color-scheme: light;
 }
 
-/* ---- Neutral tokens: dark mode (system + explicit) ---------------------- */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-mode="light"]) {
-    --surface: 23 25 34;
-    --surface-soft: 15 17 23;
-    --surface-border: 42 46 58;
-    --ink: 231 233 238;
-    --ink-muted: 162 169 184;
-    --ink-faint: 122 130 145;
-    color-scheme: dark;
-  }
-}
+/* ---- Neutral tokens: dark mode (explicit only, no system-following) ----- */
 :root[data-mode="dark"] {
   --surface: 23 25 34;
   --surface-soft: 15 17 23;
@@ -140,14 +129,8 @@ body {
   inset: 0;
   background: rgb(var(--surface-soft) / 0.55);
 }
-:root:not([data-mode="light"]) .app-bg::after,
 :root[data-mode="dark"] .app-bg::after {
   background: rgb(2 10 6 / 0.72);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-mode="light"]) .app-bg::after {
-    background: rgb(2 10 6 / 0.72);
-  }
 }
 
 /* Reusable component classes for a consistent, clean design system. */
@@ -162,22 +145,12 @@ body {
       0 1px 0 0 rgb(255 255 255 / 0.5) inset,
       0 4px 30px rgb(16 24 40 / 0.14);
   }
-  :root:not([data-mode="light"]) .glass,
   :root[data-mode="dark"] .glass {
     background: rgb(var(--surface) / 0.42);
     border-color: rgb(255 255 255 / 0.12);
     box-shadow:
       0 1px 0 0 rgb(255 255 255 / 0.1) inset,
       0 4px 30px rgb(0 0 0 / 0.45);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-mode="light"]) .glass {
-      background: rgb(var(--surface) / 0.42);
-      border-color: rgb(255 255 255 / 0.12);
-      box-shadow:
-        0 1px 0 0 rgb(255 255 255 / 0.1) inset,
-        0 4px 30px rgb(0 0 0 / 0.45);
-    }
   }
   /* Stronger blur for floating chrome (bars, modals). */
   .glass-strong {
@@ -187,7 +160,6 @@ body {
   /* No backdrop-filter (older mobile): fall back to a near-solid surface. */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .glass { background: rgb(var(--surface) / 0.94); }
-    :root:not([data-mode="light"]) .glass,
     :root[data-mode="dark"] .glass { background: rgb(var(--surface) / 0.94); }
   }
 

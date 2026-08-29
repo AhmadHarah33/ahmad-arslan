@@ -20,12 +20,12 @@ export const ACCENTS: AccentPreset[] = [
 ];
 
 export const DEFAULT_ACCENT = "sky";
-export const DEFAULT_MODE: ThemeMode = "system";
+export const DEFAULT_MODE: ThemeMode = "light";
 
+// System-following is off for now — only explicit Light / Dark.
 export const MODES: { id: ThemeMode; label: string }[] = [
   { id: "light", label: "Light" },
   { id: "dark", label: "Dark" },
-  { id: "system", label: "System" },
 ];
 
 // Apply a theme to <html> and persist to localStorage (client-only).
@@ -33,8 +33,8 @@ export function applyTheme(accent: string, mode: ThemeMode) {
   if (typeof document === "undefined") return;
   const el = document.documentElement;
   el.setAttribute("data-accent", accent);
-  if (mode === "system") el.removeAttribute("data-mode");
-  else el.setAttribute("data-mode", mode);
+  // No system mode: anything that isn't dark resolves to light.
+  el.setAttribute("data-mode", mode === "dark" ? "dark" : "light");
   try {
     localStorage.setItem("theme_accent", accent);
     localStorage.setItem("theme_mode", mode);

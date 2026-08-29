@@ -31,7 +31,7 @@ const themeScript = `(function(){try{
   var a=localStorage.getItem('theme_accent');
   var m=localStorage.getItem('theme_mode');
   if(a){el.setAttribute('data-accent',a);}
-  if(m&&m!=='system'){el.setAttribute('data-mode',m);}
+  el.setAttribute('data-mode', m==='dark' ? 'dark' : 'light');
 }catch(e){}})();`;
 
 export default function RootLayout({
