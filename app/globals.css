@@ -130,15 +130,15 @@ body {
   position: absolute;
   inset: -40px;
   background: url("/bg/green-1.jpg") center / cover no-repeat;
-  filter: blur(22px) saturate(1.05);
+  filter: blur(12px) saturate(1.05);
   transform: scale(1.02);
 }
-/* Theme scrim: gentle wash in light, deep green-black in dark. */
+/* Theme scrim: brighter wash in light, deep green-black in dark. */
 .app-bg::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgb(var(--surface-soft) / 0.35);
+  background: rgb(var(--surface-soft) / 0.55);
 }
 :root:not([data-mode="light"]) .app-bg::after,
 :root[data-mode="dark"] .app-bg::after {
