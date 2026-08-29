@@ -203,6 +203,20 @@ body {
     @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-muted;
   }
 
+  /* Native date/time inputs default to a light-scheme calendar icon and text
+     color regardless of theme; align color-scheme so they match .input like
+     every other field instead of standing out. */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    color-scheme: light;
+  }
+  :root[data-mode="dark"] input[type="date"],
+  :root[data-mode="dark"] input[type="time"],
+  :root[data-mode="dark"] input[type="datetime-local"] {
+    color-scheme: dark;
+  }
+
   .chip {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
   }
