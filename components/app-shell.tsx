@@ -73,7 +73,7 @@ export default function AppShell({
       </div>
 
       {/* Desktop sidebar */}
-      <aside className="glass glass-strong hidden w-60 shrink-0 flex-col rounded-none md:flex">
+      <aside className="glass glass-strong sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto rounded-none md:flex">
         <div className="flex items-center gap-2.5 px-5 py-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white">
             M
