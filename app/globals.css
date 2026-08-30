@@ -10,12 +10,13 @@
    =========================================================================== */
 :root {
   /* neutral — light */
+  --canvas: 234 235 237;
   --surface: 255 255 255;
-  --surface-soft: 247 248 250;
-  --surface-border: 230 232 236;
-  --ink: 31 36 48;
-  --ink-muted: 91 100 114;
-  --ink-faint: 138 147 163;
+  --surface-soft: 245 246 248;
+  --surface-border: 232 234 238;
+  --ink: 24 27 35;
+  --ink-muted: 96 105 119;
+  --ink-faint: 142 150 165;
 
   /* accent — sky (default) */
   --brand-50: 240 249 255;
@@ -34,21 +35,23 @@
 
 /* ---- Neutral tokens: dark mode (explicit only, no system-following) ----- */
 :root[data-mode="dark"] {
-  --surface: 23 25 34;
-  --surface-soft: 15 17 23;
-  --surface-border: 42 46 58;
-  --ink: 231 233 238;
+  --canvas: 10 11 14;
+  --surface: 23 25 32;
+  --surface-soft: 32 35 44;
+  --surface-border: 44 48 60;
+  --ink: 235 237 242;
   --ink-muted: 162 169 184;
   --ink-faint: 122 130 145;
   color-scheme: dark;
 }
 :root[data-mode="light"] {
+  --canvas: 234 235 237;
   --surface: 255 255 255;
-  --surface-soft: 247 248 250;
-  --surface-border: 230 232 236;
-  --ink: 31 36 48;
-  --ink-muted: 91 100 114;
-  --ink-faint: 138 147 163;
+  --surface-soft: 245 246 248;
+  --surface-border: 232 234 238;
+  --ink: 24 27 35;
+  --ink-muted: 96 105 119;
+  --ink-faint: 142 150 165;
   color-scheme: light;
 }
 
@@ -99,14 +102,14 @@ body {
 
 body {
   @apply text-ink antialiased;
-  background-color: rgb(var(--surface-soft));
+  background-color: rgb(var(--canvas));
   /* Respect iOS safe areas when installed to the home screen. */
   padding-top: env(safe-area-inset-top);
 }
 
-/* Screen background. Default ("solid", the owner's default) is a clean flat
-   white in light mode / black in dark mode. The owner can switch to a
-   wallpaper backdrop (with an adjustable blur amount) from Appearance. */
+/* Screen background. Default ("solid", the owner's default) is the neutral
+   canvas the app frame floats on. The owner can switch to a wallpaper backdrop
+   (with an adjustable blur amount) from Appearance. */
 :root {
   --bg-blur: 12px;
 }
@@ -116,10 +119,7 @@ body {
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-  background-color: #ffffff;
-}
-:root[data-mode="dark"] .app-bg {
-  background-color: #000000;
+  background-color: rgb(var(--canvas));
 }
 
 /* Wallpaper mode (owner opt-in): image backdrop, blurred by --bg-blur, with a
@@ -144,32 +144,29 @@ body {
 
 /* Reusable component classes for a consistent, clean design system. */
 @layer components {
-  /* Liquid-glass surface: translucent, blurred, hairline border + top sheen. */
+  /* Panel surface: near-solid card on the neutral canvas, hairline border and
+     a soft lift. Stays lightly translucent so the optional wallpaper backdrop
+     still tints through without hurting legibility. */
   .glass {
-    background: rgb(var(--surface) / 0.55);
-    backdrop-filter: blur(26px) saturate(180%);
-    -webkit-backdrop-filter: blur(26px) saturate(180%);
-    border: 1px solid rgb(255 255 255 / 0.45);
+    background: rgb(var(--surface) / 0.94);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgb(var(--surface-border));
     box-shadow:
-      0 1px 0 0 rgb(255 255 255 / 0.5) inset,
-      0 4px 30px rgb(16 24 40 / 0.14);
+      0 1px 2px rgb(16 24 40 / 0.04),
+      0 10px 26px -18px rgb(16 24 40 / 0.35);
   }
   :root[data-mode="dark"] .glass {
-    background: rgb(var(--surface) / 0.42);
-    border-color: rgb(255 255 255 / 0.12);
-    box-shadow:
-      0 1px 0 0 rgb(255 255 255 / 0.1) inset,
-      0 4px 30px rgb(0 0 0 / 0.45);
+    background: rgb(var(--surface) / 0.92);
+    border-color: rgb(255 255 255 / 0.07);
+    box-shadow: 0 10px 26px -18px rgb(0 0 0 / 0.8);
   }
-  /* Stronger blur for floating chrome (bars, modals). */
+  /* Fully opaque chrome (app frame, bars, modals). */
   .glass-strong {
-    backdrop-filter: blur(40px) saturate(190%);
-    -webkit-backdrop-filter: blur(40px) saturate(190%);
+    background: rgb(var(--surface));
   }
-  /* No backdrop-filter (older mobile): fall back to a near-solid surface. */
-  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .glass { background: rgb(var(--surface) / 0.94); }
-    :root[data-mode="dark"] .glass { background: rgb(var(--surface) / 0.94); }
+  :root[data-mode="dark"] .glass-strong {
+    background: rgb(var(--surface));
   }
 
   .card {
@@ -177,16 +174,36 @@ body {
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
-      text-sm font-medium disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5
+      text-sm font-medium transition disabled:opacity-50 disabled:pointer-events-none;
   }
 
+  /* Primary CTA is the high-contrast ink pill (inverts in dark mode). */
   .btn-primary {
-    @apply btn bg-brand-600 text-white hover:bg-brand-700;
+    @apply btn bg-ink text-surface hover:opacity-90;
   }
 
   .btn-ghost {
     @apply btn border border-surface-border bg-surface text-ink hover:bg-surface-soft;
+  }
+
+  /* Segmented pill switcher (Board/List, Light/Dark, column picker…). */
+  .seg {
+    @apply inline-flex items-center gap-0.5 rounded-full border border-surface-border
+      bg-surface p-1;
+  }
+  .seg-btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5
+      text-sm font-medium text-ink-muted transition hover:text-ink;
+  }
+  .seg-btn-on {
+    @apply bg-surface-soft text-ink shadow-card;
+  }
+
+  /* Icon button used across chrome (rail, card menus, top bar). */
+  .icon-btn {
+    @apply inline-flex items-center justify-center rounded-full text-ink-muted
+      transition hover:bg-surface-soft hover:text-ink;
   }
 
   .btn-danger {

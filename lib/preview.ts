@@ -368,12 +368,26 @@ export const previewFieldValues: Record<string, Record<string, unknown>> = {
     "fd-task-yer": "o_istanbul",
     "fd-task-makina": "o_riton",
     "fd-task-teshis": "Hidrolik pompa arızası tespit edildi.",
+    "fd-task-rapor": ["rapor-1.jpg", "rapor-2.jpg", "rapor-3.jpg"],
+  },
+  "t-5": {
+    "fd-task-mudahale": "o_serviste",
+    "fd-task-yer": "o_ankara",
+    "fd-task-rapor": ["olcum.pdf"],
   },
   "cus-1": {
     "fd-cus-brand": "o_micronx",
     "fd-cus-install": "2025-02-10",
     "fd-cus-warranty": "o_in",
   },
+};
+
+// Comment counts per task, shown on the board cards.
+export const previewCommentCounts: Record<string, number> = {
+  "t-1": 7,
+  "t-2": 3,
+  "t-4": 2,
+  "t-5": 5,
 };
 
 // Spread created dates across recent months so the dashboard chart shows data.

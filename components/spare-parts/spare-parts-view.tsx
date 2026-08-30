@@ -69,7 +69,9 @@ export default function SparePartsView({
     <div>
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-ink md:text-2xl">Spare parts</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-ink md:text-[28px]">
+            Spare parts
+          </h1>
           <p className="mt-1 text-sm text-ink-muted">
             {parts.length} items · {companies.length} companies
           </p>
@@ -113,11 +115,14 @@ export default function SparePartsView({
       <div className="space-y-6">
         {grouped.map(({ company, parts: cParts }) => (
           <section key={company.id}>
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-ink">{company.name}</h2>
+            <div className="card mb-3 flex items-center gap-2 px-3.5 py-2.5">
+              <h2 className="text-sm font-semibold text-ink">{company.name}</h2>
+              <span className="rounded-full bg-surface-soft px-2 py-0.5 text-xs font-medium text-ink-muted">
+                {cParts.length}
+              </span>
               {editable && (
                 <button
-                  className="text-sm font-medium text-brand-600"
+                  className="ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-ink-muted transition hover:bg-surface-soft hover:text-ink"
                   onClick={() =>
                     setPartModal({
                       open: true,
@@ -126,12 +131,15 @@ export default function SparePartsView({
                     })
                   }
                 >
-                  + Add part
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  Add part
                 </button>
               )}
             </div>
             {cParts.length === 0 ? (
-              <p className="rounded-xl bg-surface-soft px-4 py-3 text-sm text-ink-faint">
+              <p className="rounded-2xl border border-dashed border-surface-border px-4 py-6 text-center text-sm text-ink-faint">
                 No parts here yet.
               </p>
             ) : (

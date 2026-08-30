@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Profile, UserRole } from "@/lib/types";
 import { createUser, updateProfile } from "@/app/(app)/admin/actions";
 import Modal from "@/components/modal";
+import { Avatar } from "@/components/avatar";
 
 export default function TeamView({
   me,
@@ -20,7 +21,9 @@ export default function TeamView({
     <div>
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-ink md:text-2xl">Team</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-ink md:text-[28px]">
+            Team
+          </h1>
           <p className="mt-1 text-sm text-ink-muted">
             Manage accounts and edit permissions
           </p>
@@ -83,6 +86,11 @@ function MemberRow({
 
   return (
     <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+      <Avatar
+        id={member.id}
+        name={member.full_name || member.first_name || "?"}
+        size={36}
+      />
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-ink">
           {member.full_name || "Unnamed"}

@@ -148,7 +148,9 @@ export default function CustomersView({
     <div>
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-ink md:text-2xl">Customers</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-ink md:text-[28px]">
+            Customers
+          </h1>
           <p className="mt-1 text-sm text-ink-muted">
             {initialCustomers.length} total
           </p>
@@ -211,14 +213,14 @@ export default function CustomersView({
           {groups.map((g) => (
             <section key={g.key}>
               {g.label && (
-                <h2 className="mb-2 text-base font-semibold text-ink">
-                  {g.label}
-                  <span className="ml-2 text-xs font-normal text-ink-faint">
+                <div className="card mb-3 flex items-center gap-2 px-3.5 py-2.5">
+                  <h2 className="text-sm font-semibold text-ink">{g.label}</h2>
+                  <span className="rounded-full bg-surface-soft px-2 py-0.5 text-xs font-medium text-ink-muted">
                     {g.items.length}
                   </span>
-                </h2>
+                </div>
               )}
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {g.items.map(renderCard)}
               </div>
             </section>

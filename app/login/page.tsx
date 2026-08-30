@@ -6,10 +6,10 @@ export default function LoginPage() {
       <div className="app-bg" aria-hidden="true" />
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-600 text-2xl font-bold text-white shadow-pop">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-600 text-2xl font-bold text-white shadow-pop">
             M
           </div>
-          <h1 className="text-xl font-bold text-ink">
+          <h1 className="text-xl font-bold tracking-tight text-ink">
             Mars Technical Support Team
           </h1>
           <p className="mt-1 text-sm text-ink-muted">
@@ -17,7 +17,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="card p-6">
+        <div className="card rounded-3xl p-6">
           <LoginForm />
         </div>
 

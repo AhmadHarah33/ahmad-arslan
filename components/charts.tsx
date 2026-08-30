@@ -5,10 +5,12 @@ export function StatTile({
   label,
   value,
   tone = "default",
+  icon,
 }: {
   label: string;
   value: number | string;
   tone?: "default" | "danger" | "warn" | "good";
+  icon?: React.ReactNode;
 }) {
   const toneClass =
     tone === "danger"
@@ -18,14 +20,29 @@ export function StatTile({
       : tone === "good"
       ? "text-emerald-600"
       : "text-ink";
+  const iconTone =
+    tone === "danger"
+      ? "bg-red-50 text-red-600"
+      : tone === "warn"
+      ? "bg-amber-50 text-amber-600"
+      : tone === "good"
+      ? "bg-emerald-50 text-emerald-600"
+      : "bg-surface-soft text-ink-muted";
   return (
-    <div className="card p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-        {label}
-      </p>
-      <p className={`mt-1 text-2xl font-bold ${toneClass}`}>
-        {typeof value === "number" ? <CountUp value={value} /> : value}
-      </p>
+    <div className="card flex items-center gap-3 p-3.5">
+      {icon && (
+        <span
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconTone}`}
+        >
+          {icon}
+        </span>
+      )}
+      <div className="min-w-0">
+        <p className={`text-xl font-bold leading-tight ${toneClass}`}>
+          {typeof value === "number" ? <CountUp value={value} /> : value}
+        </p>
+        <p className="truncate text-xs font-medium text-ink-muted">{label}</p>
+      </div>
     </div>
   );
 }
@@ -49,7 +66,7 @@ export function ProgressRow({
           {done}/{total} · {pct}%
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-surface-soft">
+      <div className="h-2 overflow-hidden rounded-full bg-ink/[0.08]">
         <div
           className="animate-barw h-full rounded-full bg-brand-500"
           style={{ width: `${pct}%` }}
@@ -114,7 +131,9 @@ export function MonthBars({ data }: { data: { label: string; value: number }[] }
   return (
     <div className="flex h-32 items-end gap-1">
       {data.map((d, i) => (
-        <div key={i} className="flex flex-1 flex-col items-center gap-1">
+        // h-full is required: the row is `items-end`, so columns don't stretch
+        // and a percentage bar height would resolve against zero.
+        <div key={i} className="flex h-full flex-1 flex-col items-center gap-1">
           <div className="flex w-full flex-1 items-end">
             <div
               className="animate-bar w-full rounded-t bg-brand-500"
@@ -145,7 +164,7 @@ export function CountBar({
   return (
     <div className="flex items-center gap-3">
       <span className="w-28 shrink-0 truncate text-sm text-ink">{label}</span>
-      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface-soft">
+      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-ink/[0.08]">
         <div className={`animate-barw h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
       <span className="w-6 shrink-0 text-right text-xs text-ink-faint">

@@ -12,7 +12,9 @@ export function PageHeader({
   return (
     <div className="mb-5 flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-xl font-bold text-ink md:text-2xl">{title}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-ink md:text-[28px]">
+          {title}
+        </h1>
         {subtitle && <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>}
       </div>
       {action}
@@ -52,7 +54,7 @@ export function StatusChip({ status }: { status: TaskStatus }) {
 }
 
 const PRIORITY_STYLES: Record<TaskPriority, string> = {
-  low: "bg-surface-soft text-ink-faint",
+  low: "bg-emerald-50 text-emerald-700",
   medium: "bg-amber-50 text-amber-700",
   high: "bg-red-50 text-red-700",
 };
@@ -60,7 +62,24 @@ const PRIORITY_STYLES: Record<TaskPriority, string> = {
 export function PriorityChip({ priority }: { priority: TaskPriority }) {
   return (
     <span className={`chip capitalize ${PRIORITY_STYLES[priority]}`}>
+      <FlagIcon className="h-3 w-3" />
       {priority}
     </span>
+  );
+}
+
+function FlagIcon(p: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...p}
+    >
+      <path d="M5 21V4M5 4h10l-1.6 3.5L15 11H5" />
+    </svg>
   );
 }

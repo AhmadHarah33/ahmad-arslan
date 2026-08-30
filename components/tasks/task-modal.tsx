@@ -32,6 +32,7 @@ export default function TaskModal({
   engineers,
   customers,
   task,
+  initialStatus = "todo",
   onClose,
   onSaved,
   onDeleted,
@@ -40,6 +41,8 @@ export default function TaskModal({
   engineers: Profile[];
   customers: Pick<Customer, "id" | "name">[];
   task: Task | null;
+  // Column a new task starts in (set when created from a column's menu).
+  initialStatus?: TaskStatus;
   onClose: () => void;
   onSaved: (t: Task) => void;
   onDeleted: (id: string) => void;
@@ -49,7 +52,7 @@ export default function TaskModal({
 
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
-  const [status, setStatus] = useState<TaskStatus>(task?.status ?? "todo");
+  const [status, setStatus] = useState<TaskStatus>(task?.status ?? initialStatus);
   const [priority, setPriority] = useState<TaskPriority>(
     task?.priority ?? "medium"
   );

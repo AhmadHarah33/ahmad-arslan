@@ -46,7 +46,7 @@ export default function Modal({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4">
       <div className="animate-overlay absolute inset-0" onClick={onClose} aria-hidden="true" />
       <div
-        className="glass glass-strong animate-window relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-2xl sm:rounded-2xl"
+        className="glass glass-strong animate-window relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-3xl sm:rounded-3xl"
         style={{ transform: drag ? `translateY(${drag}px)` : undefined, transition: drag ? "none" : "transform 0.2s" }}
       >
         {/* Grab handle (mobile) */}

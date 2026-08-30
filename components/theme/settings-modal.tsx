@@ -98,16 +98,12 @@ export default function SettingsModal({
 
         <div>
           <p className="label">Mode</p>
-          <div className="flex rounded-xl border border-surface-border p-0.5">
+          <div className="seg flex">
             {MODES.map((m) => (
               <button
                 key={m.id}
                 onClick={() => pickMode(m.id)}
-                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${
-                  mode === m.id
-                    ? "bg-brand-50 text-brand-700"
-                    : "text-ink-muted"
-                }`}
+                className={`seg-btn flex-1 ${mode === m.id ? "seg-btn-on" : ""}`}
               >
                 {m.label}
               </button>
@@ -120,20 +116,16 @@ export default function SettingsModal({
             <p className="label">
               Background <span className="font-normal normal-case">(applies to everyone)</span>
             </p>
-            <div className="mb-3 flex rounded-xl border border-surface-border p-0.5">
+            <div className="seg mb-3 flex">
               <button
                 onClick={() => pickBgStyle("solid")}
-                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${
-                  bgStyle === "solid" ? "bg-brand-50 text-brand-700" : "text-ink-muted"
-                }`}
+                className={`seg-btn flex-1 ${bgStyle === "solid" ? "seg-btn-on" : ""}`}
               >
                 Solid
               </button>
               <button
                 onClick={() => pickBgStyle("wallpaper")}
-                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${
-                  bgStyle === "wallpaper" ? "bg-brand-50 text-brand-700" : "text-ink-muted"
-                }`}
+                className={`seg-btn flex-1 ${bgStyle === "wallpaper" ? "seg-btn-on" : ""}`}
               >
                 Wallpaper
               </button>

@@ -6,7 +6,7 @@ import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import { PriorityChip, StatusChip } from "@/components/ui";
 import { AvatarGroup } from "@/components/avatar";
 import { StatTile, ProgressRow, Donut, MonthBars } from "@/components/charts";
-import { DUE_STYLES, dueStatus, formatDate } from "@/lib/dates";
+import { DUE_STYLES, dueStatus, formatDateLong } from "@/lib/dates";
 import type { Profile, SparePart, Task } from "@/lib/types";
 import {
   PREVIEW,
@@ -85,19 +85,37 @@ export default async function DashboardPage() {
 
   const Header = (
     <div>
-      <p className="text-sm text-ink-muted">{today()}</p>
-      <h1 className="mt-1 text-2xl font-bold text-ink md:text-3xl">
-        {greeting()}, {profile.first_name || profile.full_name || "there"} 👋
+      <h1 className="text-[26px] font-bold tracking-tight text-ink md:text-[32px]">
+        Good {greeting().toLowerCase()},{" "}
+        {profile.first_name || profile.full_name || "there"}
       </h1>
+      <p className="mt-1 text-sm text-ink-muted">
+        Stay on top of your tasks, monitor progress, and track status.
+      </p>
     </div>
   );
 
   const statTiles = (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <StatTile label="Open tasks" value={open.length} />
-      <StatTile label="Overdue" value={overdue.length} tone={overdue.length ? "danger" : "default"} />
-      <StatTile label="Done this week" value={doneThisWeek.length} tone="good" />
-      <StatTile label="Low stock" value={lowStock.length} tone={lowStock.length ? "warn" : "default"} />
+      <StatTile label="Open tasks" value={open.length} icon={<TasksGlyph />} />
+      <StatTile
+        label="Overdue"
+        value={overdue.length}
+        tone={overdue.length ? "danger" : "default"}
+        icon={<ClockGlyph />}
+      />
+      <StatTile
+        label="Done this week"
+        value={doneThisWeek.length}
+        tone="good"
+        icon={<CheckGlyph />}
+      />
+      <StatTile
+        label="Low stock"
+        value={lowStock.length}
+        tone={lowStock.length ? "warn" : "default"}
+        icon={<BoxGlyph />}
+      />
     </div>
   );
 
@@ -273,32 +291,57 @@ function lastMonths(tasks: Task[]) {
   return out.map(({ label, value }) => ({ label, value }));
 }
 
+// Progress each column reads as on a card (mirrors the board).
+const CARD_PROGRESS: Record<Task["status"], { pct: number; bar: string }> = {
+  todo: { pct: 0, bar: "bg-ink-faint" },
+  in_progress: { pct: 50, bar: "bg-brand-500" },
+  done: { pct: 100, bar: "bg-emerald-500" },
+};
+
 function TaskGrid({ tasks }: { tasks: Task[] }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {tasks.map((t) => (
-        <Link key={t.id} href="/tasks" className="card block p-4 transition hover:shadow-pop">
-          <div className="mb-2 flex items-center gap-2">
-            <StatusChip status={t.status} />
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {tasks.map((t) => {
+        const { pct, bar } = CARD_PROGRESS[t.status];
+        const st = dueStatus(t.due_date);
+        return (
+          <Link
+            key={t.id}
+            href="/tasks"
+            className="card block p-3.5 transition hover:shadow-pop"
+          >
             <PriorityChip priority={t.priority} />
-            {t.due_date &&
-              dueStatus(t.due_date) !== "none" &&
-              (() => {
-                const st = dueStatus(t.due_date) as "overdue" | "soon";
-                return (
-                  <span className={`chip ${DUE_STYLES[st]}`}>
-                    {st === "overdue" ? "Overdue" : "Due soon"}
-                  </span>
-                );
-              })()}
-          </div>
-          <p className="font-medium text-ink">{t.title}</p>
-          <div className="mt-2.5 flex items-center justify-between">
-            <AvatarGroup people={t.assignees} size={20} />
-            {t.due_date && <span className="text-xs text-ink-faint">{formatDate(t.due_date)}</span>}
-          </div>
-        </Link>
-      ))}
+            <p className="mt-2.5 text-[15px] font-semibold leading-snug text-ink">
+              {t.title}
+            </p>
+
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-ink-muted">Progress</span>
+                <span className="font-medium text-ink-muted">{pct}%</span>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-ink/[0.08]">
+                <div className={`h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+
+            {t.due_date && (
+              <div
+                className={`mt-3 rounded-xl px-2.5 py-1.5 text-xs ${
+                  st === "none" ? "bg-surface-soft text-ink-muted" : DUE_STYLES[st]
+                }`}
+              >
+                Due to:{" "}
+                <span className="font-medium">{formatDateLong(t.due_date)}</span>
+              </div>
+            )}
+
+            <div className="mt-3">
+              <AvatarGroup people={t.assignees} size={22} />
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 }
@@ -313,6 +356,36 @@ function Tile({ href, title, value, desc }: { href: string; title: string; value
   );
 }
 
-function today() {
-  return new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+/* --- stat-tile glyphs --- */
+function TasksGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="7" height="16" rx="1.5" />
+      <rect x="14" y="4" width="7" height="10" rx="1.5" />
+    </svg>
+  );
+}
+function ClockGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5.5l3.5 2" />
+    </svg>
+  );
+}
+function CheckGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.5 12.5 2.5 2.5 4.5-5" />
+    </svg>
+  );
+}
+function BoxGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2 3 7v10l9 5 9-5V7z" />
+      <path d="M3 7l9 5 9-5M12 12v10" />
+    </svg>
+  );
 }
