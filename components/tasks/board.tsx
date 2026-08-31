@@ -81,7 +81,6 @@ export default function TasksBoard({
 }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [view, setView] = useState<"board" | "list">("board");
-  const [mobileCol, setMobileCol] = useState<TaskStatus>("todo");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [modal, setModal] = useState<{
     open: boolean;
@@ -202,35 +201,17 @@ export default function TasksBoard({
         </button>
       </div>
 
-      {/* Mobile column switcher */}
-      {view === "board" && (
-        <div className="seg mb-3 flex w-full md:hidden">
-          {TASK_STATUSES.map((col) => (
-            <button
-              key={col.key}
-              onClick={() => setMobileCol(col.key)}
-              className={`seg-btn flex-1 px-2 text-xs ${
-                mobileCol === col.key ? "seg-btn-on" : ""
-              }`}
-            >
-              {col.label}
-              <span className="text-ink-faint">{byStatus[col.key].length}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
       {view === "board" ? (
         <DndContext
           sensors={sensors}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
         >
-          <div className="gap-4 md:grid md:grid-cols-3">
+          <div className="no-scrollbar snap-x flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
             {TASK_STATUSES.map((col) => (
               <div
                 key={col.key}
-                className={`${mobileCol === col.key ? "block" : "hidden"} md:block`}
+                className="w-[85vw] max-w-sm shrink-0 snap-start md:w-auto md:max-w-none md:shrink"
               >
                 <Column
                   status={col.key}
@@ -327,11 +308,9 @@ function Column({
 
   return (
     <div className="w-full">
-      {/* Column header card — hidden on phones, where the switcher above
-          already names the column and its count. */}
       {/* z-30: the card's backdrop-filter makes it a stacking context, so the
           dropdown below can only escape the cards underneath from here. */}
-      <div className="card relative z-30 mb-3 hidden items-center gap-2 px-3.5 py-2.5 md:flex">
+      <div className="card relative z-30 mb-3 flex items-center gap-2 px-3.5 py-2.5">
         <span className={tint}>{icon}</span>
         <h3 className="text-sm font-semibold text-ink">{label}</h3>
         <span className="rounded-full bg-surface-soft px-2 py-0.5 text-xs font-medium text-ink-muted">

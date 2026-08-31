@@ -161,12 +161,15 @@ body {
     border-color: rgb(255 255 255 / 0.07);
     box-shadow: 0 10px 26px -18px rgb(0 0 0 / 0.8);
   }
-  /* Fully opaque chrome (app frame, bars, modals). */
+  /* Chrome (app frame, bars, modals): frosted, not a flat opaque panel — kept
+     high-opacity so it stays readable over the canvas/wallpaper behind it. */
   .glass-strong {
-    background: rgb(var(--surface));
+    background: rgb(var(--surface) / 0.9);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
   }
   :root[data-mode="dark"] .glass-strong {
-    background: rgb(var(--surface));
+    background: rgb(var(--surface) / 0.88);
   }
 
   .card {
