@@ -98,30 +98,124 @@ Open http://localhost:3000 and log in as the Head. Add engineers under **Team**.
 
 ---
 
-## Using it on phones ("Add to Home Screen")
+## Running in production on your own PC (Docker + Cloudflare Tunnel)
 
-A PWA needs **HTTPS** to be installable. Expose your local app through a tunnel
-that provides an HTTPS domain, then open that domain on the phone:
+This runs the real stack — self-hosted Supabase in Docker plus the Next.js app —
+on one machine (your PC), reachable from any device over a permanent domain.
 
-- **Cloudflare Tunnel** (free, stable domain):
-  ```bash
-  cloudflared tunnel --url http://localhost:3000
-  ```
-- or **ngrok**: `ngrok http 3000`
+**Important:** the browser talks to Supabase *directly* for login, file uploads,
+and live data (see `lib/supabase/client.ts`) — not only through the Next.js
+server. That means **two things need public HTTPS addresses**, not one: the app
+(port 3000) and the Supabase API gateway (port 54321). A single
+`cloudflared tunnel --url http://localhost:3000` only forwards the app, so
+logins from a phone would fail. Use a **named tunnel with two hostnames**
+instead.
 
-Then:
+Replace `yourdomain.com` below with your real domain, already added to a free
+Cloudflare account (Cloudflare → your domain → nameservers point at Cloudflare).
 
-1. Set `NEXT_PUBLIC_SITE_URL` to your tunnel domain and add it to
-   `supabase/config.toml` under `[auth] site_url` / `additional_redirect_urls`,
-   then restart (`supabase stop && supabase start`, `npm run dev`).
-2. On **iOS Safari**: Share → *Add to Home Screen*.
-   On **Android Chrome**: menu → *Install app* / *Add to Home screen*.
+### 1. Start Supabase
 
-The app opens fullscreen like a native app, and the login session persists across
-restarts.
+```bash
+npm i -g supabase   # if you don't have the CLI yet
+supabase start
+```
 
-> For a permanent office setup, run the app + Supabase on one always-on machine
-> and point a **named Cloudflare Tunnel** at a fixed subdomain.
+This boots Postgres/Auth/Storage/Studio in Docker via `supabase/config.toml` and
+applies the migrations + seed. It prints an **anon key** and a **service_role
+key** — keep them.
+
+### 2. Point Supabase at your public domain
+
+Edit `supabase/config.toml`:
+
+```toml
+[auth]
+site_url = "https://app.yourdomain.com"
+additional_redirect_urls = ["https://app.yourdomain.com"]
+```
+
+Apply it: `supabase stop && supabase start`.
+
+### 3. Configure the app
+
+```bash
+cp .env.example .env.local
+```
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://db.yourdomain.com
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key from step 1>
+SUPABASE_SERVICE_ROLE_KEY=<service_role key from step 1>   # server-only
+NEXT_PUBLIC_SITE_URL=https://app.yourdomain.com
+```
+
+Build and run it in production mode (not `next dev`) so it stays fast and stable:
+
+```bash
+npm install
+npm run build
+npm run start        # serves on http://localhost:3000
+```
+
+Keep this running — e.g. `npx pm2 start npm --name mars-app -- start` (then
+`pm2 save` + `pm2 startup` so it survives a reboot), or a systemd/Task Scheduler
+service if you prefer.
+
+### 4. Install and authenticate `cloudflared`
+
+Install from [Cloudflare's docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/), then:
+
+```bash
+cloudflared tunnel login       # opens a browser, pick yourdomain.com
+cloudflared tunnel create mars-app
+```
+
+This writes a tunnel credentials file and prints its **tunnel ID**.
+
+### 5. Configure the two hostnames
+
+Create `~/.cloudflared/config.yml` (Windows: `%USERPROFILE%\.cloudflared\config.yml`):
+
+```yaml
+tunnel: mars-app
+credentials-file: /home/you/.cloudflared/<tunnel-id>.json
+
+ingress:
+  - hostname: app.yourdomain.com
+    service: http://localhost:3000
+  - hostname: db.yourdomain.com
+    service: http://localhost:54321
+  - service: http_status:404
+```
+
+Then create the DNS records (Cloudflare does this for you):
+
+```bash
+cloudflared tunnel route dns mars-app app.yourdomain.com
+cloudflared tunnel route dns mars-app db.yourdomain.com
+```
+
+### 6. Run the tunnel permanently
+
+```bash
+cloudflared service install
+```
+
+This installs `cloudflared` as an OS service using `config.yml`, so the tunnel
+survives reboots. (Or run `cloudflared tunnel run mars-app` in a terminal /
+under `pm2` while testing.)
+
+### 7. Verify
+
+Open `https://app.yourdomain.com` on your phone → log in as the seeded Head →
+confirm it loads data and file uploads work. Then, on **iOS Safari**: Share →
+*Add to Home Screen*; on **Android Chrome**: menu → *Install app*. The app opens
+fullscreen like a native app, and the session persists across restarts.
+
+> As long as your PC, Docker, the Next.js process, and `cloudflared` are all
+> running, the app is reachable. If the PC sleeps or loses power, the app goes
+> down until it's back — there's no automatic failover on a single machine.
 
 ---
 
