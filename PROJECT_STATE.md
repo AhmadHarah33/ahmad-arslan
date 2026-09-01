@@ -54,16 +54,18 @@ Supabase. This is how the Vercel demo runs today.
 ## Data model (Postgres, all under RLS)
 `profiles` (role head|engineer, can_edit, theme_accent, theme_mode) ·
 `companies` · `customers` (+ `customer_links`) · `spare_parts` (+ min_quantity,
-`spare_part_photos`) · `tasks` (+ completed_at, no more single assignee_id) ·
+`spare_part_photos`) · `tasks` (+ completed_at, no more single assignee_id;
+`status` enum is now `todo|in_progress|done|stuck`) ·
 `task_assignees` (join, multi-assignee) · `field_definitions` + `field_values`
 (custom fields, 8 types) · `task_comments` · `audit_log` (+ generic trigger) ·
 `task_templates` · `maintenance_schedules` (+ `generate_due_maintenance()` RPC) ·
 `task_parts` (+ inventory-sync trigger) · `app_settings` (company header/branding).
 Storage buckets: `spare-part-photos`, `field-files`.
 Migrations live in `supabase/migrations/` (init → custom_fields → theme_and_assignees
-→ enhancement3 → task_completed_at → maintenance_fn). Seed in `supabase/seed.sql`
-(first HEAD account `head@marsmeddent.local` / `ChangeMe123!`, starter companies,
-preset custom fields, task templates).
+→ enhancement3 → task_completed_at → maintenance_fn → app_background →
+**task_status_stuck**). Seed in `supabase/seed.sql` (first HEAD account
+`head@marsmeddent.local` / `ChangeMe123!`, starter companies, preset custom
+fields, task templates).
 
 ## Roles & rules
 - **Head of engineers** = admin: edits everything, manages users (`/admin`), grants
@@ -101,6 +103,38 @@ preset custom fields, task templates).
     count-up KPIs, growing bars/donut, skeleton shimmer, page cross-fade
     (`.page-enter`). All respect `prefers-reduced-motion`.
 13. Per request: **buttons have NO press/hover scale motion**; FAB appears instantly.
+14. **Noteflow-style card redesign**: whole app restyled to a pill-nav shell (rail +
+    top bar with teammate avatar stack), rich task cards with priority chip/subtitle/
+    progress derived from status/due strip/avatar+attachment+comment counts,
+    `.seg`/`.icon-btn` shared classes.
+15. **Self-hosted production docs**: README now has a full "Docker + Cloudflare
+    Tunnel" walkthrough. Key fact for next time: the **browser talks to Supabase
+    directly** (login/uploads via `lib/supabase/client.ts`), so production needs
+    **two public hostnames** through the tunnel (app :3000 + Supabase API :54321),
+    not one — a single-hostname tunnel breaks off-device logins.
+16. **Mobile board fix**: replaced the one-column segmented switcher with the
+    pre-redesign pattern — all Kanban columns render together in a horizontally
+    scrolling, snap-to-column row, so drag-and-drop between statuses works on
+    phones again (desktop grid unchanged). Shell chrome (`.glass-strong`) made
+    frosted (90% opacity + blur) instead of flat opaque white.
+17. **Board rebuild (compact cards + Stuck column + tone tokens)** — the current
+    card/board design. Cards shrunk to Notion density (title, customer, one
+    wrapping meta row: avatars/priority/due/counts) — dropped the progress bar
+    since it was 1:1 derived from status and added no info. Added a 4th status,
+    **`stuck`** (Postgres enum via `alter type ... add value`, migration
+    `20260828070000_task_status_stuck.sql`); `TASK_STATUSES` in `lib/types.ts`
+    drives the board columns, task-modal status `<select>`, and the dashboard
+    donut, so adding a status only means updating that one array + its
+    `STATUS_VAR` color entry. **Status/priority colors now live in `--tone-*`
+    CSS vars** (`app/globals.css`: `.tone-neutral/-progress/-done/-stuck/-warn/
+    -purple`) with separate light/dark values — replaced every hard-coded
+    light-only Tailwind chip color (`bg-blue-50` etc.) across `components/ui.tsx`,
+    `lib/customFields.ts` tag colors, `lib/dates.ts` due badges, and
+    `.btn-danger`, since those were unreadable in dark mode before. Fixed a
+    **pre-existing hydration bug**: `DndContext` (dnd-kit) had no explicit `id`,
+    so its a11y ids were generated from a render counter that differed
+    server vs. client — React discarded and re-rendered the whole board on
+    every load. Fixed with `<DndContext id="task-board" ...>`.
 
 ## Conventions
 - Every GitHub/commit ends with the Co-Authored-By + Claude-Session footer.
@@ -112,7 +146,10 @@ preset custom fields, task templates).
   only via `:root[data-mode="dark"]` (system-following removed).
 
 ## What's NOT done / next ideas (backlog)
-- **Go live on real Supabase** (biggest next step — currently preview only).
+- **Go live on real Supabase** (biggest next step — currently preview only). See
+  README's "Running in production on your own PC (Docker + Cloudflare Tunnel)"
+  section for the exact steps if self-hosting; remember the two-hostname tunnel
+  requirement above.
 - **Turkish (TR/EN) language toggle** — team works in Turkish.
 - **Machines as first-class records** (a customer owns several machines, each with SN
   / warranty / QR / history) — currently one `machine` text field.
