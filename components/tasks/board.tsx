@@ -1,17 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
+  closestCorners,
+  defaultDropAnimationSideEffects,
   DndContext,
   DragEndEvent,
+  DragOverEvent,
   DragOverlay,
   DragStartEvent,
+  DropAnimation,
+  MeasuringStrategy,
   PointerSensor,
-  useDraggable,
   useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { PriorityChip, STATUS_TONE } from "@/components/ui";
 import { STATUS_VAR, TASK_STATUSES } from "@/lib/types";
 import type { Customer, Profile, Task, TaskStatus } from "@/lib/types";
@@ -29,6 +35,21 @@ type Engineer = Profile;
 type CustomerLite = Pick<Customer, "id" | "name">;
 type ValueMap = Record<string, Record<string, unknown>>;
 type CountMap = Record<string, number>;
+
+const STATUS_KEYS = new Set<string>(TASK_STATUSES.map((c) => c.key));
+function isColumnId(id: string): id is TaskStatus {
+  return STATUS_KEYS.has(id);
+}
+
+// Snaps the dragged card into its slot with the same easing the rest of the
+// app's overlays use, instead of dnd-kit's default linear settle.
+const dropAnimation: DropAnimation = {
+  duration: 220,
+  easing: "cubic-bezier(0.32, 0.72, 0, 1)",
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: { active: { opacity: "0.4" } },
+  }),
+};
 
 // Render up to `max` tag-style custom fields (select/multi-select) as chips.
 function TaskTags({
@@ -81,6 +102,10 @@ export default function TasksBoard({
     status: TaskStatus;
   }>({ open: false, task: null, status: "todo" });
 
+  // Snapshot of `tasks` taken at drag start, so a failed save (or a drop
+  // outside any column) can restore the exact pre-drag order in one shot.
+  const dragSnapshot = useRef<Task[] | null>(null);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
@@ -118,33 +143,104 @@ export default function TasksBoard({
   const activeTask = tasks.find((t) => t.id === activeId) || null;
 
   function onDragStart(e: DragStartEvent) {
+    dragSnapshot.current = tasks;
     setActiveId(String(e.active.id));
+  }
+
+  // Live-reorders `tasks` as the pointer moves — across columns (status
+  // changes) and within a column (position in the flat list changes). The
+  // column lists are just filters over this one array, so moving an item's
+  // spot here is what makes cards slide out of the way in real time instead
+  // of jumping only once the drag ends.
+  function onDragOver(e: DragOverEvent) {
+    const { active, over } = e;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    if (activeId === overId) return;
+
+    setTasks((prev) => {
+      const activeTask = prev.find((t) => t.id === activeId);
+      if (!activeTask) return prev;
+
+      if (isColumnId(overId)) {
+        if (activeTask.status === overId) return prev;
+        const without = prev.filter((t) => t.id !== activeId);
+        let insertAt = without.length;
+        for (let i = without.length - 1; i >= 0; i--) {
+          if (without[i].status === overId) {
+            insertAt = i + 1;
+            break;
+          }
+        }
+        const moved = { ...activeTask, status: overId };
+        return [...without.slice(0, insertAt), moved, ...without.slice(insertAt)];
+      }
+
+      const overTask = prev.find((t) => t.id === overId);
+      if (!overTask) return prev;
+      const without = prev.filter((t) => t.id !== activeId);
+      const overIndex = without.findIndex((t) => t.id === overId);
+      const moved =
+        activeTask.status === overTask.status
+          ? activeTask
+          : { ...activeTask, status: overTask.status };
+      return [...without.slice(0, overIndex), moved, ...without.slice(overIndex)];
+    });
   }
 
   async function onDragEnd(e: DragEndEvent) {
     setActiveId(null);
+    const before = dragSnapshot.current;
+    dragSnapshot.current = null;
     const id = String(e.active.id);
-    const overId = e.over?.id ? String(e.over.id) : null;
-    if (!overId) return;
+    if (!before) return;
 
-    const newStatus = overId as TaskStatus;
+    // Dropped outside any column — undo the live reorder from onDragOver.
+    if (!e.over) {
+      setTasks(before);
+      return;
+    }
+
+    const originalTask = before.find((t) => t.id === id);
     const task = tasks.find((t) => t.id === id);
-    if (!task || task.status === newStatus) return;
-    if (!canEditTask(profile, task)) return;
+    if (!originalTask || !task || !canEditTask(profile, task)) {
+      setTasks(before);
+      return;
+    }
 
-    const position = Date.now();
-    // Optimistic update.
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: newStatus, position } : t))
-    );
-    const res = await moveTask(id, newStatus, position);
+    // Fractional position between the new neighbors keeps this an O(1)
+    // write — no need to renumber the rest of the column.
+    const column = tasks.filter((t) => t.status === task.status);
+    const idx = column.findIndex((t) => t.id === id);
+    const prevItem = column[idx - 1];
+    const nextItem = column[idx + 1];
+    const position =
+      prevItem && nextItem
+        ? (prevItem.position + nextItem.position) / 2
+        : prevItem
+        ? prevItem.position + 1
+        : nextItem
+        ? nextItem.position - 1
+        : Date.now();
+
+    if (task.status === originalTask.status && position === originalTask.position) {
+      return; // dropped back where it started
+    }
+
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, position } : t)));
+
+    const res = await moveTask(id, task.status, position);
     if (res?.error) {
-      // Revert on failure.
-      setTasks((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, status: task.status } : t))
-      );
+      setTasks(before);
       toastErr(res.error);
     }
+  }
+
+  function onDragCancel() {
+    setActiveId(null);
+    if (dragSnapshot.current) setTasks(dragSnapshot.current);
+    dragSnapshot.current = null;
   }
 
   function upsertLocal(task: Task) {
@@ -204,8 +300,12 @@ export default function TasksBoard({
           // re-render the whole board on load.
           id="task-board"
           sensors={sensors}
+          collisionDetection={closestCorners}
+          measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
           onDragStart={onDragStart}
+          onDragOver={onDragOver}
           onDragEnd={onDragEnd}
+          onDragCancel={onDragCancel}
         >
           {/* Columns scroll sideways until there's room for all four. */}
           <div className="no-scrollbar snap-x flex items-start gap-3 overflow-x-auto pb-2 xl:grid xl:grid-cols-4 xl:overflow-visible xl:pb-0">
@@ -228,12 +328,8 @@ export default function TasksBoard({
               </div>
             ))}
           </div>
-          <DragOverlay>
-            {activeTask ? (
-              <div className="rotate-1">
-                <CardBody task={activeTask} {...cardProps} />
-              </div>
-            ) : null}
+          <DragOverlay dropAnimation={dropAnimation}>
+            {activeTask ? <CardBody task={activeTask} lifted {...cardProps} /> : null}
           </DragOverlay>
         </DndContext>
       ) : (
@@ -310,11 +406,11 @@ function Column({
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const [menu, setMenu] = useState(false);
   const tint = STATUS_VAR[status];
+  const taskIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
 
   return (
     <div className="w-full">
-      {/* z-20 lifts the header (and its menu) above the cards below, whose
-          backdrop-filter would otherwise trap the dropdown behind them. */}
+      {/* z-20 lifts the header (and its menu) above the cards below. */}
       <div className="relative z-20 mb-2 flex items-center gap-2 px-1">
         <span className={`chip ${STATUS_TONE[status]}`}>
           <StatusDot status={status} />
@@ -361,25 +457,29 @@ function Column({
       </div>
 
       {/* Faint wash in the column's own hue groups its cards and gives the
-          drop target an obvious edge; it deepens while dragging over it. */}
+          drop target an obvious edge; it deepens while dragging over it.
+          Only background/ring transition — never `transform` — so it can't
+          fight the drag transform dnd-kit applies to the cards inside. */}
       <div
         ref={setNodeRef}
         style={{ background: `rgb(var(${tint}) / ${isOver ? 0.14 : 0.05})` }}
-        className={`min-h-[120px] space-y-2 rounded-2xl p-2 transition ${
+        className={`min-h-[120px] space-y-2 rounded-2xl p-2 transition-[background-color,box-shadow] duration-150 ${
           isOver ? "ring-1" : "ring-0"
         }`}
       >
-        {tasks.map((t) => (
-          <DraggableCard
-            key={t.id}
-            task={t}
-            draggable={canEditTask(profile, t)}
-            fieldDefs={fieldDefs}
-            fieldValues={fieldValues}
-            onOpen={onOpen}
-            {...extras}
-          />
-        ))}
+        <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+          {tasks.map((t) => (
+            <SortableCard
+              key={t.id}
+              task={t}
+              draggable={canEditTask(profile, t)}
+              fieldDefs={fieldDefs}
+              fieldValues={fieldValues}
+              onOpen={onOpen}
+              {...extras}
+            />
+          ))}
+        </SortableContext>
         {tasks.length === 0 && (
           <button
             onClick={onNew}
@@ -394,7 +494,7 @@ function Column({
   );
 }
 
-function DraggableCard({
+function SortableCard({
   task,
   draggable,
   fieldDefs,
@@ -408,17 +508,19 @@ function DraggableCard({
   fieldValues: ValueMap;
   onOpen: (t: Task) => void;
 } & CardExtras) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: task.id,
-    disabled: !draggable,
-  });
+  const { attributes, listeners, setNodeRef, isDragging, transform, transition } =
+    useSortable({ id: task.id, disabled: !draggable });
 
   return (
     <div
       ref={setNodeRef}
       {...(draggable ? { ...attributes, ...listeners } : {})}
       onClick={() => onOpen(task)}
-      className={`cursor-pointer ${isDragging ? "opacity-40" : ""}`}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={`cursor-pointer touch-none ${isDragging ? "opacity-0" : ""}`}
     >
       <CardBody
         task={task}
@@ -437,17 +539,19 @@ function CardBody({
   customerName,
   attachmentCount,
   commentCounts,
+  lifted = false,
 }: {
   task: Task;
   fieldDefs?: FieldDefinition[];
   fieldValues?: ValueMap;
+  lifted?: boolean;
 } & CardExtras) {
   const subtitle = customerName(task.customer_id);
   const files = attachmentCount(task.id);
   const comments = commentCounts[task.id] ?? 0;
 
   return (
-    <div className="card p-3 transition hover:shadow-pop">
+    <div className={`task-card p-3 ${lifted ? "shadow-pop" : "hover:shadow-card"}`}>
       <p className="line-clamp-2 text-sm font-semibold leading-snug text-ink">
         {task.title}
       </p>

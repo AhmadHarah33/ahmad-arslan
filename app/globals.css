@@ -208,6 +208,19 @@ body {
     @apply glass rounded-2xl;
   }
 
+  /* Flat card for surfaces that move a lot (Kanban board). Deliberately not
+     `.glass`: a `backdrop-filter` on every card in a column tanks frame rate
+     the moment cards reflow (drag reorder, column resize), and a solid panel
+     reads cleaner anyway. Shadow-only hover/lift keeps `transform` free for
+     dnd-kit's own drag/reorder transform. */
+  .task-card {
+    @apply rounded-xl border border-surface-border bg-surface shadow-card
+      transition-shadow duration-150;
+  }
+  :root[data-mode="dark"] .task-card {
+    border-color: rgb(255 255 255 / 0.08);
+  }
+
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5
       text-sm font-medium transition disabled:opacity-50 disabled:pointer-events-none;
@@ -369,14 +382,34 @@ body {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: none; }
 }
-.animate-overlay { animation: fade-in 0.18s ease-out; }
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes sheet-down {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(100%); }
+}
+@keyframes pop-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(10px) scale(0.98); }
+}
+.animate-overlay { animation: fade-in 0.18s ease-out both; }
 /* Mobile default: slide up like a sheet. Desktop: gentle pop. */
-.animate-window { animation: sheet-up 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
+.animate-window { animation: sheet-up 0.3s cubic-bezier(0.32, 0.72, 0, 1) both; }
 @media (min-width: 640px) {
-  .animate-window { animation: pop-in 0.2s ease-out; }
+  .animate-window { animation: pop-in 0.2s ease-out both; }
 }
 .animate-toast { animation: toast-in 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
 .animate-pop { animation: pop-in 0.18s ease-out; }
+
+/* Close/exit mirrors: play while the modal is unmounting so it never just
+   vanishes mid-frame. */
+.animate-overlay-out { animation: fade-out 0.16s ease-in both; }
+.animate-window-out { animation: sheet-down 0.22s cubic-bezier(0.32, 0.72, 0, 1) both; }
+@media (min-width: 640px) {
+  .animate-window-out { animation: pop-out 0.16s ease-in both; }
+}
 
 /* Chart growth + skeleton shimmer */
 @keyframes grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
@@ -398,6 +431,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-overlay,
   .animate-window,
+  .animate-overlay-out,
+  .animate-window-out,
   .animate-toast,
   .animate-pop,
   .animate-bar,

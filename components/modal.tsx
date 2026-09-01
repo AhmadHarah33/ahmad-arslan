@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 
+// Longest close variant across breakpoints (mobile sheet-down); the desktop
+// pop-out is shorter but finishing early just means the panel sits invisible
+// for the last few ms before unmount, which is imperceptible.
+const CLOSE_MS = 220;
+
 export default function Modal({
   title,
   onClose,
@@ -13,20 +18,43 @@ export default function Modal({
   children: React.ReactNode;
   footer?: React.ReactNode;
 }) {
+  const [closing, setClosing] = useState(false);
   const [drag, setDrag] = useState(0);
   const startY = useRef<number | null>(null);
+  const closingRef = useRef(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  // Plays the exit animation before actually unmounting, so the sheet/dialog
+  // slides or fades away instead of just vanishing on the frame it's closed.
+  function requestClose() {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      onCloseRef.current();
+      return;
+    }
+    setClosing(true);
+    closeTimer.current = setTimeout(() => onCloseRef.current(), CLOSE_MS);
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") requestClose();
     };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      if (closeTimer.current) clearTimeout(closeTimer.current);
     };
-  }, [onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Swipe-down-to-dismiss on the grab handle (mobile).
   function onTouchStart(e: React.TouchEvent) {
@@ -37,17 +65,34 @@ export default function Modal({
     setDrag(Math.max(0, e.touches[0].clientY - startY.current));
   }
   function onTouchEnd() {
-    if (drag > 110) onClose();
-    setDrag(0);
+    if (drag > 110) {
+      requestClose();
+    } else {
+      setDrag(0);
+    }
     startY.current = null;
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4">
-      <div className="animate-overlay absolute inset-0" onClick={onClose} aria-hidden="true" />
+    <div
+      className={`fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4 ${
+        closing ? "pointer-events-none" : ""
+      }`}
+    >
       <div
-        className="glass glass-strong animate-window relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-3xl sm:rounded-3xl"
-        style={{ transform: drag ? `translateY(${drag}px)` : undefined, transition: drag ? "none" : "transform 0.2s" }}
+        className={`absolute inset-0 ${closing ? "animate-overlay-out" : "animate-overlay"}`}
+        onClick={requestClose}
+        aria-hidden="true"
+      />
+      <div
+        className={`glass glass-strong relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-3xl sm:rounded-3xl ${
+          closing ? "animate-window-out" : "animate-window"
+        }`}
+        style={{
+          transform: drag ? `translateY(${drag}px)` : undefined,
+          transition: drag ? "none" : "transform 0.2s",
+          willChange: "transform",
+        }}
       >
         {/* Grab handle (mobile) */}
         <div
@@ -62,7 +107,7 @@ export default function Modal({
         <div className="flex shrink-0 items-center justify-between border-b border-surface-border px-5 py-3">
           <h2 className="text-base font-semibold text-ink">{title}</h2>
           <button
-            onClick={onClose}
+            onClick={requestClose}
             className="rounded-lg p-1 text-ink-faint hover:bg-surface-soft hover:text-ink"
             aria-label="Close"
           >
