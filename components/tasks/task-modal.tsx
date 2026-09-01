@@ -275,6 +275,26 @@ export default function TaskModal({
           </select>
         </div>
 
+        {/* Kept right after the core fields (not after Properties/Parts,
+            which can run long with custom fields) so it stays reachable
+            without scrolling through the whole form. */}
+        {!isNew && (
+          <div className="border-t border-surface-border pt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="label mb-0">Activity</p>
+              <a
+                href={`/print/task/${task!.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm font-medium text-brand-600"
+              >
+                ⭳ Download report
+              </a>
+            </div>
+            <TaskActivity taskId={task!.id} profile={profile} />
+          </div>
+        )}
+
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
             <p className="label">Properties</p>
@@ -291,23 +311,6 @@ export default function TaskModal({
           <div className="border-t border-surface-border pt-4">
             <p className="label">Parts used</p>
             <TaskParts taskId={task!.id} editable={editable} />
-          </div>
-        )}
-
-        {!isNew && (
-          <div className="border-t border-surface-border pt-4">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="label mb-0">Activity</p>
-              <a
-                href={`/print/task/${task!.id}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm font-medium text-brand-600"
-              >
-                ⭳ Download report
-              </a>
-            </div>
-            <TaskActivity taskId={task!.id} profile={profile} />
           </div>
         )}
 

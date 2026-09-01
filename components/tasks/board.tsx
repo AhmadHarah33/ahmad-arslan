@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   closestCorners,
   defaultDropAnimationSideEffects,
@@ -29,7 +29,6 @@ import { AvatarGroup } from "@/components/avatar";
 import { dueStatus, formatDateShort } from "@/lib/dates";
 import TaskModal from "./task-modal";
 import { toastErr } from "@/lib/toast";
-import Fab from "@/components/fab";
 
 type Engineer = Profile;
 type CustomerLite = Pick<Customer, "id" | "name">;
@@ -50,6 +49,22 @@ const dropAnimation: DropAnimation = {
     styles: { active: { opacity: "0.4" } },
   }),
 };
+
+// Drag-and-drop reordering stays desktop-only — on phones it fights native
+// scrolling and is fiddly with a thumb, so mobile gets the three-dot menu's
+// "Move to…" sheet instead. Defaults to false (matches the SSR render) and
+// flips true after mount once the viewport is known.
+function useIsDesktop() {
+  const [desktop, setDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    setDesktop(mq.matches);
+    const onChange = () => setDesktop(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return desktop;
+}
 
 // Render up to `max` tag-style custom fields (select/multi-select) as chips.
 function TaskTags({
@@ -96,11 +111,17 @@ export default function TasksBoard({
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [view, setView] = useState<"board" | "list">("board");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const isDesktop = useIsDesktop();
   const [modal, setModal] = useState<{
     open: boolean;
     task: Task | null;
     status: TaskStatus;
   }>({ open: false, task: null, status: "todo" });
+  // Mobile-only "⋯" menu on a card: edit, or move to another column.
+  const [actionSheet, setActionSheet] = useState<{
+    task: Task;
+    mode: "menu" | "move";
+  } | null>(null);
 
   // Snapshot of `tasks` taken at drag start, so a failed save (or a drop
   // outside any column) can restore the exact pre-drag order in one shot.
@@ -243,6 +264,25 @@ export default function TasksBoard({
     dragSnapshot.current = null;
   }
 
+  // Same persistence path as a drag drop (fractional position), but for the
+  // mobile "Move to…" sheet: always lands at the end of the target column.
+  async function onQuickMove(task: Task, newStatus: TaskStatus) {
+    if (task.status === newStatus || !canEditTask(profile, task)) return;
+    const before = tasks;
+    const column = tasks.filter((t) => t.status === newStatus);
+    const last = column[column.length - 1];
+    const position = last ? last.position + 1 : Date.now();
+
+    setTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? { ...t, status: newStatus, position } : t))
+    );
+    const res = await moveTask(task.id, newStatus, position);
+    if (res?.error) {
+      setTasks(before);
+      toastErr(res.error);
+    }
+  }
+
   function upsertLocal(task: Task) {
     setTasks((prev) => {
       const exists = prev.some((t) => t.id === task.id);
@@ -263,8 +303,7 @@ export default function TasksBoard({
   const cardProps = { customerName, attachmentCount, commentCounts };
 
   return (
-    // pb-24 on phones keeps the last card clear of the floating + button.
-    <div className="pb-24 md:pb-0">
+    <div>
       {/* Toolbar: view switcher + primary action */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="seg">
@@ -321,8 +360,10 @@ export default function TasksBoard({
                   profile={profile}
                   fieldDefs={fieldDefs}
                   fieldValues={fieldValues}
+                  draggableDesktop={isDesktop}
                   onOpen={(task) => setModal({ open: true, task, status: col.key })}
                   onNew={() => openNew(col.key)}
+                  onMenu={(task) => setActionSheet({ task, mode: "menu" })}
                   {...cardProps}
                 />
               </div>
@@ -342,7 +383,25 @@ export default function TasksBoard({
         />
       )}
 
-      <Fab onClick={() => openNew()} />
+      {actionSheet && (
+        <MobileActionSheet
+          task={actionSheet.task}
+          mode={actionSheet.mode}
+          editable={canEditTask(profile, actionSheet.task)}
+          onEdit={() => {
+            const task = actionSheet.task;
+            setActionSheet(null);
+            setModal({ open: true, task, status: task.status });
+          }}
+          onPickMove={() => setActionSheet((s) => (s ? { ...s, mode: "move" } : s))}
+          onBack={() => setActionSheet((s) => (s ? { ...s, mode: "menu" } : s))}
+          onMove={(status) => {
+            onQuickMove(actionSheet.task, status);
+            setActionSheet(null);
+          }}
+          onClose={() => setActionSheet(null)}
+        />
+      )}
 
       {modal.open && (
         <TaskModal
@@ -390,8 +449,10 @@ function Column({
   profile,
   fieldDefs,
   fieldValues,
+  draggableDesktop,
   onOpen,
   onNew,
+  onMenu,
   ...extras
 }: {
   status: TaskStatus;
@@ -400,8 +461,10 @@ function Column({
   profile: Profile;
   fieldDefs: FieldDefinition[];
   fieldValues: ValueMap;
+  draggableDesktop: boolean;
   onOpen: (t: Task) => void;
   onNew: () => void;
+  onMenu: (t: Task) => void;
 } & CardExtras) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const [menu, setMenu] = useState(false);
@@ -472,10 +535,11 @@ function Column({
             <SortableCard
               key={t.id}
               task={t}
-              draggable={canEditTask(profile, t)}
+              draggable={draggableDesktop && canEditTask(profile, t)}
               fieldDefs={fieldDefs}
               fieldValues={fieldValues}
               onOpen={onOpen}
+              onMenu={onMenu}
               {...extras}
             />
           ))}
@@ -500,6 +564,7 @@ function SortableCard({
   fieldDefs,
   fieldValues,
   onOpen,
+  onMenu,
   ...extras
 }: {
   task: Task;
@@ -507,6 +572,7 @@ function SortableCard({
   fieldDefs: FieldDefinition[];
   fieldValues: ValueMap;
   onOpen: (t: Task) => void;
+  onMenu: (t: Task) => void;
 } & CardExtras) {
   const { attributes, listeners, setNodeRef, isDragging, transform, transition } =
     useSortable({ id: task.id, disabled: !draggable });
@@ -520,12 +586,15 @@ function SortableCard({
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      className={`cursor-pointer touch-none ${isDragging ? "opacity-0" : ""}`}
+      // touch-none only while actually draggable — on mobile (not
+      // draggable) it would block normal vertical scrolling over cards.
+      className={`cursor-pointer ${draggable ? "touch-none" : ""} ${isDragging ? "opacity-0" : ""}`}
     >
       <CardBody
         task={task}
         fieldDefs={fieldDefs}
         fieldValues={fieldValues}
+        onMenu={() => onMenu(task)}
         {...extras}
       />
     </div>
@@ -540,19 +609,35 @@ function CardBody({
   attachmentCount,
   commentCounts,
   lifted = false,
+  onMenu,
 }: {
   task: Task;
   fieldDefs?: FieldDefinition[];
   fieldValues?: ValueMap;
   lifted?: boolean;
+  onMenu?: () => void;
 } & CardExtras) {
   const subtitle = customerName(task.customer_id);
   const files = attachmentCount(task.id);
   const comments = commentCounts[task.id] ?? 0;
 
   return (
-    <div className={`task-card p-3 ${lifted ? "shadow-pop" : "hover:shadow-card"}`}>
-      <p className="line-clamp-2 text-sm font-semibold leading-snug text-ink">
+    <div className={`task-card relative p-3 ${lifted ? "shadow-pop" : "hover:shadow-card"}`}>
+      {/* Mobile only — desktop uses drag-and-drop to change columns, so the
+          menu would be a redundant control there. */}
+      {onMenu && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onMenu();
+          }}
+          aria-label="Task options"
+          className="icon-btn absolute right-1 top-1 h-6 w-6 md:hidden"
+        >
+          <DotsIcon className="h-3.5 w-3.5" />
+        </button>
+      )}
+      <p className={`line-clamp-2 text-sm font-semibold leading-snug text-ink ${onMenu ? "pr-6" : ""}`}>
         {task.title}
       </p>
       {subtitle && (
@@ -679,6 +764,72 @@ function ListView({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// Mobile "⋯" card menu: edit, or move to another column. Replaces the
+// drag-and-drop column change on phones (see useIsDesktop above).
+function MobileActionSheet({
+  task,
+  mode,
+  editable,
+  onEdit,
+  onPickMove,
+  onBack,
+  onMove,
+  onClose,
+}: {
+  task: Task;
+  mode: "menu" | "move";
+  editable: boolean;
+  onEdit: () => void;
+  onPickMove: () => void;
+  onBack: () => void;
+  onMove: (status: TaskStatus) => void;
+  onClose: () => void;
+}) {
+  const otherStatuses = TASK_STATUSES.filter((s) => s.key !== task.status);
+  const itemClass =
+    "flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-ink hover:bg-surface-soft";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center md:hidden">
+      <div className="animate-overlay absolute inset-0 bg-ink/40" onClick={onClose} aria-hidden="true" />
+      <div
+        className="glass glass-strong animate-window relative z-10 w-full rounded-t-3xl p-2"
+        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+      >
+        <div className="sheet-handle mx-auto my-2" />
+        <p className="truncate px-3 pb-2 text-sm font-semibold text-ink">{task.title}</p>
+        {mode === "menu" ? (
+          <div className="space-y-0.5">
+            <button onClick={onEdit} className={itemClass}>
+              Edit task
+            </button>
+            {editable && (
+              <button onClick={onPickMove} className={itemClass}>
+                Move to…
+              </button>
+            )}
+            <button onClick={onClose} className={`${itemClass} text-ink-faint`}>
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-0.5">
+            {otherStatuses.map((s) => (
+              <button key={s.key} onClick={() => onMove(s.key)} className={itemClass}>
+                <StatusDot status={s.key} />
+                {s.label}
+              </button>
+            ))}
+            <button onClick={onBack} className={`${itemClass} text-ink-faint`}>
+              ← Back
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

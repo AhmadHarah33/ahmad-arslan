@@ -157,6 +157,32 @@ fields, task templates).
     animation — a `closing` state plays `.animate-*-out` keyframes before
     unmounting instead of just vanishing — respecting
     `prefers-reduced-motion` throughout.
+19. **Task board mobile UX pass** — drag-and-drop was rough on touch (fights
+    native scroll, fiddly with a thumb), so it's now desktop-only:
+    `components/tasks/board.tsx` gained a `useIsDesktop()` hook
+    (`matchMedia("(min-width: 768px)")`, defaults to `false` so SSR and the
+    first client render agree) and cards pass `draggable={isDesktop &&
+    canEditTask(...)}` into `useSortable` — on mobile that means no
+    listeners are attached at all, and `touch-none` is only applied when
+    actually draggable so the column keeps scrolling normally under a
+    finger. In its place, each card gets a "⋯" button (`md:hidden`,
+    top-right of `CardBody`) opening a bottom `MobileActionSheet` with
+    "Edit task" (opens `TaskModal`, same as tapping the card) and "Move
+    to…" (lists the other columns; picking one calls the same `moveTask`
+    server action the desktop drag uses, appended to the end of the target
+    column via `onQuickMove`). Also removed the floating `Fab` "+" button
+    from the tasks page — each column already has its own small "+" in its
+    header, so the FAB was a redundant, oversized control on small screens.
+    Moved the task modal's "Activity" section (comments) up to right after
+    the Customer field, before Properties/Parts used — it used to sit at
+    the very bottom of the form, past a potentially long custom-fields
+    list, making it easy to miss. No permissions code changed for the
+    "head" role's edit access — `canEditTask`/`canEditData` in
+    `lib/permissions.ts` already return `true` for `role === "head"`
+    everywhere (tasks, customers, spare parts), including custom-field
+    rename/delete (e.g. renaming the `TEŞHİS` field) via each page's
+    `CustomFields canManage={...}` prop, which was already wired to that
+    check.
 
 ## Conventions
 - Every GitHub/commit ends with the Co-Authored-By + Claude-Session footer.
