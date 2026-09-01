@@ -6,7 +6,8 @@ import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import { PriorityChip, StatusChip } from "@/components/ui";
 import { AvatarGroup } from "@/components/avatar";
 import { StatTile, ProgressRow, Donut, MonthBars } from "@/components/charts";
-import { DUE_STYLES, dueStatus, formatDateLong } from "@/lib/dates";
+import { DUE_STYLES, dueStatus, formatDateShort } from "@/lib/dates";
+import { STATUS_VAR, TASK_STATUSES } from "@/lib/types";
 import type { Profile, SparePart, Task } from "@/lib/types";
 import {
   PREVIEW,
@@ -121,12 +122,15 @@ export default async function DashboardPage() {
 
   // ---- Head: compact card dashboard --------------------------------------
   if (head) {
-    const statusSegments = [
-      { label: "To do", value: allTasks.filter((t) => t.status === "todo").length, color: "#94a3b8" },
-      { label: "In progress", value: allTasks.filter((t) => t.status === "in_progress").length, color: "rgb(var(--brand-500))" },
-      { label: "Done", value: allTasks.filter((t) => t.status === "done").length, color: "#10b981" },
-      { label: "Overdue", value: overdue.length, color: "#ef4444" },
-    ];
+    // One segment per board column, coloured from the same --tone-* tokens the
+    // board uses, so the ring reads as a straight breakdown of the four
+    // columns. (Overdue isn't a segment — it cuts across statuses and already
+    // has its own tile above.)
+    const statusSegments = TASK_STATUSES.map(({ key, label }) => ({
+      label,
+      value: allTasks.filter((t) => t.status === key).length,
+      color: `rgb(var(${STATUS_VAR[key]}))`,
+    }));
     const months = lastMonths(allTasks);
     const unassigned = open.filter((t) => t.assignees.length === 0);
 
@@ -291,53 +295,36 @@ function lastMonths(tasks: Task[]) {
   return out.map(({ label, value }) => ({ label, value }));
 }
 
-// Progress each column reads as on a card (mirrors the board).
-const CARD_PROGRESS: Record<Task["status"], { pct: number; bar: string }> = {
-  todo: { pct: 0, bar: "bg-ink-faint" },
-  in_progress: { pct: 50, bar: "bg-brand-500" },
-  done: { pct: 100, bar: "bg-emerald-500" },
-};
-
+// Compact task card, matching the board's.
 function TaskGrid({ tasks }: { tasks: Task[] }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {tasks.map((t) => {
-        const { pct, bar } = CARD_PROGRESS[t.status];
         const st = dueStatus(t.due_date);
         return (
           <Link
             key={t.id}
             href="/tasks"
-            className="card block p-3.5 transition hover:shadow-pop"
+            className="card block p-3 transition hover:shadow-pop"
           >
-            <PriorityChip priority={t.priority} />
-            <p className="mt-2.5 text-[15px] font-semibold leading-snug text-ink">
+            <p className="line-clamp-2 text-sm font-semibold leading-snug text-ink">
               {t.title}
             </p>
 
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-ink-muted">Progress</span>
-                <span className="font-medium text-ink-muted">{pct}%</span>
-              </div>
-              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-ink/[0.08]">
-                <div className={`h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} />
-              </div>
-            </div>
-
-            {t.due_date && (
-              <div
-                className={`mt-3 rounded-xl px-2.5 py-1.5 text-xs ${
-                  st === "none" ? "bg-surface-soft text-ink-muted" : DUE_STYLES[st]
-                }`}
-              >
-                Due to:{" "}
-                <span className="font-medium">{formatDateLong(t.due_date)}</span>
-              </div>
-            )}
-
-            <div className="mt-3">
-              <AvatarGroup people={t.assignees} size={22} />
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+              <AvatarGroup people={t.assignees} size={20} max={3} />
+              <PriorityChip priority={t.priority} />
+              {t.due_date && (
+                <span
+                  className={`ml-auto text-xs ${
+                    st === "none"
+                      ? "text-ink-faint"
+                      : `chip px-2 py-0.5 ${DUE_STYLES[st]}`
+                  }`}
+                >
+                  {formatDateShort(t.due_date)}
+                </span>
+              )}
             </div>
           </Link>
         );

@@ -37,7 +37,7 @@ export default function FieldValue({
     }
     case "checkbox":
       return value ? (
-        <span className="chip bg-green-50 text-green-700">✓ {def.label}</span>
+        <span className="chip tone-done">✓ {def.label}</span>
       ) : null;
     case "files": {
       const files = Array.isArray(value) ? (value as string[]) : [];

@@ -12,14 +12,24 @@ export function dueStatus(due: string | null | undefined): DueStatus {
   return "none";
 }
 
+// Tones from globals.css so a due badge stays readable in light and dark.
 export const DUE_STYLES: Record<Exclude<DueStatus, "none">, string> = {
-  overdue: "bg-red-50 text-red-700",
-  soon: "bg-amber-50 text-amber-700",
+  overdue: "tone-stuck",
+  soon: "tone-warn",
 };
 
 export function formatDate(d: string | null | undefined): string {
   if (!d) return "";
   return new Date(`${d}T00:00:00`).toLocaleDateString();
+}
+
+// Compact form for dense cards — e.g. "Sep 3".
+export function formatDateShort(d: string | null | undefined): string {
+  if (!d) return "";
+  return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 // Long, readable form for cards — e.g. "March 30, 2025".

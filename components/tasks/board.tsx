@@ -12,15 +12,15 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { PriorityChip } from "@/components/ui";
-import { TASK_STATUSES } from "@/lib/types";
+import { PriorityChip, STATUS_TONE } from "@/components/ui";
+import { STATUS_VAR, TASK_STATUSES } from "@/lib/types";
 import type { Customer, Profile, Task, TaskStatus } from "@/lib/types";
 import { canEditTask } from "@/lib/permissions";
 import { moveTask } from "@/app/(app)/tasks/actions";
 import type { FieldDefinition } from "@/lib/customFields";
 import FieldValue from "@/components/fields/FieldValue";
 import { AvatarGroup } from "@/components/avatar";
-import { dueStatus, formatDateLong } from "@/lib/dates";
+import { dueStatus, formatDateShort } from "@/lib/dates";
 import TaskModal from "./task-modal";
 import { toastErr } from "@/lib/toast";
 import Fab from "@/components/fab";
@@ -29,13 +29,6 @@ type Engineer = Profile;
 type CustomerLite = Pick<Customer, "id" | "name">;
 type ValueMap = Record<string, Record<string, unknown>>;
 type CountMap = Record<string, number>;
-
-// How full the progress bar reads for each column, and the colour it uses.
-const PROGRESS: Record<TaskStatus, { pct: number; bar: string }> = {
-  todo: { pct: 0, bar: "bg-ink-faint" },
-  in_progress: { pct: 50, bar: "bg-brand-500" },
-  done: { pct: 100, bar: "bg-emerald-500" },
-};
 
 // Render up to `max` tag-style custom fields (select/multi-select) as chips.
 function TaskTags({
@@ -97,6 +90,7 @@ export default function TasksBoard({
       todo: [],
       in_progress: [],
       done: [],
+      stuck: [],
     };
     for (const t of tasks) map[t.status].push(t);
     return map;
@@ -173,7 +167,8 @@ export default function TasksBoard({
   const cardProps = { customerName, attachmentCount, commentCounts };
 
   return (
-    <div>
+    // pb-24 on phones keeps the last card clear of the floating + button.
+    <div className="pb-24 md:pb-0">
       {/* Toolbar: view switcher + primary action */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="seg">
@@ -203,15 +198,21 @@ export default function TasksBoard({
 
       {view === "board" ? (
         <DndContext
+          // Explicit id: without one dnd-kit derives its a11y ids from a
+          // render counter that differs between the server and the client,
+          // and the resulting hydration mismatch makes React discard and
+          // re-render the whole board on load.
+          id="task-board"
           sensors={sensors}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
         >
-          <div className="no-scrollbar snap-x flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
+          {/* Columns scroll sideways until there's room for all four. */}
+          <div className="no-scrollbar snap-x flex items-start gap-3 overflow-x-auto pb-2 xl:grid xl:grid-cols-4 xl:overflow-visible xl:pb-0">
             {TASK_STATUSES.map((col) => (
               <div
                 key={col.key}
-                className="w-[85vw] max-w-sm shrink-0 snap-start md:w-auto md:max-w-none md:shrink"
+                className="w-[82vw] max-w-xs shrink-0 snap-start sm:w-72 xl:w-auto xl:max-w-none xl:shrink"
               >
                 <Column
                   status={col.key}
@@ -276,11 +277,15 @@ type CardExtras = {
   commentCounts: CountMap;
 };
 
-const COLUMN_ICON: Record<TaskStatus, { icon: React.ReactNode; tint: string }> = {
-  todo: { icon: <DotCircleIcon className="h-4 w-4" />, tint: "text-ink-faint" },
-  in_progress: { icon: <TargetIcon className="h-4 w-4" />, tint: "text-brand-600" },
-  done: { icon: <CheckCircleIcon className="h-4 w-4" />, tint: "text-emerald-600" },
-};
+// Status dot used in the column header and the list view.
+function StatusDot({ status, className = "" }: { status: TaskStatus; className?: string }) {
+  return (
+    <span
+      className={`inline-block h-2 w-2 shrink-0 rounded-full ${className}`}
+      style={{ background: `rgb(var(${STATUS_VAR[status]}))` }}
+    />
+  );
+}
 
 function Column({
   status,
@@ -304,18 +309,19 @@ function Column({
 } & CardExtras) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const [menu, setMenu] = useState(false);
-  const { icon, tint } = COLUMN_ICON[status];
+  const tint = STATUS_VAR[status];
 
   return (
     <div className="w-full">
-      {/* z-30: the card's backdrop-filter makes it a stacking context, so the
-          dropdown below can only escape the cards underneath from here. */}
-      <div className="card relative z-30 mb-3 flex items-center gap-2 px-3.5 py-2.5">
-        <span className={tint}>{icon}</span>
-        <h3 className="text-sm font-semibold text-ink">{label}</h3>
-        <span className="rounded-full bg-surface-soft px-2 py-0.5 text-xs font-medium text-ink-muted">
-          {tasks.length}
+      {/* z-20 lifts the header (and its menu) above the cards below, whose
+          backdrop-filter would otherwise trap the dropdown behind them. */}
+      <div className="relative z-20 mb-2 flex items-center gap-2 px-1">
+        <span className={`chip ${STATUS_TONE[status]}`}>
+          <StatusDot status={status} />
+          {label}
         </span>
+        <span className="text-xs font-medium text-ink-faint">{tasks.length}</span>
+
         <button
           onClick={() => setMenu((v) => !v)}
           aria-label={`${label} options`}
@@ -323,6 +329,14 @@ function Column({
         >
           <DotsIcon className="h-4 w-4" />
         </button>
+        <button
+          onClick={onNew}
+          aria-label={`New task in ${label}`}
+          className="icon-btn h-7 w-7"
+        >
+          <PlusIcon className="h-4 w-4" />
+        </button>
+
         {menu && (
           <>
             <div
@@ -330,7 +344,7 @@ function Column({
               onClick={() => setMenu(false)}
               aria-hidden="true"
             />
-            <div className="card animate-pop absolute right-2 top-11 z-20 w-44 p-1">
+            <div className="card animate-pop absolute right-0 top-9 z-20 w-44 p-1">
               <button
                 onClick={() => {
                   setMenu(false);
@@ -346,10 +360,13 @@ function Column({
         )}
       </div>
 
+      {/* Faint wash in the column's own hue groups its cards and gives the
+          drop target an obvious edge; it deepens while dragging over it. */}
       <div
         ref={setNodeRef}
-        className={`min-h-[140px] space-y-3 rounded-2xl p-1 transition ${
-          isOver ? "bg-brand-50 ring-2 ring-brand-200" : ""
+        style={{ background: `rgb(var(${tint}) / ${isOver ? 0.14 : 0.05})` }}
+        className={`min-h-[120px] space-y-2 rounded-2xl p-2 transition ${
+          isOver ? "ring-1" : "ring-0"
         }`}
       >
         {tasks.map((t) => (
@@ -366,7 +383,7 @@ function Column({
         {tasks.length === 0 && (
           <button
             onClick={onNew}
-            className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-surface-border py-8 text-xs font-medium text-ink-faint transition hover:border-ink-faint hover:text-ink-muted"
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-surface-border py-6 text-xs font-medium text-ink-faint transition hover:border-ink-faint hover:text-ink-muted"
           >
             <PlusIcon className="h-3.5 w-3.5" />
             Add a task
@@ -425,93 +442,68 @@ function CardBody({
   fieldDefs?: FieldDefinition[];
   fieldValues?: ValueMap;
 } & CardExtras) {
-  const { pct, bar } = PROGRESS[task.status];
   const subtitle = customerName(task.customer_id);
   const files = attachmentCount(task.id);
   const comments = commentCounts[task.id] ?? 0;
 
   return (
-    <div className="card p-3.5 transition hover:shadow-pop">
-      <PriorityChip priority={task.priority} />
-
-      <p className="mt-2.5 text-[15px] font-semibold leading-snug text-ink">
+    <div className="card p-3 transition hover:shadow-pop">
+      <p className="line-clamp-2 text-sm font-semibold leading-snug text-ink">
         {task.title}
       </p>
       {subtitle && (
-        <p className="mt-0.5 truncate text-xs text-ink-muted">{subtitle}</p>
+        <p className="mt-1 truncate text-xs text-ink-muted">{subtitle}</p>
       )}
 
       {fieldDefs && fieldValues && (
-        <TaskTags taskId={task.id} defs={fieldDefs} values={fieldValues} />
+        <TaskTags taskId={task.id} defs={fieldDefs} values={fieldValues} max={2} />
       )}
 
-      {/* Progress — derived from the column the task sits in */}
-      <div className="mt-3">
-        <div className="flex items-center justify-between text-xs">
-          <span className="flex items-center gap-1.5 text-ink-muted">
-            {task.status === "done" ? (
-              <CheckCircleIcon className="h-3.5 w-3.5 text-emerald-500" />
-            ) : (
-              <ListIcon className="h-3.5 w-3.5" />
-            )}
-            Progress
-          </span>
-          <span className="font-medium text-ink-muted">{pct}%</span>
+      {/* Meta row. It wraps rather than truncating, so nothing can end up
+          sitting on top of anything else in a narrow column. */}
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <AvatarGroup people={task.assignees} size={20} max={3} />
+        <PriorityChip priority={task.priority} />
+        <div className="ml-auto flex items-center gap-2 text-xs text-ink-faint">
+          {task.due_date && <DueBadge due={task.due_date} />}
+          {files > 0 && (
+            <span className="flex items-center gap-1" title={`${files} attachments`}>
+              <ClipIcon className="h-3.5 w-3.5" />
+              {files}
+            </span>
+          )}
+          {comments > 0 && (
+            <span className="flex items-center gap-1" title={`${comments} comments`}>
+              <CommentIcon className="h-3.5 w-3.5" />
+              {comments}
+            </span>
+          )}
         </div>
-        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-ink/[0.08]">
-          <div
-            className={`h-full rounded-full ${bar}`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      </div>
-
-      {task.due_date && <DueRow due={task.due_date} />}
-
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <AvatarGroup people={task.assignees} size={22} />
-        {(files > 0 || comments > 0) && (
-          <div className="flex shrink-0 items-center gap-2.5 text-xs text-ink-faint">
-            {files > 0 && (
-              <span className="flex items-center gap-1" title={`${files} attachments`}>
-                <ClipIcon className="h-3.5 w-3.5" />
-                {files}
-              </span>
-            )}
-            {comments > 0 && (
-              <span className="flex items-center gap-1" title={`${comments} comments`}>
-                <CommentIcon className="h-3.5 w-3.5" />
-                {comments}
-              </span>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-// Full-width due-date strip; tinted red/amber when overdue or due soon.
-function DueRow({ due }: { due: string }) {
+// Compact due date. Plain text normally; tinted only when it needs attention.
+function DueBadge({ due }: { due: string }) {
   const st = dueStatus(due);
-  const tone =
-    st === "overdue"
-      ? "bg-red-50 text-red-700"
-      : st === "soon"
-      ? "bg-amber-50 text-amber-700"
-      : "bg-surface-soft text-ink-muted";
-  return (
-    <div
-      className={`mt-3 flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs ${tone}`}
-    >
-      <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
-      <span className="truncate">
-        Due to: <span className="font-medium">{formatDateLong(due)}</span>
+  const label = formatDateShort(due);
+  if (st === "none") {
+    return (
+      <span className="flex items-center gap-1" title={`Due ${label}`}>
+        <CalendarIcon className="h-3.5 w-3.5" />
+        {label}
       </span>
-      {st === "overdue" && (
-        <span className="ml-auto shrink-0 font-semibold">Overdue</span>
-      )}
-    </div>
+    );
+  }
+  return (
+    <span
+      className={`chip px-2 py-0.5 ${st === "overdue" ? "tone-stuck" : "tone-warn"}`}
+      title={st === "overdue" ? `Overdue — was due ${label}` : `Due soon — ${label}`}
+    >
+      <CalendarIcon className="h-3 w-3" />
+      {label}
+    </span>
   );
 }
 
@@ -539,7 +531,6 @@ function ListView({
   return (
     <div className="card divide-y divide-surface-border overflow-hidden">
       {tasks.map((t) => {
-        const { pct, bar } = PROGRESS[t.status];
         const files = attachmentCount(t.id);
         const comments = commentCounts[t.id] ?? 0;
         return (
@@ -548,22 +539,12 @@ function ListView({
             onClick={() => onOpen(t)}
             className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-surface-soft"
           >
-            <span className={COLUMN_ICON[t.status].tint}>
-              {COLUMN_ICON[t.status].icon}
-            </span>
+            <StatusDot status={t.status} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-ink">{t.title}</p>
               <p className="truncate text-xs text-ink-muted">
                 {customerName(t.customer_id) || "No customer"}
               </p>
-            </div>
-            <div className="hidden w-24 shrink-0 lg:block">
-              <div className="h-1.5 overflow-hidden rounded-full bg-ink/[0.08]">
-                <div
-                  className={`h-full rounded-full ${bar}`}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
             </div>
             <div className="hidden sm:block">
               <TaskTags taskId={t.id} defs={fieldDefs} values={fieldValues} max={2} />
@@ -586,7 +567,7 @@ function ListView({
             )}
             {t.due_date && (
               <span className="hidden shrink-0 text-xs text-ink-faint md:block">
-                {formatDateLong(t.due_date)}
+                <DueBadge due={t.due_date} />
               </span>
             )}
             <AvatarGroup people={t.assignees} size={20} max={3} />
@@ -627,30 +608,6 @@ function DotsIcon(p: React.SVGProps<SVGSVGElement>) {
       <circle cx="12" cy="5" r="1.6" />
       <circle cx="12" cy="12" r="1.6" />
       <circle cx="12" cy="19" r="1.6" />
-    </svg>
-  );
-}
-function DotCircleIcon(p: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...p}>
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-function TargetIcon(p: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...p}>
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="4.5" />
-    </svg>
-  );
-}
-function CheckCircleIcon(p: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="m8.5 12.5 2.5 2.5 4.5-5" />
     </svg>
   );
 }

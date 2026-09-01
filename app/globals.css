@@ -18,6 +18,23 @@
   --ink-muted: 96 105 119;
   --ink-faint: 142 150 165;
 
+  /* Semantic tones — one hue per Kanban column plus a warning tone. `-ink` is
+     the text color used on that tone's tinted fill. Deliberately fixed hues
+     (not the --brand ramp) so statuses stay distinguishable whatever accent
+     the user picks. Re-stated for dark mode below with lifted values. */
+  --tone-neutral: 100 116 139;
+  --tone-neutral-ink: 51 65 85;
+  --tone-progress: 37 99 235;
+  --tone-progress-ink: 29 78 216;
+  --tone-done: 5 150 105;
+  --tone-done-ink: 4 120 87;
+  --tone-stuck: 225 29 72;
+  --tone-stuck-ink: 190 18 60;
+  --tone-warn: 245 158 11;
+  --tone-warn-ink: 180 83 9;
+  --tone-purple: 147 51 234;
+  --tone-purple-ink: 126 34 206;
+
   /* accent — sky (default) */
   --brand-50: 240 249 255;
   --brand-100: 224 242 254;
@@ -42,6 +59,21 @@
   --ink: 235 237 242;
   --ink-muted: 162 169 184;
   --ink-faint: 122 130 145;
+
+  /* Lighter, less saturated tones so tinted chips read on dark surfaces. */
+  --tone-neutral: 148 163 184;
+  --tone-neutral-ink: 203 213 225;
+  --tone-progress: 96 165 250;
+  --tone-progress-ink: 147 197 253;
+  --tone-done: 52 211 153;
+  --tone-done-ink: 110 231 183;
+  --tone-stuck: 251 113 133;
+  --tone-stuck-ink: 253 164 175;
+  --tone-warn: 251 191 36;
+  --tone-warn-ink: 252 211 77;
+  --tone-purple: 192 132 252;
+  --tone-purple-ink: 216 180 254;
+
   color-scheme: dark;
 }
 :root[data-mode="light"] {
@@ -210,7 +242,9 @@ body {
   }
 
   .btn-danger {
-    @apply btn border border-red-200 bg-red-50 text-red-700 hover:bg-red-100;
+    @apply btn border border-transparent hover:opacity-80;
+    background: rgb(var(--tone-stuck) / 0.14);
+    color: rgb(var(--tone-stuck-ink));
   }
 
   .input {
@@ -261,6 +295,34 @@ body {
 
   .chip {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+
+  /* Semantic tones for status + priority. Each is a tinted fill with an ink
+     picked for contrast, so a chip stays readable in light and dark alike
+     (a fixed `bg-blue-50` chip would glare on a dark card). */
+  .tone-neutral {
+    background: rgb(var(--tone-neutral) / 0.14);
+    color: rgb(var(--tone-neutral-ink));
+  }
+  .tone-progress {
+    background: rgb(var(--tone-progress) / 0.14);
+    color: rgb(var(--tone-progress-ink));
+  }
+  .tone-done {
+    background: rgb(var(--tone-done) / 0.14);
+    color: rgb(var(--tone-done-ink));
+  }
+  .tone-stuck {
+    background: rgb(var(--tone-stuck) / 0.14);
+    color: rgb(var(--tone-stuck-ink));
+  }
+  .tone-warn {
+    background: rgb(var(--tone-warn) / 0.16);
+    color: rgb(var(--tone-warn-ink));
+  }
+  .tone-purple {
+    background: rgb(var(--tone-purple) / 0.14);
+    color: rgb(var(--tone-purple-ink));
   }
 }
 

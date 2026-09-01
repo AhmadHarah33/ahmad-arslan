@@ -1,7 +1,7 @@
 // Shared domain types mirroring the Postgres schema.
 
 export type UserRole = "head" | "engineer";
-export type TaskStatus = "todo" | "in_progress" | "done";
+export type TaskStatus = "todo" | "in_progress" | "done" | "stuck";
 export type TaskPriority = "low" | "medium" | "high";
 
 export interface Profile {
@@ -101,6 +101,17 @@ export const TASK_STATUSES: { key: TaskStatus; label: string }[] = [
   { key: "todo", label: "To do" },
   { key: "in_progress", label: "In progress" },
   { key: "done", label: "Done" },
+  { key: "stuck", label: "Stuck" },
 ];
+
+// Each status's hue, named as a --tone-* token from app/globals.css. Consumed
+// through inline styles (column wash, status dot, donut) so it follows the
+// light/dark switch without a second palette.
+export const STATUS_VAR: Record<TaskStatus, string> = {
+  todo: "--tone-neutral",
+  in_progress: "--tone-progress",
+  done: "--tone-done",
+  stuck: "--tone-stuck",
+};
 
 export const TASK_PRIORITIES: TaskPriority[] = ["low", "medium", "high"];

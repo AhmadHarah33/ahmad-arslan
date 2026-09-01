@@ -293,6 +293,19 @@ export const previewTasks: Task[] = [
     created_at: "",
     assignees: [A.omar],
   },
+  {
+    id: "t-7",
+    title: "Waiting on sensor part — Bright Smile",
+    description: "Blocked until the replacement sensor arrives from the vendor.",
+    status: "stuck",
+    priority: "high",
+    customer_id: "cus-1",
+    position: 7,
+    due_date: daysFromNow(-1),
+    created_by: "u-head",
+    created_at: "",
+    assignees: [A.head],
+  },
 ];
 
 // --- Custom-field sample data (mirrors the seeded preset fields) -----------

@@ -37,26 +37,30 @@ export function EmptyState({
   );
 }
 
-const STATUS_STYLES: Record<TaskStatus, string> = {
-  todo: "bg-surface-soft text-ink-muted",
-  in_progress: "bg-blue-50 text-blue-700",
-  done: "bg-green-50 text-green-700",
+// Status colors live in globals.css as `.tone-*` so they stay readable in both
+// light and dark mode; see the --tone-* tokens there.
+export const STATUS_TONE: Record<TaskStatus, string> = {
+  todo: "tone-neutral",
+  in_progress: "tone-progress",
+  done: "tone-done",
+  stuck: "tone-stuck",
 };
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
   todo: "To do",
   in_progress: "In progress",
   done: "Done",
+  stuck: "Stuck",
 };
 
 export function StatusChip({ status }: { status: TaskStatus }) {
-  return <span className={`chip ${STATUS_STYLES[status]}`}>{STATUS_LABELS[status]}</span>;
+  return <span className={`chip ${STATUS_TONE[status]}`}>{STATUS_LABELS[status]}</span>;
 }
 
 const PRIORITY_STYLES: Record<TaskPriority, string> = {
-  low: "bg-emerald-50 text-emerald-700",
-  medium: "bg-amber-50 text-amber-700",
-  high: "bg-red-50 text-red-700",
+  low: "tone-done",
+  medium: "tone-warn",
+  high: "tone-stuck",
 };
 
 export function PriorityChip({ priority }: { priority: TaskPriority }) {

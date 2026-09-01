@@ -6,11 +6,12 @@ import { PREVIEW, previewTasks } from "@/lib/preview";
 import { StatusChip } from "@/components/ui";
 import { SkeletonRows } from "@/components/skeleton";
 import { formatDate } from "@/lib/dates";
+import type { TaskStatus } from "@/lib/types";
 
 type HistoryRow = {
   id: string;
   title: string;
-  status: "todo" | "in_progress" | "done";
+  status: TaskStatus;
   due_date: string | null;
   created_at: string;
 };
