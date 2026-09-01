@@ -135,6 +135,28 @@ fields, task templates).
     so its a11y ids were generated from a render counter that differed
     server vs. client — React discarded and re-rendered the whole board on
     every load. Fixed with `<DndContext id="task-board" ...>`.
+18. **Task board/modal animation rewrite** — the board's drag-and-drop had no
+    real motion: it used raw `useDraggable`/`useDroppable` from
+    `@dnd-kit/core` only, so cards teleported into their new slot instead of
+    sliding, even though `@dnd-kit/sortable` + `@dnd-kit/utilities` were
+    already in `package.json` and unused anywhere. Rewrote
+    `components/tasks/board.tsx`'s drag flow around a flat `tasks` array:
+    `onDragOver` live-reorders it across and within columns, `useSortable` +
+    `CSS.Transform` give each card FLIP-style motion, `closestCorners`
+    collision detection + `MeasuringStrategy.Always` make cross-column drops
+    reliable, and a custom `dropAnimation` matches the app's
+    `cubic-bezier(0.32, 0.72, 0, 1)` easing. `moveTask` now gets a real
+    fractional `position` (midpoint of neighbors) instead of always
+    `Date.now()`, so in-column reordering persists correctly. Also: every
+    kanban card had been using `.card` (full glass, 20px `backdrop-filter`
+    blur) — recomputing blur on every dragged/reflowed card was the actual
+    frame-rate killer. New flat `.task-card` class (solid surface + border +
+    shadow-only hover, `app/globals.css`) replaces it for board cards only;
+    list view/other `.card` usages untouched. Also gave the shared
+    `components/modal.tsx` (task modal, all other modals) a real close
+    animation — a `closing` state plays `.animate-*-out` keyframes before
+    unmounting instead of just vanishing — respecting
+    `prefers-reduced-motion` throughout.
 
 ## Conventions
 - Every GitHub/commit ends with the Co-Authored-By + Claude-Session footer.
