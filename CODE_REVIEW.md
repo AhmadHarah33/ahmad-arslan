@@ -2,12 +2,15 @@
 
 _Reviewed 2026-09-02 · 67 source files, ~8,470 LOC._
 
-**Overall:** this codebase is in better shape than most. There are **no dead
-files**, **no unused dependencies**, and **no orphaned modules**. The real debt
-is concentrated in one place — preview/demo mode, which touches 45% of the file
-surface. Everything else is small.
+**Overall:** this codebase was in better shape than most. There were **no dead
+files**, **no unused dependencies**, and **no orphaned modules**. The debt was
+concentrated in one place — preview/demo mode, which touched 45% of the file
+surface. Everything else was small.
 
-Phase 1 is **done** (see the checklist at the bottom). Phases 2 and 3 are open.
+**All three phases are now done**, bar two items left open on purpose (5 of the
+11 `useAction` migrations, and the `board.tsx` split). Net: ~1,000 lines removed
+across three commits. See the checklists at the bottom, and read the
+"before cleaning up anything" section before acting on any of this.
 
 ---
 
@@ -49,9 +52,9 @@ warning.
 `DEFAULT_BG_STYLE`/`DEFAULT_BG_BLUR` (background.ts). All removed in Phase 1
 (~100 LOC). Risk was near zero — TypeScript catches every mistake at build.
 
-Still open: ~7 symbols exported but used only inside their own file
-(`TAG_COLORS`, `bucketUrl`, `DueStatus`, `AccentPreset`, `LoadedFields`,
-`ROLE_LABELS`, `CustomerLink`). Dropping `export` shrinks the public surface.
+`TAG_COLORS`, `bucketUrl` and `ROLE_LABELS` were made file-local in Phase 2.
+`DueStatus`, `AccentPreset`, `LoadedFields` and `CustomerLink` stay exported —
+see the Phase 2 note below.
 
 ## 2. Duplicate logic
 
@@ -89,7 +92,6 @@ reachable — a genuinely good result for a codebase this size.
 |---|---|---|
 | `components/tasks/board.tsx` | 890 | Kanban + dnd-kit + mobile menus + filters in one file. The real hotspot. |
 | `components/fields/CustomFields.tsx` | 636 | Field CRUD + rendering + type-specific editors combined. |
-| `lib/preview.ts` | 444 | Mock data — see §8. |
 | `app/(app)/page.tsx` | 379 | Dashboard: 4 queries + aggregation + presentation. |
 
 `board.tsx` splits naturally along seams that already exist (`<Column>`,
@@ -142,15 +144,12 @@ Every server action opens with `if (PREVIEW) return { ok: true }`; every page
 branches between mock and real data. **Every future feature must be written
 twice.**
 
-It exists solely for the Vercel demo (`vercel.json` sets
-`NEXT_PUBLIC_PREVIEW=1`). Production now runs self-hosted at
-`marsmeddenterp.site`. Removing it frees 600+ LOC and 51 branches.
+It existed solely for the Vercel demo (`vercel.json` set `NEXT_PUBLIC_PREVIEW=1`).
+Production runs self-hosted at `marsmeddenterp.site`, so the demo no longer
+earned it.
 
-⚠️ **This is a product decision, not a code decision** — the one item where
-"aggressive" could destroy something of value. If the UI is still demoed to
-prospective customers without exposing real data, it is doing a real job: keep
-it. If dropping it: delete `lib/preview.ts`, strip branches file-by-file
-(TypeScript finds every one), remove `vercel.json`, delete the Vercel project.
+**Removed in Phase 3** — this was a product decision, taken by the project owner,
+not a code decision. See the Phase 3 checklist for exactly what came out.
 
 ---
 
