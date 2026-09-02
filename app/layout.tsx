@@ -10,9 +10,14 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Mars Support",
   },
+  // ?v=2 is deliberate. Odoo was served from this same hostname before this
+  // app, and Chrome had cached its icon for the origin — including inside
+  // already-installed PWAs, which pin their icon at install time. Changing the
+  // URL is what makes Chrome fetch the icon again instead of reusing that.
+  // Bump the version if the icons are ever redrawn.
   icons: {
-    icon: "/icons/icon-192.png",
-    apple: "/icons/icon-192.png",
+    icon: "/icons/icon-192.png?v=2",
+    apple: "/icons/icon-192.png?v=2",
   },
 };
 
