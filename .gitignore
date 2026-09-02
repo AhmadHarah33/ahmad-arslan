@@ -35,5 +35,8 @@ yarn-error.log*
 /supabase/.branches
 /supabase/.temp
 
+# cloudflared tunnel (contains the tunnel auth token — never commit)
+/cloudflared/
+
 # typescript incremental build info
 tsconfig.tsbuildinfo

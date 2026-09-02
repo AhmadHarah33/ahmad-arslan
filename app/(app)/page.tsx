@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { greeting } from "@/lib/permissions";
+import { greeting, isManager } from "@/lib/permissions";
 import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import { PriorityChip, StatusChip } from "@/components/ui";
 import { AvatarGroup } from "@/components/avatar";
@@ -19,7 +19,8 @@ import {
 
 export default async function DashboardPage() {
   const profile = await requireProfile();
-  const head = profile.role === "head";
+  // Head and organizer both get the team-wide view; engineers see their own.
+  const head = isManager(profile);
 
   let allTasks: Task[];
   let engineers: Profile[];

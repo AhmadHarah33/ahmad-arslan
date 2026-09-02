@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Profile, UserRole } from "@/lib/types";
 import { createUser, updateProfile } from "@/app/(app)/admin/actions";
+import { isManager, roleLabel } from "@/lib/permissions";
 import Modal from "@/components/modal";
 import { Avatar } from "@/components/avatar";
 
@@ -82,7 +83,9 @@ function MemberRow({
     onChanged();
   }
 
-  const isHead = member.role === "head";
+  // Head and organizer always have full data access, so the per-person grant
+  // is meaningless for them.
+  const manager = isManager(member);
 
   return (
     <div className="flex flex-wrap items-center gap-3 px-4 py-3">
@@ -96,13 +99,11 @@ function MemberRow({
           {member.full_name || "Unnamed"}
           {isSelf && <span className="ml-2 text-xs text-ink-faint">(you)</span>}
         </p>
-        <p className="text-xs capitalize text-ink-faint">
-          {isHead ? "Head of engineers" : "Engineer"}
-        </p>
+        <p className="text-xs text-ink-faint">{roleLabel(member.role)}</p>
       </div>
 
-      {/* Edit-data grant (not shown for head — they always can) */}
-      {!isHead && (
+      {/* Edit-data grant (not shown for managers — they always can) */}
+      {!manager && (
         <button
           onClick={toggleEdit}
           disabled={busy}
@@ -125,6 +126,7 @@ function MemberRow({
           className="rounded-lg border border-surface-border bg-surface px-2 py-1.5 text-sm"
         >
           <option value="engineer">Engineer</option>
+          <option value="organizer">Organizer</option>
           <option value="head">Head</option>
         </select>
       )}
@@ -164,7 +166,20 @@ function AddMemberModal({
   }
 
   return (
-    <Modal title="Add team member" onClose={onClose}>
+    <Modal
+      title="Add team member"
+      onClose={onClose}
+      footer={
+        <div className="flex justify-end gap-2">
+          <button className="btn-ghost" onClick={onClose} disabled={saving}>
+            Cancel
+          </button>
+          <button className="btn-primary" onClick={submit} disabled={saving}>
+            {saving ? "Creating…" : "Create account"}
+          </button>
+        </div>
+      }
+    >
       <div className="space-y-4">
         <div>
           <label className="label">Full name</label>
@@ -203,8 +218,10 @@ function AddMemberModal({
             onChange={(e) => setRole(e.target.value as UserRole)}
           >
             <option value="engineer">Engineer</option>
+            <option value="organizer">Organizer</option>
             <option value="head">Head of engineers</option>
           </select>
+          <p className="mt-1.5 text-xs text-ink-faint">{ROLE_HINTS[role]}</p>
         </div>
 
         {error && (
@@ -212,16 +229,15 @@ function AddMemberModal({
             {error}
           </p>
         )}
-
-        <div className="flex justify-end gap-2 pt-2">
-          <button className="btn-ghost" onClick={onClose} disabled={saving}>
-            Cancel
-          </button>
-          <button className="btn-primary" onClick={submit} disabled={saving}>
-            {saving ? "Creating…" : "Create account"}
-          </button>
-        </div>
       </div>
     </Modal>
   );
 }
+
+const ROLE_HINTS: Record<UserRole, string> = {
+  engineer:
+    "Adds tasks and customers, and manages what they own. Grant “Can edit data” for spare parts and the rest of the shared data.",
+  organizer:
+    "Full access to spare parts, customers and every task — but cannot manage accounts.",
+  head: "Full access, including creating accounts and changing roles.",
+};

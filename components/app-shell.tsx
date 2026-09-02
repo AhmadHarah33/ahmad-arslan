@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 import type { AssigneeLite, Profile } from "@/lib/types";
-import { isHead } from "@/lib/permissions";
+import { isHead, roleLabel } from "@/lib/permissions";
 import { PREVIEW } from "@/lib/preview";
 import SettingsModal from "@/components/theme/settings-modal";
 import CommandPalette from "@/components/search/command-palette";
@@ -191,7 +191,7 @@ export default function AppShell({
                     {profile.first_name || profile.full_name || "User"}
                   </span>
                   <span className="block text-[10px] text-ink-faint">
-                    {profile.role === "head" ? "Head of engineers" : "Engineer"}
+                    {roleLabel(profile.role)}
                   </span>
                 </span>
               </button>

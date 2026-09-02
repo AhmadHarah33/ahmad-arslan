@@ -1,6 +1,6 @@
 // Shared domain types mirroring the Postgres schema.
 
-export type UserRole = "head" | "engineer";
+export type UserRole = "head" | "organizer" | "engineer";
 export type TaskStatus = "todo" | "in_progress" | "done" | "stuck";
 export type TaskPriority = "low" | "medium" | "high";
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 // Longest close variant across breakpoints (mobile sheet-down); the desktop
 // pop-out is shorter but finishing early just means the panel sits invisible
@@ -19,6 +20,7 @@ export default function Modal({
   footer?: React.ReactNode;
 }) {
   const [closing, setClosing] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [drag, setDrag] = useState(0);
   const startY = useRef<number | null>(null);
   const closingRef = useRef(false);
@@ -43,6 +45,7 @@ export default function Modal({
   }
 
   useEffect(() => {
+    setMounted(true);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") requestClose();
     };
@@ -73,7 +76,15 @@ export default function Modal({
     startY.current = null;
   }
 
-  return (
+  // Portalled to <body> on purpose. The app shell wraps page content in a
+  // `.glass-strong` panel, and a non-none backdrop-filter makes that panel the
+  // containing block for `position: fixed` descendants — so rendering inline
+  // pinned the overlay to the (tall, scrolling) content box instead of the
+  // viewport, and its `overflow-hidden` clipped it. On a long page that pushed
+  // the dialog off-screen entirely.
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className={`fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4 ${
         closing ? "pointer-events-none" : ""
@@ -128,6 +139,7 @@ export default function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

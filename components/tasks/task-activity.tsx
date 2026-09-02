@@ -6,6 +6,7 @@ import { PREVIEW } from "@/lib/preview";
 import { Avatar } from "@/components/avatar";
 import { addComment, deleteComment } from "@/app/(app)/tasks/comment-actions";
 import type { Profile } from "@/lib/types";
+import { isManager } from "@/lib/permissions";
 import { toastErr } from "@/lib/toast";
 
 type Comment = {
@@ -118,7 +119,7 @@ export default function TaskActivity({
             <p className="text-xs text-ink-faint">
               <span className="font-medium text-ink">{c.author_name}</span> ·{" "}
               {timeAgo(c.created_at)}
-              {(c.author_id === profile.id || profile.role === "head") && (
+              {(c.author_id === profile.id || isManager(profile)) && (
                 <button
                   onClick={() => remove(c.id)}
                   className="ml-2 text-red-500 hover:underline"

@@ -26,14 +26,19 @@ file_size_limit = "50MiB"
 [auth]
 enabled = true
 # Your app URL. Add your tunnel domain here for production logins.
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000"]
+site_url = "https://www.marsmeddenterp.site"
+additional_redirect_urls = ["https://www.marsmeddenterp.site", "http://localhost:3000"]
 # Long-lived sessions so devices stay "remembered" (7 days here; refresh
 # tokens rotate to keep users signed in beyond this without re-login).
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
+# Blocks all new self-registration (any method); accounts are created by the
+# Head admin only. Must stay separate from [auth.email] enable_signup below,
+# which — on this Supabase CLI version — actually toggles the email provider
+# (login included), not just email signups.
+enable_signup = false
 
 [auth.email]
-enable_signup = false
+enable_signup = true
 enable_confirmations = false

@@ -7,6 +7,8 @@ import { getProfile } from "@/lib/auth";
 import type { UserRole } from "@/lib/types";
 import { PREVIEW } from "@/lib/preview";
 
+const ROLES: UserRole[] = ["head", "organizer", "engineer"];
+
 // Create a new user account. Head-only (verified server-side). Uses the
 // service-role admin client because auth user creation requires it.
 export async function createUser(input: {
@@ -21,6 +23,7 @@ export async function createUser(input: {
   if (!input.email.trim() || input.password.length < 6) {
     return { error: "Email and a password (6+ chars) are required" };
   }
+  if (!ROLES.includes(input.role)) return { error: "Unknown role" };
   if (PREVIEW) return { ok: true };
 
   const admin = createAdminClient();
@@ -43,6 +46,9 @@ export async function updateProfile(
 ) {
   const me = await getProfile();
   if (me?.role !== "head") return { error: "Not authorized" };
+  if (patch.role !== undefined && !ROLES.includes(patch.role)) {
+    return { error: "Unknown role" };
+  }
   if (PREVIEW) return { ok: true };
 
   const supabase = createClient();

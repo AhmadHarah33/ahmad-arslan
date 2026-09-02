@@ -21,7 +21,10 @@ begin
       id, instance_id, aud, role, email,
       encrypted_password, email_confirmed_at,
       raw_app_meta_data, raw_user_meta_data,
-      created_at, updated_at
+      created_at, updated_at,
+      confirmation_token, recovery_token, email_change_token_new,
+      email_change, email_change_token_current, phone_change,
+      phone_change_token, reauthentication_token
     )
     values (
       head_id,
@@ -34,7 +37,9 @@ begin
       jsonb_build_object('provider', 'email', 'providers', array['email']),
       jsonb_build_object('full_name', head_name, 'role', 'head'),
       now(),
-      now()
+      now(),
+      -- GoTrue scans these as non-nullable strings; NULL crashes login.
+      '', '', '', '', '', '', '', ''
     );
 
     insert into auth.identities (
