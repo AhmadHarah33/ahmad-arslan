@@ -19,9 +19,6 @@ export const ACCENTS: AccentPreset[] = [
   { id: "slate", label: "Slate", swatch: "#475569" },
 ];
 
-export const DEFAULT_ACCENT = "sky";
-export const DEFAULT_MODE: ThemeMode = "light";
-
 // System-following is off for now — only explicit Light / Dark.
 export const MODES: { id: ThemeMode; label: string }[] = [
   { id: "light", label: "Light" },

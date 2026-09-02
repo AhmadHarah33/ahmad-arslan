@@ -1,10 +1,17 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
 import type { Profile } from "./types";
 import { PREVIEW, previewProfile } from "./preview";
 
 // Returns the current user's profile, or null if not signed in.
-export async function getProfile(): Promise<Profile | null> {
+//
+// Memoized per request with React's cache(): the app layout and every page
+// under it both call this, so without it a single navigation cost two
+// identical `auth.getUser()` round trips to GoTrue plus two identical
+// `profiles` SELECTs. cache() is request-scoped, so there is no cross-user
+// or cross-navigation staleness.
+export const getProfile = cache(async (): Promise<Profile | null> => {
   if (PREVIEW) return previewProfile;
   const supabase = createClient();
   const {
@@ -19,7 +26,7 @@ export async function getProfile(): Promise<Profile | null> {
     .single();
 
   return (data as Profile) ?? null;
-}
+});
 
 // Use in protected Server Components — redirects to /login when signed out.
 export async function requireProfile(): Promise<Profile> {

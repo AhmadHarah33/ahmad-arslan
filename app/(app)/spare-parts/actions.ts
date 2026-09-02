@@ -26,15 +26,6 @@ export async function saveCompany(id: string | null, name: string) {
   return { ok: true };
 }
 
-export async function deleteCompany(id: string) {
-  if (PREVIEW) return { ok: true };
-  const supabase = createClient();
-  const { error } = await supabase.from("companies").delete().eq("id", id);
-  if (error) return { error: error.message };
-  revalidatePath("/spare-parts");
-  return { ok: true };
-}
-
 export async function saveSparePart(
   id: string | null,
   input: {

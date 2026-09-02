@@ -31,13 +31,3 @@ export function formatDateShort(d: string | null | undefined): string {
     day: "numeric",
   });
 }
-
-// Long, readable form for cards — e.g. "March 30, 2025".
-export function formatDateLong(d: string | null | undefined): string {
-  if (!d) return "";
-  return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}

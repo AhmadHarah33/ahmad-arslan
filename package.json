@@ -9,7 +9,8 @@
     "lint": "next lint",
     "db:reset": "supabase db reset",
     "db:start": "supabase start",
-    "db:stop": "supabase stop"
+    "db:stop": "supabase stop",
+    "db:backup": "bash scripts/backup.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

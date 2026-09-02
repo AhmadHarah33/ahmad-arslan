@@ -147,29 +147,3 @@ export function MonthBars({ data }: { data: { label: string; value: number }[] }
     </div>
   );
 }
-
-// A simple horizontal count bar (e.g. workload per engineer).
-export function CountBar({
-  label,
-  value,
-  max,
-  color = "bg-brand-500",
-}: {
-  label: string;
-  value: number;
-  max: number;
-  color?: string;
-}) {
-  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
-  return (
-    <div className="flex items-center gap-3">
-      <span className="w-28 shrink-0 truncate text-sm text-ink">{label}</span>
-      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-ink/[0.08]">
-        <div className={`animate-barw h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="w-6 shrink-0 text-right text-xs text-ink-faint">
-        {value}
-      </span>
-    </div>
-  );
-}

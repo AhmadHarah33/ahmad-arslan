@@ -11,9 +11,15 @@ inventory**, **Tasks** (Kanban + list). Runs on **self-hosted Supabase (Docker)*
 meant to be exposed to a domain via a tunnel (Cloudflare/ngrok).
 
 - **Repo:** `AhmadHarah33/ahmad-arslan`
-- **Working branch:** `claude/notion-clone-mars-med-dent-8vj71l` (all work is here)
-- **Deployed:** Vercel project `mars-technical-support`, auto-builds on push to that
-  branch. Currently in **PREVIEW MODE** (see below) — no real database yet.
+- **Working branch:** `claude/task-screen-animation-rewrite-kqhwct` (all work is here).
+  `claude/notion-clone-mars-med-dent-8vj71l` is the older branch Vercel builds from.
+- **LIVE (production):** `https://www.marsmeddenterp.site` — the real deployment.
+  Next.js production build on the office PC, self-hosted Supabase in Docker
+  alongside it, exposed through a Cloudflare Tunnel. **Real database, real
+  accounts** (see "Live deployment" below). This is what the team uses.
+- **Vercel demo:** project `mars-technical-support`, builds from the old branch and
+  still runs in **PREVIEW MODE** (see below) — sample data, no backend. It is a
+  UI showcase only and is *not* the production app.
 
 ## Tech stack
 Next.js 14 (App Router, TS) · Tailwind (CSS-variable design tokens) · Supabase
@@ -21,15 +27,38 @@ Next.js 14 (App Router, TS) · Tailwind (CSS-variable design tokens) · Supabase
 `qrcode`. No other UI/animation libs — charts and motion are hand-rolled inline
 SVG + CSS.
 
-## ⚠️ PREVIEW MODE (important)
+## Live deployment (production)
+Runs on the office Windows PC, reached from anywhere at
+`https://www.marsmeddenterp.site`.
+- **App:** Next.js **production** build (`npm run build` + `npm start`) on port
+  3000. Dev mode was far slower (per-route JIT compile) — do not run `next dev`
+  as the live server.
+- **Database:** self-hosted Supabase stack in Docker (Postgres 15, GoTrue, Kong,
+  PostgREST, Storage, Realtime, Studio). Migrations in `supabase/migrations/`.
+- **Ingress:** Cloudflare Tunnel (dashboard-managed, token-based). Its compose
+  file lives in `cloudflared/` **and is gitignored — it contains the tunnel auth
+  token. Never commit it.**
+- **Uptime:** Windows Task Scheduler job `MarsApp-Watchdog` runs every 2 min via
+  `wscript.exe` + a VBS launcher (so no console window flashes). It starts Next
+  only if port 3000 isn't already listening. Scripts in
+  `C:\Users\MARS TST\mars-ops\`.
+- **Reboots:** Docker Desktop is a *user-session* app, so the stack only comes
+  back after someone logs in. For unattended reboots, enable Windows auto-login.
+- **Accounts:** 6 real users — Amr (head), Merve (organizer), Abdulmuin, Ahmed,
+  Ali Kaan, Ömer (engineers). Self-registration is disabled; the head creates
+  accounts from `/admin`.
+
+## ⚠️ PREVIEW MODE (Vercel demo only)
 `NEXT_PUBLIC_PREVIEW=1` (set via `vercel.json`) makes the app run with **no
 backend**: login is skipped, every screen is filled with sample data from
 `lib/preview.ts`, and every server action early-returns success without touching
-Supabase. This is how the Vercel demo runs today.
-- To go live: remove `vercel.json` (or set flag `0`), stand up Supabase, set env
-  vars from `.env.example`, apply migrations + seed. Then real auth/data works.
+Supabase. **This applies to the Vercel demo only — production is not in preview
+mode.**
 - The `PREVIEW` constant is in `lib/preview.ts`; the early-return pattern is in
   every `app/(app)/**/actions.ts`.
+- It costs real maintenance: 51 branches across 30 of 67 files, so every feature
+  must be written twice. Keep it only if the demo is still worth that. See
+  `CODE_REVIEW.md` §8.
 
 ## Architecture / key files
 - `app/(app)/` — authenticated area (shared shell). Pages: `page.tsx` (dashboard),

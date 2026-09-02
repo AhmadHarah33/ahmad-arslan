@@ -1,10 +1,7 @@
 import type { BackgroundStyle } from "./types";
 
-export const DEFAULT_BG_STYLE: BackgroundStyle = "solid";
-export const DEFAULT_BG_BLUR = 40;
-
 // 0-100 -> 0-30px.
-export function blurPx(pct: number): string {
+function blurPx(pct: number): string {
   return `${(pct / 100) * 30}px`;
 }
 

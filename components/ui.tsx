@@ -22,21 +22,6 @@ export function PageHeader({
   );
 }
 
-export function EmptyState({
-  title,
-  hint,
-}: {
-  title: string;
-  hint?: string;
-}) {
-  return (
-    <div className="card flex flex-col items-center justify-center px-6 py-12 text-center">
-      <p className="text-sm font-medium text-ink">{title}</p>
-      {hint && <p className="mt-1 text-sm text-ink-faint">{hint}</p>}
-    </div>
-  );
-}
-
 // Status colors live in globals.css as `.tone-*` so they stay readable in both
 // light and dark mode; see the --tone-* tokens there.
 export const STATUS_TONE: Record<TaskStatus, string> = {
