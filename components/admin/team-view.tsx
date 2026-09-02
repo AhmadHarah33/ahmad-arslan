@@ -7,6 +7,8 @@ import { createUser, updateProfile } from "@/app/(app)/admin/actions";
 import { isManager, roleLabel } from "@/lib/permissions";
 import Modal from "@/components/modal";
 import { Avatar } from "@/components/avatar";
+import { PageHeader } from "@/components/ui";
+import { useAction } from "@/lib/use-action";
 
 export default function TeamView({
   me,
@@ -20,19 +22,15 @@ export default function TeamView({
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink md:text-[28px]">
-            Team
-          </h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            Manage accounts and edit permissions
-          </p>
-        </div>
-        <button className="btn-primary" onClick={() => setAddOpen(true)}>
-          + Add member
-        </button>
-      </div>
+      <PageHeader
+        title="Team"
+        subtitle="Manage accounts and edit permissions"
+        action={
+          <button className="btn-primary" onClick={() => setAddOpen(true)}>
+            + Add member
+          </button>
+        }
+      />
 
       <div className="card divide-y divide-surface-border overflow-hidden">
         {members.map((m) => (
@@ -67,21 +65,15 @@ function MemberRow({
   isSelf: boolean;
   onChanged: () => void;
 }) {
-  const [busy, setBusy] = useState(false);
+  // Previously these ignored the result entirely, so a rejected role change
+  // (e.g. RLS denial) silently looked like it had worked until the refresh
+  // put the old value back. useAction surfaces it as a toast.
+  const { run: save, pending: busy } = useAction(updateProfile, {
+    onSuccess: onChanged,
+  });
 
-  async function setRole(role: UserRole) {
-    setBusy(true);
-    await updateProfile(member.id, { role });
-    setBusy(false);
-    onChanged();
-  }
-
-  async function toggleEdit() {
-    setBusy(true);
-    await updateProfile(member.id, { can_edit: !member.can_edit });
-    setBusy(false);
-    onChanged();
-  }
+  const setRole = (role: UserRole) => save(member.id, { role });
+  const toggleEdit = () => save(member.id, { can_edit: !member.can_edit });
 
   // Head and organizer always have full data access, so the per-person grant
   // is meaningless for them.
@@ -145,25 +137,15 @@ function AddMemberModal({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("engineer");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // inline: the modal renders the message under the form instead of toasting,
+  // since the user needs to see it next to the field they have to fix.
+  const {
+    run,
+    pending: saving,
+    error,
+  } = useAction(createUser, { inline: true, onSuccess: onCreated });
 
-  async function submit() {
-    setSaving(true);
-    setError(null);
-    const res = await createUser({
-      email,
-      password,
-      full_name: fullName,
-      role,
-    });
-    setSaving(false);
-    if (res?.error) {
-      setError(res.error);
-      return;
-    }
-    onCreated();
-  }
+  const submit = () => run({ email, password, full_name: fullName, role });
 
   return (
     <Modal

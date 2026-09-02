@@ -8,6 +8,7 @@ import CustomFields from "@/components/fields/CustomFields";
 import ServiceHistory from "./service-history";
 import Maintenance from "./maintenance";
 import QrCode, { customerQrValue } from "@/components/qr-code";
+import { useAction } from "@/lib/use-action";
 
 type LinkRow = { label: string; url: string };
 
@@ -30,46 +31,46 @@ export default function CustomerModal({
   const [links, setLinks] = useState<LinkRow[]>(
     customer?.customer_links?.map((l) => ({ label: l.label, url: l.url })) ?? []
   );
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   function updateLink(i: number, patch: Partial<LinkRow>) {
     setLinks((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   }
 
-  async function save() {
+  // inline: this modal shows the failure in the form, not as a toast.
+  const { run: doSave, pending: savingSave, error: saveError } = useAction(
+    saveCustomer,
+    { inline: true, onSuccess: onSaved }
+  );
+  const { run: doDelete, pending: savingDelete, error: deleteError } = useAction(
+    deleteCustomer,
+    { inline: true, onSuccess: onSaved }
+  );
+  const saving = savingSave || savingDelete;
+  // Client-side validation wins over a server message: it is what the user
+  // must fix first.
+  const shownError = validationError ?? saveError ?? deleteError;
+
+  function save() {
     if (!name.trim()) {
-      setError("Name is required");
+      setValidationError("Name is required");
       return;
     }
-    setSaving(true);
-    setError(null);
-    const res = await saveCustomer(customer?.id ?? null, {
+    setValidationError(null);
+    doSave(customer?.id ?? null, {
       name,
       location,
       machine,
       serial_number: serial,
       links,
     });
-    setSaving(false);
-    if (res?.error) {
-      setError(res.error);
-      return;
-    }
-    onSaved();
   }
 
-  async function remove() {
+  function remove() {
     if (!customer) return;
     if (!confirm("Delete this customer?")) return;
-    setSaving(true);
-    const res = await deleteCustomer(customer.id);
-    setSaving(false);
-    if (res?.error) {
-      setError(res.error);
-      return;
-    }
-    onSaved();
+    setValidationError(null);
+    doDelete(customer.id);
   }
 
   const footer = editable ? (
@@ -238,9 +239,9 @@ export default function CustomerModal({
           </div>
         )}
 
-        {error && (
+        {shownError && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
+            {shownError}
           </p>
         )}
       </div>

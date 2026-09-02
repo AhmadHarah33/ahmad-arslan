@@ -9,8 +9,9 @@ import { saveCompany } from "@/app/(app)/spare-parts/actions";
 import Modal from "@/components/modal";
 import ImportExport from "@/components/data/import-export";
 import Fab from "@/components/fab";
+import { PageHeader } from "@/components/ui";
 import PartModal from "./part-modal";
-import { toastErr } from "@/lib/toast";
+import { useAction } from "@/lib/use-action";
 
 export default function SparePartsView({
   profile,
@@ -28,7 +29,13 @@ export default function SparePartsView({
   const [query, setQuery] = useState(initialQuery);
   const [companyModal, setCompanyModal] = useState(false);
   const [companyName, setCompanyName] = useState("");
-  const [savingCompany, setSavingCompany] = useState(false);
+  const { run: submitCompany, pending: savingCompany } = useAction(saveCompany, {
+    onSuccess: () => {
+      setCompanyName("");
+      setCompanyModal(false);
+      router.refresh();
+    },
+  });
   const [partModal, setPartModal] = useState<{
     open: boolean;
     part: SparePart | null;
@@ -51,51 +58,38 @@ export default function SparePartsView({
     }));
   }, [companies, parts, query]);
 
-  async function addCompany() {
+  function addCompany() {
     if (!companyName.trim()) return;
-    setSavingCompany(true);
-    const res = await saveCompany(null, companyName);
-    setSavingCompany(false);
-    if (res?.error) {
-      toastErr(res.error);
-      return;
-    }
-    setCompanyName("");
-    setCompanyModal(false);
-    router.refresh();
+    submitCompany(null, companyName);
   }
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink md:text-[28px]">
-            Spare parts
-          </h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            {parts.length} items · {companies.length} companies
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {editable && (
-            <ImportExport
-              kind="parts"
-              columns={["company", "name", "part_number", "quantity"]}
-              exportRows={parts.map((p) => ({
-                company: companies.find((c) => c.id === p.company_id)?.name ?? "",
-                name: p.name,
-                part_number: p.part_number,
-                quantity: p.quantity,
-              }))}
-            />
-          )}
-          {editable && (
-            <button className="btn-ghost hidden md:inline-flex" onClick={() => setCompanyModal(true)}>
-              + Company
-            </button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Spare parts"
+        subtitle={`${parts.length} items · ${companies.length} companies`}
+        action={
+          <div className="flex items-center gap-2">
+            {editable && (
+              <ImportExport
+                kind="parts"
+                columns={["company", "name", "part_number", "quantity"]}
+                exportRows={parts.map((p) => ({
+                  company: companies.find((c) => c.id === p.company_id)?.name ?? "",
+                  name: p.name,
+                  part_number: p.part_number,
+                  quantity: p.quantity,
+                }))}
+              />
+            )}
+            {editable && (
+              <button className="btn-ghost hidden md:inline-flex" onClick={() => setCompanyModal(true)}>
+                + Company
+              </button>
+            )}
+          </div>
+        }
+      />
 
       {editable && <Fab onClick={() => setCompanyModal(true)} label="New company" />}
 

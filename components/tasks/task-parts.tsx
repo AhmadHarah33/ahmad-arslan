@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PREVIEW, previewSpareParts } from "@/lib/preview";
 import { addTaskPart, removeTaskPart } from "@/app/(app)/tasks/parts-actions";
-import { toastErr } from "@/lib/toast";
+import { useAction } from "@/lib/use-action";
 
 type UsedRow = { id: string; spare_part_id: string; name: string; quantity: number };
 type PartOption = { id: string; name: string };
@@ -21,7 +21,6 @@ export default function TaskParts({
   const [parts, setParts] = useState<PartOption[]>([]);
   const [partId, setPartId] = useState("");
   const [qty, setQty] = useState(1);
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -56,25 +55,32 @@ export default function TaskParts({
     };
   }, [taskId]);
 
-  async function add() {
+  const { run: attachPart, pending: busy } = useAction(addTaskPart, {
+    onSuccess: (res) => {
+      const name = parts.find((p) => p.id === partId)?.name ?? "Part";
+      setUsed((prev) => [
+        ...prev,
+        {
+          id: (res as any)?.row?.id ?? `tmp-${Date.now()}`,
+          spare_part_id: partId,
+          name,
+          quantity: Number(qty) || 1,
+        },
+      ]);
+      setPartId("");
+      setQty(1);
+    },
+  });
+  const { run: detachPart } = useAction(removeTaskPart);
+
+  function add() {
     if (!partId) return;
-    setBusy(true);
-    const res = await addTaskPart(taskId, partId, Number(qty) || 1);
-    setBusy(false);
-    if (res?.error) return toastErr(res.error);
-    const name = parts.find((p) => p.id === partId)?.name ?? "Part";
-    setUsed((prev) => [
-      ...prev,
-      { id: (res as any)?.row?.id ?? `tmp-${Date.now()}`, spare_part_id: partId, name, quantity: Number(qty) || 1 },
-    ]);
-    setPartId("");
-    setQty(1);
+    attachPart(taskId, partId, Number(qty) || 1);
   }
 
   async function remove(id: string) {
-    const res = await removeTaskPart(id);
-    if (res?.error) return toastErr(res.error);
-    setUsed((prev) => prev.filter((r) => r.id !== id));
+    const res = await detachPart(id);
+    if (res) setUsed((prev) => prev.filter((r) => r.id !== id));
   }
 
   return (

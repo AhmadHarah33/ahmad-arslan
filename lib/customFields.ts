@@ -48,7 +48,7 @@ export const FIELD_TYPES: { type: FieldType; label: string; icon: string }[] = [
 ];
 
 // Tailwind classes for option/tag colors. Keys match the `color` in options.
-export const TAG_COLORS: Record<string, string> = {
+const TAG_COLORS: Record<string, string> = {
   gray: "tone-neutral",
   red: "tone-stuck",
   amber: "tone-warn",

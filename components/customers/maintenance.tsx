@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { PREVIEW } from "@/lib/preview";
 import { formatDate } from "@/lib/dates";
 import { saveSchedule, deleteSchedule } from "@/app/(app)/customers/maintenance-actions";
-import { toastErr } from "@/lib/toast";
+import { useAction } from "@/lib/use-action";
 
 type Schedule = {
   id: string;
@@ -34,7 +34,6 @@ export default function Maintenance({
   const [title, setTitle] = useState("Preventive maintenance");
   const [interval, setInterval] = useState(6);
   const [nextDue, setNextDue] = useState(inMonths(6));
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -57,27 +56,34 @@ export default function Maintenance({
     };
   }, [customerId]);
 
-  async function add() {
-    setBusy(true);
-    const res = await saveSchedule(null, {
+  const { run: submitSchedule, pending: busy } = useAction(saveSchedule, {
+    onSuccess: () =>
+      setRows((prev) => [
+        ...prev,
+        {
+          id: `tmp-${Date.now()}`,
+          title,
+          interval_months: Number(interval) || 6,
+          next_due: nextDue,
+          active: true,
+        },
+      ]),
+  });
+  const { run: removeSchedule } = useAction(deleteSchedule);
+
+  function add() {
+    submitSchedule(null, {
       customer_id: customerId,
       title,
       interval_months: Number(interval) || 6,
       next_due: nextDue,
       active: true,
     });
-    setBusy(false);
-    if (res?.error) return toastErr(res.error);
-    setRows((prev) => [
-      ...prev,
-      { id: `tmp-${Date.now()}`, title, interval_months: Number(interval) || 6, next_due: nextDue, active: true },
-    ]);
   }
 
   async function remove(id: string) {
-    const res = await deleteSchedule(id);
-    if (res?.error) return toastErr(res.error);
-    setRows((prev) => prev.filter((r) => r.id !== id));
+    const res = await removeSchedule(id);
+    if (res) setRows((prev) => prev.filter((r) => r.id !== id));
   }
 
   return (

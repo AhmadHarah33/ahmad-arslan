@@ -34,7 +34,7 @@ export function canEditTask(
   return !!task.assignees?.some((a) => a.id === profile.id);
 }
 
-export const ROLE_LABELS: Record<UserRole, string> = {
+const ROLE_LABELS: Record<UserRole, string> = {
   head: "Head of engineers",
   organizer: "Organizer",
   engineer: "Engineer",

@@ -7,7 +7,7 @@ import { Avatar } from "@/components/avatar";
 import { addComment, deleteComment } from "@/app/(app)/tasks/comment-actions";
 import type { Profile } from "@/lib/types";
 import { isManager } from "@/lib/permissions";
-import { toastErr } from "@/lib/toast";
+import { useAction } from "@/lib/use-action";
 
 type Comment = {
   id: string;
@@ -46,7 +46,27 @@ export default function TaskActivity({
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [body, setBody] = useState("");
-  const [busy, setBusy] = useState(false);
+
+  const { run: postComment, pending: busy } = useAction(addComment, {
+    onSuccess: (res) => {
+      const c: any = (res as any)?.comment;
+      if (!c) return;
+      setComments((prev) => [
+        ...prev,
+        {
+          id: c.id,
+          author_id: c.author_id,
+          author_name:
+            c.author_name || c.author?.full_name || profile.full_name || "You",
+          body: c.body,
+          created_at: c.created_at,
+        },
+      ]);
+      setBody("");
+    },
+  });
+
+  const { run: removeComment } = useAction(deleteComment);
 
   useEffect(() => {
     let active = true;
@@ -78,33 +98,15 @@ export default function TaskActivity({
     };
   }, [taskId]);
 
-  async function submit() {
+  function submit() {
     if (!body.trim()) return;
-    setBusy(true);
-    const res = await addComment(taskId, body);
-    setBusy(false);
-    if (res?.error) return toastErr(res.error);
-    if (res?.comment) {
-      const c: any = res.comment;
-      setComments((prev) => [
-        ...prev,
-        {
-          id: c.id,
-          author_id: c.author_id,
-          author_name:
-            c.author_name || c.author?.full_name || profile.full_name || "You",
-          body: c.body,
-          created_at: c.created_at,
-        },
-      ]);
-      setBody("");
-    }
+    postComment(taskId, body);
   }
 
   async function remove(id: string) {
-    const res = await deleteComment(id);
-    if (res?.error) return toastErr(res.error);
-    setComments((prev) => prev.filter((c) => c.id !== id));
+    const res = await removeComment(id);
+    // undefined means the action failed; useAction has already toasted it.
+    if (res) setComments((prev) => prev.filter((c) => c.id !== id));
   }
 
   return (

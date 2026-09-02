@@ -65,9 +65,18 @@ header styling changeable in one place. Watch the action-slot alignment —
 **The submit/error pattern is written 11 times.** Eleven components each
 hand-roll `const [saving, setSaving] = useState(false)` → call action →
 `if (res?.error) toastErr(...)`. 30 error-handling sites, 26 `toastErr` calls.
-One `useAction()` hook returning `{ run, pending, error }` removes 100+ LOC and
-makes error handling consistent. Migrate 2 components first, confirm behaviour,
-then the rest. **Phase 2.**
+`useAction()` (`lib/use-action.ts`) returns `{ run, pending, error, clearError }`
+and fixes two bugs the hand-rolled version had **everywhere**:
+
+- a thrown exception (offline, tunnel down) left `saving` stuck `true`, so the
+  button sat disabled on "Saving…" until a page reload;
+- nothing guarded against a second submit while the first was in flight, so a
+  double tap could create two records.
+
+`team-view`'s `MemberRow` had a third: it ignored the result entirely, so a
+rejected role change looked like it had worked until the refresh reverted it.
+
+6 of 11 migrated in Phase 2; see the plan below for which 5 were left and why.
 
 ## 3. Unused UI components
 
@@ -155,10 +164,26 @@ it. If dropping it: delete `lib/preview.ts`, strip branches file-by-file
 - [x] `npm run db:backup` added
 - [x] `tsc --noEmit` clean, production build clean
 
-### Phase 2 — open (~half a day, low risk)
-- [ ] Adopt `PageHeader` in the 3 views that duplicate it
-- [ ] Introduce `useAction()`; migrate 2–3 components as a trial, then the rest
-- [ ] Drop `export` from the ~7 file-local symbols
+### Phase 2 — mostly done (2026-09-02)
+- [x] `PageHeader` adopted in all 3 views that duplicated it
+- [x] `useAction()` added (`lib/use-action.ts`) and 6 of 11 components migrated:
+      `team-view`, `spare-parts-view`, `task-activity`, `maintenance`,
+      `task-parts`, `customer-modal`
+- [x] `TAG_COLORS`, `bucketUrl`, `ROLE_LABELS` made file-local
+- [ ] **5 components not migrated — deliberately.** They do not fit the simple
+      wrap and forcing them through it would add complexity, not remove it:
+      - `part-modal.tsx`, `CustomFields.tsx` (upload branch) — the pending flag
+        spans a Supabase Storage upload *and* the action, with several exit
+        paths. Needs a different abstraction (or none).
+      - `settings-modal.tsx` — chains two actions under one flag.
+      - `task-modal.tsx` — branches between `createTask` and `updateTask`.
+        Tractable, but it is the highest-traffic modal in the app; migrate it
+        on its own, with a click-through.
+      - `import-export.tsx` — loops over rows client-side; not a single action
+        call at all.
+- [ ] `DueStatus`, `AccentPreset`, `LoadedFields`, `CustomerLink` were flagged
+      as de-exportable and are **not**: each appears in an exported signature or
+      interface, so consumers need to be able to name them. Leave exported.
 
 ### Phase 3 — decide, don't default
 - [ ] **Preview mode: keep or remove** — needs a product call

@@ -9,6 +9,7 @@ import FieldValue from "@/components/fields/FieldValue";
 import ImportExport from "@/components/data/import-export";
 import { dueStatus, formatDate } from "@/lib/dates";
 import Fab from "@/components/fab";
+import { PageHeader } from "@/components/ui";
 import CustomerModal from "./customer-modal";
 
 type ValueMap = Record<string, Record<string, unknown>>;
@@ -146,33 +147,29 @@ export default function CustomersView({
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink md:text-[28px]">
-            Customers
-          </h1>
-          <p className="mt-1 text-sm text-ink-muted">
-            {initialCustomers.length} total
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {editable && (
-            <ImportExport
-              kind="customers"
-              columns={["name", "city", "model", "sn", "brand"]}
-              exportRows={exportRows}
-            />
-          )}
-          {editable && (
-            <button
-              className="btn-primary hidden md:inline-flex"
-              onClick={() => setModal({ open: true, customer: null })}
-            >
-              + New
-            </button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Customers"
+        subtitle={`${initialCustomers.length} total`}
+        action={
+          <div className="flex items-center gap-2">
+            {editable && (
+              <ImportExport
+                kind="customers"
+                columns={["name", "city", "model", "sn", "brand"]}
+                exportRows={exportRows}
+              />
+            )}
+            {editable && (
+              <button
+                className="btn-primary hidden md:inline-flex"
+                onClick={() => setModal({ open: true, customer: null })}
+              >
+                + New
+              </button>
+            )}
+          </div>
+        }
+      />
 
       {editable && (
         <Fab onClick={() => setModal({ open: true, customer: null })} />
