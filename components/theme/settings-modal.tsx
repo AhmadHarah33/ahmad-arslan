@@ -8,7 +8,6 @@ import { applyBackground } from "@/lib/background";
 import type { BackgroundStyle } from "@/lib/types";
 import { saveTheme, saveBackground } from "@/app/(app)/settings/actions";
 import { createClient } from "@/lib/supabase/client";
-import { PREVIEW } from "@/lib/preview";
 import { toastErr } from "@/lib/toast";
 
 export default function SettingsModal({
@@ -178,11 +177,6 @@ function PasswordChange() {
     }
     setBusy(true);
     setMsg(null);
-    if (PREVIEW) {
-      setBusy(false);
-      setMsg("Not available in preview mode.");
-      return;
-    }
     const supabase = createClient();
     const { error } = await supabase.auth.updateUser({ password: pw });
     setBusy(false);

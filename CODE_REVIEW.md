@@ -185,9 +185,22 @@ it. If dropping it: delete `lib/preview.ts`, strip branches file-by-file
       as de-exportable and are **not**: each appears in an exported signature or
       interface, so consumers need to be able to name them. Leave exported.
 
-### Phase 3 — decide, don't default
-- [ ] **Preview mode: keep or remove** — needs a product call
-- [ ] `board.tsx` split — only when next in there for a feature
+### Phase 3 — DONE (2026-09-02)
+- [x] **Preview/demo mode removed.** Decision taken by the project owner.
+      Deleted `lib/preview.ts` and `vercel.json`; stripped every `PREVIEW`
+      branch from 29 files; removed the middleware auth bypass, the "Preview
+      mode" banner, `previewSearch` in the command palette, and the orphaned
+      sample data in `admin/page.tsx` and `task-activity.tsx`.
+      `app/(app)/layout.tsx` gained a `FALLBACK_SETTINGS` constant, because it
+      previously leaned on `previewAppSettings` as its default when the
+      `app_settings` row is missing.
+      Result: ~700 LOC gone, zero `PREVIEW` references left in the codebase,
+      and smaller client bundles (`/customers` 7.28 → 6.45 kB, `/spare-parts`
+      5.79 → 4.99 kB, `/tasks` 26.0 → 25.1 kB).
+      The Vercel project `mars-technical-support` no longer has anything to
+      build and can be deleted.
+- [ ] `board.tsx` split — still open, still deliberate: do it when you are next
+      in that file for a feature, not as a cleanup.
 
 ### Do NOT touch
 Applied migrations · `metadata` exports · `fab.tsx` ·

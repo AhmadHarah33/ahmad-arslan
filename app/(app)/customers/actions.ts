@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { PREVIEW } from "@/lib/preview";
 
 type LinkInput = { label: string; url: string };
 type CustomerInput = {
@@ -28,7 +27,6 @@ function cleanLinks(links: LinkInput[]) {
 }
 
 export async function saveCustomer(id: string | null, input: CustomerInput) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   const uid = await currentUserId();
 
@@ -77,7 +75,6 @@ export async function saveCustomer(id: string | null, input: CustomerInput) {
 }
 
 export async function deleteCustomer(id: string) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   const { error } = await supabase.from("customers").delete().eq("id", id);
   if (error) return { error: error.message };

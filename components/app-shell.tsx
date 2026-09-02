@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 import type { AssigneeLite, Profile } from "@/lib/types";
 import { isHead, roleLabel } from "@/lib/permissions";
-import { PREVIEW } from "@/lib/preview";
 import SettingsModal from "@/components/theme/settings-modal";
 import CommandPalette from "@/components/search/command-palette";
 import Toaster from "@/components/toaster";
@@ -237,12 +236,6 @@ export default function AppShell({
               </button>
             </div>
           </header>
-
-          {PREVIEW && (
-            <div className="bg-brand-600 px-4 py-1.5 text-center text-xs font-medium text-white">
-              Preview mode — sample data, nothing is saved
-            </div>
-          )}
 
           <main className="flex-1 px-4 pb-24 pt-4 md:px-6 md:pb-8 md:pt-2">
             <div className="mx-auto w-full max-w-6xl">{children}</div>

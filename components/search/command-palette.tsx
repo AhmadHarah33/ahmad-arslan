@@ -4,12 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Scanner from "@/components/scan/scanner";
-import {
-  PREVIEW,
-  previewCustomers,
-  previewSpareParts,
-  previewTasks,
-} from "@/lib/preview";
 
 type Hit = {
   kind: "customer" | "part" | "task";
@@ -72,10 +66,10 @@ export default function CommandPalette({
     }
     let active = true;
     const run = async () => {
-      const results = PREVIEW ? previewSearch(term) : await liveSearch(term);
+      const results = await liveSearch(term);
       if (active) setHits(results);
     };
-    const t = setTimeout(run, PREVIEW ? 0 : 180);
+    const t = setTimeout(run, 180);
     return () => {
       active = false;
       clearTimeout(t);
@@ -165,38 +159,6 @@ export default function CommandPalette({
       {scanning && <Scanner onResult={onScan} onClose={() => setScanning(false)} />}
     </div>
   );
-}
-
-function previewSearch(term: string): Hit[] {
-  const t = term.toLowerCase();
-  const hits: Hit[] = [];
-  for (const c of previewCustomers)
-    if (
-      [c.name, c.location, c.machine, c.serial_number]
-        .join(" ")
-        .toLowerCase()
-        .includes(t)
-    )
-      hits.push({
-        kind: "customer",
-        id: c.id,
-        title: c.name,
-        subtitle: c.serial_number,
-        href: `/customers?q=${encodeURIComponent(c.name)}`,
-      });
-  for (const p of previewSpareParts)
-    if ([p.name, p.part_number].join(" ").toLowerCase().includes(t))
-      hits.push({
-        kind: "part",
-        id: p.id,
-        title: p.name,
-        subtitle: p.part_number,
-        href: `/spare-parts?q=${encodeURIComponent(p.name)}`,
-      });
-  for (const k of previewTasks)
-    if (k.title.toLowerCase().includes(t))
-      hits.push({ kind: "task", id: k.id, title: k.title, href: `/tasks` });
-  return hits.slice(0, 20);
 }
 
 async function liveSearch(term: string): Promise<Hit[]> {

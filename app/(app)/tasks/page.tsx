@@ -4,32 +4,10 @@ import { loadFields } from "@/lib/fields.server";
 import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import TasksBoard from "@/components/tasks/board";
 import type { Customer, Profile } from "@/lib/types";
-import {
-  PREVIEW,
-  previewCommentCounts,
-  previewCustomers,
-  previewEngineers,
-  previewFieldDefinitions,
-  previewFieldValues,
-  previewTasks,
-} from "@/lib/preview";
 
 export default async function TasksPage() {
   const profile = await requireProfile();
 
-  if (PREVIEW) {
-    return (
-      <TasksBoard
-        profile={profile}
-        initialTasks={previewTasks}
-        engineers={previewEngineers}
-        customers={previewCustomers.map((c) => ({ id: c.id, name: c.name }))}
-        fieldDefs={previewFieldDefinitions.task ?? []}
-        fieldValues={previewFieldValues}
-        commentCounts={previewCommentCounts}
-      />
-    );
-  }
 
   const supabase = createClient();
 

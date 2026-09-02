@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { PREVIEW, previewTasks } from "@/lib/preview";
 import { StatusChip } from "@/components/ui";
 import { SkeletonRows } from "@/components/skeleton";
 import { formatDate } from "@/lib/dates";
@@ -24,19 +23,6 @@ export default function ServiceHistory({ customerId }: { customerId: string }) {
   useEffect(() => {
     let active = true;
     async function load() {
-      if (PREVIEW) {
-        const r = previewTasks
-          .filter((t) => t.customer_id === customerId)
-          .map((t) => ({
-            id: t.id,
-            title: t.title,
-            status: t.status,
-            due_date: t.due_date,
-            created_at: t.created_at,
-          }));
-        if (active) setRows(r);
-        return;
-      }
       const supabase = createClient();
       const { data } = await supabase
         .from("tasks")

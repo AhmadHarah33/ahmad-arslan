@@ -2,23 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { PREVIEW } from "@/lib/preview";
 
 export async function addComment(taskId: string, body: string) {
   if (!body.trim()) return { error: "Empty comment" };
-  if (PREVIEW) {
-    return {
-      ok: true,
-      comment: {
-        id: `c-${Math.random().toString(36).slice(2, 8)}`,
-        task_id: taskId,
-        author_id: "u-head",
-        author_name: "Ahmed Hassan",
-        body: body.trim(),
-        created_at: new Date().toISOString(),
-      },
-    };
-  }
   const supabase = createClient();
   const {
     data: { user },
@@ -36,7 +22,6 @@ export async function addComment(taskId: string, body: string) {
 }
 
 export async function deleteComment(id: string) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   const { error } = await supabase.from("task_comments").delete().eq("id", id);
   if (error) return { error: error.message };

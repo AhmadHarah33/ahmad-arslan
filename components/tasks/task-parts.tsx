@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { PREVIEW, previewSpareParts } from "@/lib/preview";
 import { addTaskPart, removeTaskPart } from "@/app/(app)/tasks/parts-actions";
 import { useAction } from "@/lib/use-action";
 
@@ -25,11 +24,6 @@ export default function TaskParts({
   useEffect(() => {
     let active = true;
     async function load() {
-      if (PREVIEW) {
-        setParts(previewSpareParts.map((p) => ({ id: p.id, name: p.name })));
-        setUsed([]);
-        return;
-      }
       const supabase = createClient();
       const [{ data: tp }, { data: sp }] = await Promise.all([
         supabase

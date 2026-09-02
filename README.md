@@ -219,21 +219,17 @@ fullscreen like a native app, and the session persists across restarts.
 
 ---
 
-## Deploy to Vercel (UI preview)
+## Demo / preview mode (removed)
 
-This branch ships a **preview/demo mode** for reviewing the UI with no backend.
-`vercel.json` sets `NEXT_PUBLIC_PREVIEW=1` at build time, so a Vercel deployment
-of this branch:
+The app used to ship a `NEXT_PUBLIC_PREVIEW=1` demo mode that skipped login and
+filled every screen with sample data, so the UI could be shown on Vercel with no
+backend. It was removed in September 2026: it required 51 conditional branches
+across 30 of 67 files, so every feature had to be written twice, and the app now
+runs against a real self-hosted database (see **Deploy** above).
 
-- skips login and fills every screen with sample data,
-- shows a "Preview mode — sample data" banner,
-- persists nothing (all writes are no-ops).
-
-Just import the repo in Vercel (Next.js is auto-detected — no env vars needed) and
-deploy. Pushes to this branch auto-rebuild.
-
-> For a **real** deployment (login + saving), remove `vercel.json` (or set the flag
-> to `0`) and add the Supabase env vars from `.env.example`.
+If a no-backend demo is ever needed again, `git log -- lib/preview.ts` has the
+original implementation — but prefer a seeded throwaway database over branching
+the application code a second time.
 
 ## Project structure
 

@@ -1,13 +1,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { PREVIEW } from "@/lib/preview";
 import type { ThemeMode } from "@/lib/theme";
 import type { BackgroundStyle } from "@/lib/types";
 
 // Persist the current user's theme choice to their profile.
 export async function saveTheme(accent: string, mode: ThemeMode) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   const {
     data: { user },
@@ -25,7 +23,6 @@ export async function saveTheme(accent: string, mode: ThemeMode) {
 // Persist the global background setting (owner/head only — RLS on
 // app_settings also enforces this).
 export async function saveBackground(style: BackgroundStyle, blur: number) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   const { error } = await supabase
     .from("app_settings")

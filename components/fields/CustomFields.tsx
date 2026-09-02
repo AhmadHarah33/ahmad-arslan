@@ -4,11 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FIELD_FILES_BUCKET, fieldFileUrl } from "@/lib/storage";
 import {
-  PREVIEW,
-  previewFieldDefinitions,
-  previewFieldValues,
-} from "@/lib/preview";
-import {
   FIELD_TYPES,
   TAG_COLOR_KEYS,
   defaultValue,
@@ -52,12 +47,6 @@ export default function CustomFields({
   useEffect(() => {
     let active = true;
     async function load() {
-      if (PREVIEW) {
-        setDefs(previewFieldDefinitions[entity] ?? []);
-        setValues({ ...(previewFieldValues[recordId] ?? {}) });
-        setLoading(false);
-        return;
-      }
       const supabase = createClient();
       const [{ data: d }, { data: v }] = await Promise.all([
         supabase
@@ -465,13 +454,6 @@ function FilesInput({
   async function onFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     setBusy(true);
-    if (PREVIEW) {
-      // No backend — just reflect the names locally.
-      const names = Array.from(files).map((f) => f.name);
-      onSave([...value, ...names]);
-      setBusy(false);
-      return;
-    }
     const supabase = createClient();
     const paths = [...value];
     for (const file of Array.from(files)) {
@@ -511,7 +493,7 @@ function FilesInput({
               />
             ) : (
               <a
-                href={PREVIEW ? undefined : fieldFileUrl(p)}
+                href={fieldFileUrl(p)}
                 target="_blank"
                 rel="noreferrer"
                 className="flex h-16 w-16 items-center justify-center rounded-lg bg-surface-soft p-1 text-center text-[10px] text-ink-muted"

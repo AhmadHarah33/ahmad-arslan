@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { PREVIEW } from "@/lib/preview";
 import { formatDate } from "@/lib/dates";
 import { saveSchedule, deleteSchedule } from "@/app/(app)/customers/maintenance-actions";
 import { useAction } from "@/lib/use-action";
@@ -38,10 +37,6 @@ export default function Maintenance({
   useEffect(() => {
     let active = true;
     async function load() {
-      if (PREVIEW) {
-        setRows([]);
-        return;
-      }
       const supabase = createClient();
       const { data } = await supabase
         .from("maintenance_schedules")

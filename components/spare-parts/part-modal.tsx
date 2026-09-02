@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { SPARE_PHOTOS_BUCKET, photoUrl } from "@/lib/storage";
-import { PREVIEW } from "@/lib/preview";
 import type { SparePart, SparePartPhoto } from "@/lib/types";
 import {
   addPhotoRecord,
@@ -63,8 +62,7 @@ export default function PartModal({
     }
 
     // Upload any newly selected photos, then record them.
-    // (Skipped in preview/demo mode — there is no Storage backend.)
-    if (!PREVIEW && pendingFiles.length > 0) {
+    if (pendingFiles.length > 0) {
       const supabase = createClient();
       for (const file of pendingFiles) {
         const path = `${res.id}/${crypto.randomUUID()}-${sanitize(file.name)}`;

@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { PREVIEW } from "@/lib/preview";
 
 export async function saveSchedule(
   id: string | null,
@@ -14,7 +13,6 @@ export async function saveSchedule(
     active: boolean;
   }
 ) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   if (id) {
     const { error } = await supabase
@@ -42,7 +40,6 @@ export async function saveSchedule(
 }
 
 export async function deleteSchedule(id: string) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   const { error } = await supabase
     .from("maintenance_schedules")

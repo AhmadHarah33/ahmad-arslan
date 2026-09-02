@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { PREVIEW } from "@/lib/preview";
 import { Avatar } from "@/components/avatar";
 import { addComment, deleteComment } from "@/app/(app)/tasks/comment-actions";
 import type { Profile } from "@/lib/types";
@@ -15,18 +14,6 @@ type Comment = {
   author_name: string;
   body: string;
   created_at: string;
-};
-
-const previewComments: Record<string, Comment[]> = {
-  "t-1": [
-    {
-      id: "pc1",
-      author_id: "u-eng-1",
-      author_name: "Omar Khaled",
-      body: "Ordered the spare pump, arriving tomorrow.",
-      created_at: new Date(Date.now() - 3600_000).toISOString(),
-    },
-  ],
 };
 
 function timeAgo(iso: string) {
@@ -71,10 +58,6 @@ export default function TaskActivity({
   useEffect(() => {
     let active = true;
     async function load() {
-      if (PREVIEW) {
-        setComments(previewComments[taskId] ?? []);
-        return;
-      }
       const supabase = createClient();
       const { data } = await supabase
         .from("task_comments")

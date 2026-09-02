@@ -22,7 +22,6 @@ import CustomFields from "@/components/fields/CustomFields";
 import TaskActivity from "./task-activity";
 import TaskParts from "./task-parts";
 import { createClient } from "@/lib/supabase/client";
-import { PREVIEW, previewTemplates } from "@/lib/preview";
 import type { AssigneeLite, TaskTemplate } from "@/lib/types";
 import { useEffect } from "react";
 import { toastErr } from "@/lib/toast";
@@ -71,10 +70,6 @@ export default function TaskModal({
     if (!isNew) return;
     let active = true;
     async function load() {
-      if (PREVIEW) {
-        setTemplates(previewTemplates);
-        return;
-      }
       const supabase = createClient();
       const { data } = await supabase.from("task_templates").select("*").order("name");
       if (active) setTemplates((data ?? []) as TaskTemplate[]);

@@ -2,7 +2,6 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
 import type { Profile } from "./types";
-import { PREVIEW, previewProfile } from "./preview";
 
 // Returns the current user's profile, or null if not signed in.
 //
@@ -12,7 +11,6 @@ import { PREVIEW, previewProfile } from "./preview";
 // `profiles` SELECTs. cache() is request-scoped, so there is no cross-user
 // or cross-navigation staleness.
 export const getProfile = cache(async (): Promise<Profile | null> => {
-  if (PREVIEW) return previewProfile;
   const supabase = createClient();
   const {
     data: { user },

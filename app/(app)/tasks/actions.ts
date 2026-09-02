@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { TaskPriority, TaskStatus } from "@/lib/types";
-import { PREVIEW, makePreviewTask } from "@/lib/preview";
 import { TASK_SELECT, normalizeTask } from "@/lib/tasks.server";
 
 async function currentUserId() {
@@ -28,7 +27,6 @@ export async function createTask(input: {
   customer_id: string | null;
   due_date: string | null;
 }) {
-  if (PREVIEW) return { ok: true, task: makePreviewTask(input) };
 
   const supabase = createClient();
   const uid = await currentUserId();
@@ -79,12 +77,6 @@ export async function updateTask(
     due_date: string | null;
   }
 ) {
-  if (PREVIEW) {
-    return {
-      ok: true,
-      task: { ...makePreviewTask({ ...input, assignee_ids: [] }), id },
-    };
-  }
 
   const supabase = createClient();
   const { data, error } = await supabase
@@ -108,7 +100,6 @@ export async function updateTask(
 
 // Assignment (RLS enforces: head assigns anyone; engineers self-claim unassigned).
 export async function addAssignee(taskId: string, profileId: string) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   const { error } = await supabase
     .from("task_assignees")
@@ -119,7 +110,6 @@ export async function addAssignee(taskId: string, profileId: string) {
 }
 
 export async function removeAssignee(taskId: string, profileId: string) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   const { error } = await supabase
     .from("task_assignees")
@@ -133,7 +123,6 @@ export async function removeAssignee(taskId: string, profileId: string) {
 
 // Move a card to a new status/position (used by drag-and-drop).
 export async function moveTask(id: string, status: TaskStatus, position: number) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   const { error } = await supabase
     .from("tasks")
@@ -146,7 +135,6 @@ export async function moveTask(id: string, status: TaskStatus, position: number)
 }
 
 export async function deleteTask(id: string) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   const { error } = await supabase.from("tasks").delete().eq("id", id);
   if (error) return { error: error.message };

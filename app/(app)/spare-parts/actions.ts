@@ -3,11 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { SPARE_PHOTOS_BUCKET } from "@/lib/storage";
-import { PREVIEW } from "@/lib/preview";
 
 export async function saveCompany(id: string | null, name: string) {
   if (!name.trim()) return { error: "Company name is required" };
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
 
   if (id) {
@@ -38,7 +36,6 @@ export async function saveSparePart(
   }
 ) {
   if (!input.name.trim()) return { error: "Part name is required" };
-  if (PREVIEW) return { ok: true, id: id ?? `sp-preview-${Date.now()}` };
   const supabase = createClient();
 
   if (id) {
@@ -75,7 +72,6 @@ export async function saveSparePart(
 }
 
 export async function deleteSparePart(id: string) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   // Remove stored photos first, then the row (cascade drops photo rows).
   const { data: photos } = await supabase
@@ -95,7 +91,6 @@ export async function deleteSparePart(id: string) {
 
 // Record a photo row after the client has uploaded the file to Storage.
 export async function addPhotoRecord(sparePartId: string, storagePath: string) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   const { error } = await supabase
     .from("spare_part_photos")
@@ -106,7 +101,6 @@ export async function addPhotoRecord(sparePartId: string, storagePath: string) {
 }
 
 export async function deletePhoto(photoId: string, storagePath: string) {
-  if (PREVIEW) return { ok: true };
   const supabase = createClient();
   await supabase.storage.from(SPARE_PHOTOS_BUCKET).remove([storagePath]);
   const { error } = await supabase

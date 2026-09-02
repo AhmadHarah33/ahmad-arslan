@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { PREVIEW } from "@/lib/preview";
 import { newOptionId, TAG_COLOR_KEYS } from "@/lib/customFields";
 import type { FieldOption } from "@/lib/customFields";
 
@@ -10,7 +9,6 @@ export async function importCustomers(
   rows: { name: string; city: string; model: string; sn: string; brand: string }[]
 ) {
   const valid = rows.filter((r) => r.name.trim());
-  if (PREVIEW) return { ok: true, count: valid.length };
   const supabase = createClient();
   const {
     data: { user },
@@ -79,7 +77,6 @@ export async function importParts(
   rows: { company: string; name: string; part_number: string; quantity: string }[]
 ) {
   const valid = rows.filter((r) => r.name.trim());
-  if (PREVIEW) return { ok: true, count: valid.length };
   const supabase = createClient();
 
   // Resolve / create companies.

@@ -7,17 +7,6 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
 // and guards routes: unauthenticated users are sent to /login, and logged-in
 // users hitting /login are sent home.
 export async function middleware(request: NextRequest) {
-  // Preview/demo mode: no backend, so skip auth entirely and let /login
-  // redirect to the dashboard.
-  if (process.env.NEXT_PUBLIC_PREVIEW === "1") {
-    if (request.nextUrl.pathname === "/login") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/";
-      return NextResponse.redirect(url);
-    }
-    return NextResponse.next({ request });
-  }
-
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

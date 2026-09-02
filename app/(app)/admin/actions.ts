@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getProfile } from "@/lib/auth";
 import type { UserRole } from "@/lib/types";
-import { PREVIEW } from "@/lib/preview";
 
 const ROLES: UserRole[] = ["head", "organizer", "engineer"];
 
@@ -24,7 +23,6 @@ export async function createUser(input: {
     return { error: "Email and a password (6+ chars) are required" };
   }
   if (!ROLES.includes(input.role)) return { error: "Unknown role" };
-  if (PREVIEW) return { ok: true };
 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.createUser({
@@ -49,7 +47,6 @@ export async function updateProfile(
   if (patch.role !== undefined && !ROLES.includes(patch.role)) {
     return { error: "Unknown role" };
   }
-  if (PREVIEW) return { ok: true };
 
   const supabase = createClient();
   const update: Record<string, unknown> = {};

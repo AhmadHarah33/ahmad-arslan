@@ -3,13 +3,6 @@ import { loadFields } from "@/lib/fields.server";
 import { TASK_SELECT, normalizeTask } from "@/lib/tasks.server";
 import { fieldFileUrl } from "@/lib/storage";
 import { formatDate } from "@/lib/dates";
-import {
-  PREVIEW,
-  previewCustomers,
-  previewFieldDefinitions,
-  previewFieldValues,
-  previewTasks,
-} from "@/lib/preview";
 import type { Customer, Task } from "@/lib/types";
 import type { FieldDefinition } from "@/lib/customFields";
 import PrintTrigger from "./print-trigger";
@@ -34,32 +27,25 @@ export default async function TaskReport({
   let values: Record<string, unknown>;
   let company = DEFAULT_COMPANY;
 
-  if (PREVIEW) {
-    task = previewTasks.find((t) => t.id === id) ?? null;
-    const c = previewCustomers.find((c) => c.id === task?.customer_id);
-    customer = c ? { name: c.name, location: c.location, machine: c.machine, serial_number: c.serial_number } : null;
-    defs = previewFieldDefinitions.task ?? [];
-    values = previewFieldValues[id] ?? {};
-  } else {
-    const supabase = createClient();
-    const [{ data: t }, { data: settings }] = await Promise.all([
-      supabase.from("tasks").select(TASK_SELECT).eq("id", id).single(),
-      supabase.from("app_settings").select("*").eq("id", 1).single(),
-    ]);
-    task = t ? normalizeTask(t) : null;
-    if (settings) company = settings as typeof DEFAULT_COMPANY;
-    if (task?.customer_id) {
-      const { data: c } = await supabase
-        .from("customers")
-        .select("name, location, machine, serial_number")
-        .eq("id", task.customer_id)
-        .single();
-      customer = (c as any) ?? null;
-    }
-    const loaded = await loadFields("task", [id]);
-    defs = loaded.defs;
-    values = loaded.valueMap[id] ?? {};
+  const supabase = createClient();
+  const [{ data: t }, { data: settings }] = await Promise.all([
+    supabase.from("tasks").select(TASK_SELECT).eq("id", id).single(),
+    supabase.from("app_settings").select("*").eq("id", 1).single(),
+  ]);
+  task = t ? normalizeTask(t) : null;
+  if (settings) company = settings as typeof DEFAULT_COMPANY;
+  if (task?.customer_id) {
+    const { data: c } = await supabase
+      .from("customers")
+      .select("name, location, machine, serial_number")
+      .eq("id", task.customer_id)
+      .single();
+    customer = (c as any) ?? null;
   }
+  const loaded = await loadFields("task", [id]);
+  defs = loaded.defs;
+  values = loaded.valueMap[id] ?? {};
+
 
   if (!task) {
     return <main className="p-10 text-center">Task not found.</main>;

@@ -17,9 +17,8 @@ meant to be exposed to a domain via a tunnel (Cloudflare/ngrok).
   Next.js production build on the office PC, self-hosted Supabase in Docker
   alongside it, exposed through a Cloudflare Tunnel. **Real database, real
   accounts** (see "Live deployment" below). This is what the team uses.
-- **Vercel demo:** project `mars-technical-support`, builds from the old branch and
-  still runs in **PREVIEW MODE** (see below) — sample data, no backend. It is a
-  UI showcase only and is *not* the production app.
+- **Vercel demo:** retired. The project built from the old branch in preview mode;
+  preview mode was removed on 2026-09-02, so the Vercel project can be deleted.
 
 ## Tech stack
 Next.js 14 (App Router, TS) · Tailwind (CSS-variable design tokens) · Supabase
@@ -48,17 +47,16 @@ Runs on the office Windows PC, reached from anywhere at
   Ali Kaan, Ömer (engineers). Self-registration is disabled; the head creates
   accounts from `/admin`.
 
-## ⚠️ PREVIEW MODE (Vercel demo only)
-`NEXT_PUBLIC_PREVIEW=1` (set via `vercel.json`) makes the app run with **no
-backend**: login is skipped, every screen is filled with sample data from
-`lib/preview.ts`, and every server action early-returns success without touching
-Supabase. **This applies to the Vercel demo only — production is not in preview
-mode.**
-- The `PREVIEW` constant is in `lib/preview.ts`; the early-return pattern is in
-  every `app/(app)/**/actions.ts`.
-- It costs real maintenance: 51 branches across 30 of 67 files, so every feature
-  must be written twice. Keep it only if the demo is still worth that. See
-  `CODE_REVIEW.md` §8.
+## Demo / preview mode — removed
+The app used to carry a `NEXT_PUBLIC_PREVIEW=1` mode (login skipped, sample data
+from `lib/preview.ts`, every server action a no-op) so the UI could be demoed on
+Vercel with no backend. Removed 2026-09-02: 51 branches across 30 of 67 files
+meant every feature had to be written twice, and production now runs on a real
+database. `vercel.json` and the Vercel demo are gone with it.
+
+If a no-backend demo is ever wanted again, `git log -- lib/preview.ts` has the
+old implementation — but prefer a seeded throwaway database over branching the
+application code a second time. See `CODE_REVIEW.md` §8.
 
 ## Architecture / key files
 - `app/(app)/` — authenticated area (shared shell). Pages: `page.tsx` (dashboard),
@@ -68,20 +66,25 @@ mode.**
 - `components/app-shell.tsx` — sidebar (desktop) + bottom tab bar (mobile) + top
   bar; mounts CommandPalette, Toaster, SettingsModal; ambient glass background.
 - `lib/supabase/{client,server,admin}.ts` — Supabase clients (admin = service role,
-  server-only). `middleware.ts` — session refresh + route guard (bypassed in preview).
-- `lib/permissions.ts` (`isHead`, `canEditData`, `canEditTask`), `lib/auth.ts`
-  (`getProfile`/`requireProfile`).
+  server-only). `middleware.ts` — session refresh + route guard.
+- `lib/permissions.ts` (`isHead`, `isManager`, `canEditData`, `canEditTask`,
+  `roleLabel`), `lib/auth.ts` (`getProfile`/`requireProfile` — `getProfile` is
+  wrapped in React `cache()`; do not unwrap it, see `CODE_REVIEW.md` §6).
+- `lib/use-action.ts` — `useAction()`; the standard way to call a server action
+  from a component (pending flag, error toast, double-submit guard).
 - Custom fields engine: `lib/customFields.ts`, `components/fields/*`,
   `app/(app)/fields/actions.ts`, `lib/fields.server.ts`.
 - Tasks: `lib/tasks.server.ts` (`TASK_SELECT`, `normalizeTasks` — flattens the
   `task_assignees` join into `task.assignees[]`), `components/tasks/*`.
-- Charts/motion: `components/charts.tsx` (StatTile, ProgressRow, CountBar, Donut,
+- Charts/motion: `components/charts.tsx` (StatTile, ProgressRow, Donut,
   MonthBars), `components/count-up.tsx`, `components/skeleton.tsx`.
+- `components/ui.tsx` — `PageHeader` (use it for page titles; three views used to
+  hand-roll it), `STATUS_TONE`, status pills.
 - Toasts: `lib/toast.ts` (`toast`, `toastErr`) + `components/toaster.tsx`. **Never
   use `alert()`** — use `toastErr`.
 
 ## Data model (Postgres, all under RLS)
-`profiles` (role head|engineer, can_edit, theme_accent, theme_mode) ·
+`profiles` (role head|organizer|engineer, can_edit, theme_accent, theme_mode) ·
 `companies` · `customers` (+ `customer_links`) · `spare_parts` (+ min_quantity,
 `spare_part_photos`) · `tasks` (+ completed_at, no more single assignee_id;
 `status` enum is now `todo|in_progress|done|stuck`) ·
@@ -98,8 +101,11 @@ fields, task templates).
 
 ## Roles & rules
 - **Head of engineers** = admin: edits everything, manages users (`/admin`), grants
-  per-person `can_edit`. **Engineers**: edit their own tasks; edit customers/parts
-  only if granted. Enforced by RLS (`is_head()`, `can_edit_data()`, `can_edit_record()`).
+  per-person `can_edit`. **Organizer**: full data + task access (spare parts,
+  customers, every task) but cannot manage accounts. **Engineers**: add tasks and
+  customers and edit what they own; edit shared data only if granted `can_edit`.
+  Enforced by RLS (`is_head()`, `can_edit_data()`, `can_manage_tasks()`,
+  `can_edit_record()`).
 - Tasks: multiple assignees. Head assigns anyone; an engineer can **claim** an
   unassigned task (adds only themselves), then edit it.
 - Home visibility (home screen only): head sees ALL open tasks (card dashboard:
@@ -215,9 +221,10 @@ fields, task templates).
 
 ## Conventions
 - Every GitHub/commit ends with the Co-Authored-By + Claude-Session footer.
-- Build check before every push: `NEXT_TELEMETRY_DISABLED=1 NEXT_PUBLIC_PREVIEW=1
-  npx next build` AND `NEXT_TELEMETRY_DISABLED=1 npx next build` — both must pass.
-- Server actions: guard with `if (PREVIEW) return {ok:true, ...}` early-return.
+- Build check before every push: `NEXT_TELEMETRY_DISABLED=1 npx next build`.
+- Server actions return `{ ok: true, ... }` or `{ error: "…" }` — they do not throw.
+- Call them from components through `useAction()` (`lib/use-action.ts`), which
+  handles the pending flag, the error toast, and the double-submit guard.
 - Errors → `toastErr(msg)`, never `alert`.
 - Theme colors come from CSS vars (`--brand-*`, `--surface-*`, `--ink-*`); dark mode
   only via `:root[data-mode="dark"]` (system-following removed).
@@ -240,4 +247,4 @@ fields, task templates).
 
 ## Verify locally / go live
 See `README.md` (Supabase start, env, tunnel, CSV formats, print flow, maintenance
-generator, `scripts/backup.sh`). Preview build: `NEXT_PUBLIC_PREVIEW=1 npm run dev`.
+generator, `scripts/backup.sh`).

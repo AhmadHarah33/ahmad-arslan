@@ -3,12 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { loadFields } from "@/lib/fields.server";
 import CustomersView from "@/components/customers/customers-view";
 import type { Customer } from "@/lib/types";
-import {
-  PREVIEW,
-  previewCustomers,
-  previewFieldDefinitions,
-  previewFieldValues,
-} from "@/lib/preview";
 
 export default async function CustomersPage({
   searchParams,
@@ -18,17 +12,6 @@ export default async function CustomersPage({
   const profile = await requireProfile();
   const initialQuery = searchParams.q ?? "";
 
-  if (PREVIEW) {
-    return (
-      <CustomersView
-        profile={profile}
-        initialCustomers={previewCustomers}
-        fieldDefs={previewFieldDefinitions.customer ?? []}
-        fieldValues={previewFieldValues}
-        initialQuery={initialQuery}
-      />
-    );
-  }
 
   const supabase = createClient();
 

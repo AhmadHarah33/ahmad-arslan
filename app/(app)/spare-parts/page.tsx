@@ -2,7 +2,6 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import SparePartsView from "@/components/spare-parts/spare-parts-view";
 import type { Company, SparePart } from "@/lib/types";
-import { PREVIEW, previewCompanies, previewSpareParts } from "@/lib/preview";
 
 export default async function SparePartsPage({
   searchParams,
@@ -12,16 +11,6 @@ export default async function SparePartsPage({
   const profile = await requireProfile();
   const initialQuery = searchParams.q ?? "";
 
-  if (PREVIEW) {
-    return (
-      <SparePartsView
-        profile={profile}
-        companies={previewCompanies}
-        parts={previewSpareParts}
-        initialQuery={initialQuery}
-      />
-    );
-  }
 
   const supabase = createClient();
 

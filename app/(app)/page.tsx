@@ -9,13 +9,6 @@ import { StatTile, ProgressRow, Donut, MonthBars } from "@/components/charts";
 import { DUE_STYLES, dueStatus, formatDateShort } from "@/lib/dates";
 import { STATUS_VAR, TASK_STATUSES } from "@/lib/types";
 import type { Profile, SparePart, Task } from "@/lib/types";
-import {
-  PREVIEW,
-  previewCustomers,
-  previewEngineers,
-  previewSpareParts,
-  previewTasks,
-} from "@/lib/preview";
 
 export default async function DashboardPage() {
   const profile = await requireProfile();
@@ -28,33 +21,26 @@ export default async function DashboardPage() {
   let customerCount: number;
   let sparePartCount: number;
 
-  if (PREVIEW) {
-    allTasks = previewTasks;
-    engineers = previewEngineers;
-    parts = previewSpareParts;
-    customerCount = previewCustomers.length;
-    sparePartCount = previewSpareParts.length;
-  } else {
-    const supabase = createClient();
-    // Create any due preventive-maintenance tasks (idempotent; safe to call).
-    try {
-      await supabase.rpc("generate_due_maintenance");
-    } catch {
-      /* ignore — generation is best-effort */
-    }
-    const [{ data: tasks }, { data: profs }, { data: sp }, customers] =
-      await Promise.all([
-        supabase.from("tasks").select(TASK_SELECT).order("position"),
-        supabase.from("profiles").select("*").order("full_name"),
-        supabase.from("spare_parts").select("id, name, quantity, min_quantity"),
-        supabase.from("customers").select("id", { count: "exact", head: true }),
-      ]);
-    allTasks = normalizeTasks(tasks);
-    engineers = (profs ?? []) as Profile[];
-    parts = (sp ?? []) as any[];
-    customerCount = customers.count ?? 0;
-    sparePartCount = parts.length;
+  const supabase = createClient();
+  // Create any due preventive-maintenance tasks (idempotent; safe to call).
+  try {
+    await supabase.rpc("generate_due_maintenance");
+  } catch {
+    /* ignore — generation is best-effort */
   }
+  const [{ data: tasks }, { data: profs }, { data: sp }, customers] =
+    await Promise.all([
+      supabase.from("tasks").select(TASK_SELECT).order("position"),
+      supabase.from("profiles").select("*").order("full_name"),
+      supabase.from("spare_parts").select("id, name, quantity, min_quantity"),
+      supabase.from("customers").select("id", { count: "exact", head: true }),
+    ]);
+  allTasks = normalizeTasks(tasks);
+  engineers = (profs ?? []) as Profile[];
+  parts = (sp ?? []) as any[];
+  customerCount = customers.count ?? 0;
+  sparePartCount = parts.length;
+
 
   const open = allTasks.filter((t) => t.status !== "done");
   const overdue = open.filter((t) => dueStatus(t.due_date) === "overdue");
