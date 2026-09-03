@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AssigneeLite, Profile } from "@/lib/types";
 import { isHead, roleLabel } from "@/lib/permissions";
 import SettingsModal from "@/components/theme/settings-modal";
@@ -40,6 +40,8 @@ export default function AppShell({
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<ThemeMode>(
     (profile.theme_mode as ThemeMode) ?? "light"
   );
@@ -50,10 +52,21 @@ export default function AppShell({
         e.preventDefault();
         setSearchOpen((v) => !v);
       }
+      if (e.key === "Escape") setUserMenuOpen(false);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
+
+  // Close the account menu on any click outside it.
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!userMenuRef.current?.contains(e.target as Node)) setUserMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [userMenuOpen]);
 
   const nav = [...NAV];
   if (isHead(profile)) {
@@ -87,39 +100,119 @@ export default function AppShell({
       <div className="app-bg" aria-hidden="true" />
 
       <div className="flex min-h-screen gap-3 md:p-3">
-        {/* Desktop utility rail */}
-        <aside className="glass-strong sticky top-3 hidden h-[calc(100vh-1.5rem)] w-14 shrink-0 flex-col items-center rounded-3xl border border-surface-border py-3 md:flex">
-          <div className="seg flex-col gap-0.5 p-1">
+        {/* Desktop sidebar: account · pages · settings + sign out */}
+        <aside className="glass-strong sticky top-3 hidden h-[calc(100vh-1.5rem)] w-56 shrink-0 flex-col rounded-3xl border border-surface-border p-3 md:flex">
+          {/* Account — click for the sign-out menu */}
+          <div className="relative" ref={userMenuRef}>
             <button
-              onClick={() => pickMode("light")}
-              aria-label="Light mode"
-              title="Light mode"
-              className={`seg-btn h-8 w-8 px-0 ${mode !== "dark" ? "seg-btn-on" : ""}`}
+              onClick={() => setUserMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
+              className="flex w-full items-center gap-2.5 rounded-2xl p-2 text-left transition hover:bg-surface-soft"
             >
-              <SunIcon className="h-4 w-4" />
+              <Avatar
+                id={profile.id}
+                name={profile.full_name || profile.first_name || "User"}
+                size={32}
+              />
+              <span className="min-w-0 flex-1 leading-tight">
+                <span className="block truncate text-[13px] font-semibold text-ink">
+                  {profile.full_name || profile.first_name || "User"}
+                </span>
+                <span className="block truncate text-[11px] text-ink-faint">
+                  {roleLabel(profile.role)}
+                </span>
+              </span>
+              <ChevronIcon
+                className={`h-4 w-4 shrink-0 text-ink-faint transition-transform ${
+                  userMenuOpen ? "rotate-180" : ""
+                }`}
+              />
             </button>
-            <button
-              onClick={() => pickMode("dark")}
-              aria-label="Dark mode"
-              title="Dark mode"
-              className={`seg-btn h-8 w-8 px-0 ${mode === "dark" ? "seg-btn-on" : ""}`}
-            >
-              <MoonIcon className="h-4 w-4" />
-            </button>
+
+            {userMenuOpen && (
+              <div
+                role="menu"
+                className="glass glass-strong animate-pop absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-2xl border border-surface-border py-1"
+              >
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    setSettingsOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-ink transition hover:bg-surface-soft"
+                >
+                  <GearIcon className="h-4 w-4" />
+                  Settings
+                </button>
+                <button
+                  role="menuitem"
+                  onClick={signOut}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-600 transition hover:bg-surface-soft"
+                >
+                  <SignOutIcon className="h-4 w-4" />
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="mt-5 flex flex-1 flex-col items-center gap-1.5">
-            <RailButton label="Search" onClick={() => setSearchOpen(true)}>
-              <SearchIcon className="h-5 w-5" />
-            </RailButton>
-            <RailButton label="Appearance" onClick={() => setSettingsOpen(true)}>
-              <GearIcon className="h-5 w-5" />
-            </RailButton>
-          </div>
+          {/* Pages */}
+          <nav className="mt-4 flex flex-1 flex-col gap-0.5">
+            {nav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch
+                className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                  active(item.href)
+                    ? "bg-surface-soft text-ink"
+                    : "text-ink-muted hover:bg-surface-soft hover:text-ink"
+                }`}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                {item.label}
+              </Link>
+            ))}
+          </nav>
 
-          <RailButton label="Sign out" onClick={signOut}>
-            <SignOutIcon className="h-5 w-5" />
-          </RailButton>
+          {/* Bottom: light/dark, then settings next to sign out */}
+          <div className="mt-2 space-y-2 border-t border-surface-border pt-2">
+            <div className="seg w-full">
+              <button
+                onClick={() => pickMode("light")}
+                className={`seg-btn flex-1 ${mode !== "dark" ? "seg-btn-on" : ""}`}
+              >
+                <SunIcon className="h-4 w-4" />
+                Light
+              </button>
+              <button
+                onClick={() => pickMode("dark")}
+                className={`seg-btn flex-1 ${mode === "dark" ? "seg-btn-on" : ""}`}
+              >
+                <MoonIcon className="h-4 w-4" />
+                Dark
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setSettingsOpen(true)}
+                className="flex flex-1 items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-ink-muted transition hover:bg-surface-soft hover:text-ink"
+              >
+                <GearIcon className="h-4 w-4 shrink-0" />
+                Settings
+              </button>
+              <button
+                onClick={signOut}
+                aria-label="Sign out"
+                title="Sign out"
+                className="icon-btn h-9 w-9 shrink-0 text-ink-muted hover:text-red-600"
+              >
+                <SignOutIcon className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </aside>
 
         {/* App frame */}
@@ -135,18 +228,9 @@ export default function AppShell({
               </span>
             </Link>
 
-            <nav className="seg mx-auto">
-              {nav.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`seg-btn ${active(item.href) ? "seg-btn-on" : ""}`}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+            {/* Page nav lives in the sidebar now; this spacer keeps the
+                right-hand controls pinned to the right. */}
+            <div className="flex-1" />
 
             <div className="flex shrink-0 items-center gap-3">
               {others.length > 0 && (
@@ -166,33 +250,19 @@ export default function AppShell({
                 </div>
               )}
 
+              {/* The only search entry point on desktop. The sidebar used to
+                  carry a second one, which was redundant with this. */}
               <button
                 onClick={() => setSearchOpen(true)}
                 aria-label="Search"
                 title="Search (⌘K)"
-                className="icon-btn h-9 w-9 border border-surface-border"
+                className="flex items-center gap-2 rounded-full border border-surface-border py-1.5 pl-3 pr-2.5 text-sm text-ink-faint transition hover:bg-surface-soft hover:text-ink"
               >
                 <SearchIcon className="h-4 w-4" />
-              </button>
-
-              <button
-                onClick={() => setSettingsOpen(true)}
-                className="flex items-center gap-2 rounded-full border border-surface-border py-1 pl-1 pr-3 text-left transition hover:bg-surface-soft"
-                title="Appearance"
-              >
-                <Avatar
-                  id={profile.id}
-                  name={profile.full_name || profile.first_name || "User"}
-                  size={28}
-                />
-                <span className="leading-tight">
-                  <span className="block text-xs font-semibold text-ink">
-                    {profile.first_name || profile.full_name || "User"}
-                  </span>
-                  <span className="block text-[10px] text-ink-faint">
-                    {roleLabel(profile.role)}
-                  </span>
-                </span>
+                <span className="hidden lg:inline">Search</span>
+                <kbd className="hidden rounded border border-surface-border px-1 py-0.5 text-[10px] font-medium lg:inline">
+                  ⌘K
+                </kbd>
               </button>
             </div>
           </header>
@@ -277,28 +347,6 @@ export default function AppShell({
   );
 }
 
-// Square icon button in the desktop rail, with a hover tooltip.
-function RailButton({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className="icon-btn h-10 w-10"
-    >
-      {children}
-    </button>
-  );
-}
-
 /* --- inline icons (no dependency) --- */
 function HomeIcon(p: React.SVGProps<SVGSVGElement>) {
   return (
@@ -341,6 +389,14 @@ function TeamIcon(p: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+function ChevronIcon(p: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
 function SearchIcon(p: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" {...p}>

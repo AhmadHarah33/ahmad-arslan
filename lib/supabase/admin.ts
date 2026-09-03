@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { supabaseServerUrl } from "./internal-url";
 
 // SERVER-ONLY admin client using the service-role key. Bypasses RLS, so it is
 // only ever imported from server actions / route handlers guarded by an
@@ -8,7 +9,7 @@ export function createAdminClient() {
   if (!key) {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set");
   }
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
+  return createClient(supabaseServerUrl(), key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
