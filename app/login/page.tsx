@@ -1,6 +1,8 @@
 import LoginForm from "./login-form";
+import { getServerT } from "@/lib/i18n/server";
 
 export default function LoginPage() {
+  const t = getServerT();
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="app-bg" aria-hidden="true" />
@@ -10,10 +12,10 @@ export default function LoginPage() {
             M
           </div>
           <h1 className="text-xl font-bold tracking-tight text-ink">
-            Mars Technical Support Team
+            {t("login.title")}
           </h1>
           <p className="mt-1 text-sm text-ink-muted">
-            Sign in to continue
+            {t("login.subtitle")}
           </p>
         </div>
 
@@ -22,7 +24,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-ink-faint">
-          Mars Med Dent · Internal use only
+          {t("login.footer")}
         </p>
       </div>
     </main>

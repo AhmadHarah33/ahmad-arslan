@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { LanguageProvider } from "@/lib/i18n/provider";
 
 export const metadata: Metadata = {
   title: "Mars Technical Support",
@@ -53,7 +54,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        {children}
+        <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
   );

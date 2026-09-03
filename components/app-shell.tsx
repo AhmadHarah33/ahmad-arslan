@@ -5,7 +5,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import type { AssigneeLite, Profile } from "@/lib/types";
-import { isHead, roleLabel } from "@/lib/permissions";
+import { isHead } from "@/lib/permissions";
+import { useT } from "@/lib/i18n/provider";
+import { roleKey } from "@/lib/i18n/roles";
 import SettingsModal from "@/components/theme/settings-modal";
 import CommandPalette from "@/components/search/command-palette";
 import Toaster from "@/components/toaster";
@@ -16,11 +18,11 @@ import { saveTheme } from "@/app/(app)/settings/actions";
 import type { BackgroundStyle } from "@/lib/types";
 
 const NAV = [
-  { href: "/", label: "Home", icon: HomeIcon },
-  { href: "/tasks", label: "Tasks", icon: TasksIcon },
-  { href: "/customers", label: "Customers", icon: CustomersIcon },
-  { href: "/spare-parts", label: "Parts", icon: PartsIcon },
-];
+  { href: "/", key: "nav.home", icon: HomeIcon },
+  { href: "/tasks", key: "nav.tasks", icon: TasksIcon },
+  { href: "/customers", key: "nav.customers", icon: CustomersIcon },
+  { href: "/spare-parts", key: "nav.parts", icon: PartsIcon },
+] as const;
 
 export default function AppShell({
   profile,
@@ -35,6 +37,7 @@ export default function AppShell({
   bgBlur: number;
   children: React.ReactNode;
 }) {
+  const t = useT();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -68,10 +71,12 @@ export default function AppShell({
     return () => document.removeEventListener("mousedown", onDown);
   }, [userMenuOpen]);
 
-  const nav = [...NAV];
-  if (isHead(profile)) {
-    nav.push({ href: "/admin", label: "Team", icon: TeamIcon });
-  }
+  const nav = [
+    ...NAV,
+    ...(isHead(profile)
+      ? ([{ href: "/admin", key: "nav.team", icon: TeamIcon }] as const)
+      : []),
+  ];
 
   function active(href: string) {
     if (href === "/") return pathname === "/";
@@ -120,7 +125,7 @@ export default function AppShell({
                   {profile.full_name || profile.first_name || "User"}
                 </span>
                 <span className="block truncate text-[11px] text-ink-faint">
-                  {roleLabel(profile.role)}
+                  {t(roleKey(profile.role))}
                 </span>
               </span>
               <ChevronIcon
@@ -144,7 +149,7 @@ export default function AppShell({
                   className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-ink transition hover:bg-surface-soft"
                 >
                   <GearIcon className="h-4 w-4" />
-                  Settings
+                  {t("shell.settings")}
                 </button>
                 <button
                   role="menuitem"
@@ -152,7 +157,7 @@ export default function AppShell({
                   className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-600 transition hover:bg-surface-soft"
                 >
                   <SignOutIcon className="h-4 w-4" />
-                  Sign out
+                  {t("shell.signOut")}
                 </button>
               </div>
             )}
@@ -172,7 +177,7 @@ export default function AppShell({
                 }`}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
-                {item.label}
+                {t(item.key)}
               </Link>
             ))}
           </nav>
@@ -185,14 +190,14 @@ export default function AppShell({
                 className={`seg-btn flex-1 ${mode !== "dark" ? "seg-btn-on" : ""}`}
               >
                 <SunIcon className="h-4 w-4" />
-                Light
+                {t("shell.light")}
               </button>
               <button
                 onClick={() => pickMode("dark")}
                 className={`seg-btn flex-1 ${mode === "dark" ? "seg-btn-on" : ""}`}
               >
                 <MoonIcon className="h-4 w-4" />
-                Dark
+                {t("shell.dark")}
               </button>
             </div>
             <div className="flex items-center gap-1.5">
@@ -201,12 +206,12 @@ export default function AppShell({
                 className="flex flex-1 items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-ink-muted transition hover:bg-surface-soft hover:text-ink"
               >
                 <GearIcon className="h-4 w-4 shrink-0" />
-                Settings
+                {t("shell.settings")}
               </button>
               <button
                 onClick={signOut}
-                aria-label="Sign out"
-                title="Sign out"
+                aria-label={t("shell.signOut")}
+                title={t("shell.signOut")}
                 className="icon-btn h-9 w-9 shrink-0 text-ink-muted hover:text-red-600"
               >
                 <SignOutIcon className="h-4 w-4" />
@@ -254,12 +259,12 @@ export default function AppShell({
                   carry a second one, which was redundant with this. */}
               <button
                 onClick={() => setSearchOpen(true)}
-                aria-label="Search"
+                aria-label={t("shell.search")}
                 title="Search (⌘K)"
                 className="flex items-center gap-2 rounded-full border border-surface-border py-1.5 pl-3 pr-2.5 text-sm text-ink-faint transition hover:bg-surface-soft hover:text-ink"
               >
                 <SearchIcon className="h-4 w-4" />
-                <span className="hidden lg:inline">Search</span>
+                <span className="hidden lg:inline">{t("shell.search")}</span>
                 <kbd className="hidden rounded border border-surface-border px-1 py-0.5 text-[10px] font-medium lg:inline">
                   ⌘K
                 </kbd>
@@ -278,7 +283,7 @@ export default function AppShell({
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setSearchOpen(true)}
-                aria-label="Search"
+                aria-label={t("shell.search")}
                 className="icon-btn h-9 w-9"
               >
                 <SearchIcon className="h-5 w-5" />
@@ -296,12 +301,12 @@ export default function AppShell({
               </button>
               <button
                 onClick={() => setSettingsOpen(true)}
-                aria-label="Appearance"
+                aria-label={t("shell.settings")}
                 className="icon-btn h-9 w-9"
               >
                 <GearIcon className="h-5 w-5" />
               </button>
-              <button onClick={signOut} aria-label="Sign out" className="icon-btn h-9 w-9">
+              <button onClick={signOut} aria-label={t("shell.signOut")} className="icon-btn h-9 w-9">
                 <SignOutIcon className="h-5 w-5" />
               </button>
             </div>
@@ -325,7 +330,7 @@ export default function AppShell({
             style={{ paddingBottom: "calc(0.625rem + env(safe-area-inset-bottom))" }}
           >
             <item.icon className="h-5 w-5" />
-            {item.label}
+            {t(item.key)}
           </Link>
         ))}
       </nav>

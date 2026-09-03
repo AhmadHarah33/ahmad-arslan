@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/modal";
+import { useT } from "@/lib/i18n/provider";
 import { parseCsv, pick, toCsv, downloadCsv } from "@/lib/csv";
 import { importCustomers, importParts } from "@/app/(app)/data/actions";
 
@@ -15,6 +16,7 @@ export default function ImportExport({
   columns: string[];
   exportRows: Record<string, unknown>[];
 }) {
+  const t = useT();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -31,7 +33,7 @@ export default function ImportExport({
   async function runImport() {
     const rows = parseCsv(text);
     if (rows.length === 0) {
-      setMsg("No rows found.");
+      setMsg(t("io.noRows"));
       return;
     }
     setBusy(true);
@@ -72,10 +74,10 @@ export default function ImportExport({
   return (
     <>
       <button className="btn-ghost" onClick={() => setOpen(true)}>
-        Import / Export
+        {t("io.button")}
       </button>
       {open && (
-        <Modal title={`Import / Export ${kind}`} onClose={() => setOpen(false)}>
+        <Modal title={t("io.button")} onClose={() => setOpen(false)}>
           <div className="space-y-4">
             <div>
               <p className="label">Export</p>
@@ -85,7 +87,7 @@ export default function ImportExport({
             </div>
 
             <div className="border-t border-surface-border pt-4">
-              <p className="label">Import</p>
+              <p className="label">{t("io.import")}</p>
               <p className="mb-2 text-xs text-ink-faint">
                 CSV columns:{" "}
                 <span className="font-medium">
@@ -109,7 +111,7 @@ export default function ImportExport({
               {msg && <p className="mt-2 text-sm text-ink-muted">{msg}</p>}
               <div className="mt-3 flex justify-end">
                 <button className="btn-primary" onClick={runImport} disabled={busy || !text.trim()}>
-                  {busy ? "Importing…" : "Import"}
+                  {busy ? t("io.importing") : t("io.import")}
                 </button>
               </div>
             </div>

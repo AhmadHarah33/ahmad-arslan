@@ -4,7 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Profile, UserRole } from "@/lib/types";
 import { createUser, updateProfile } from "@/app/(app)/admin/actions";
-import { isManager, roleLabel } from "@/lib/permissions";
+import { isManager } from "@/lib/permissions";
+import { useT } from "@/lib/i18n/provider";
+import { roleKey } from "@/lib/i18n/roles";
+import type { StringKey } from "@/lib/i18n/dictionary";
 import Modal from "@/components/modal";
 import { Avatar } from "@/components/avatar";
 import { PageHeader } from "@/components/ui";
@@ -17,17 +20,18 @@ export default function TeamView({
   me: Profile;
   members: Profile[];
 }) {
+  const t = useT();
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
 
   return (
     <div>
       <PageHeader
-        title="Team"
-        subtitle="Manage accounts and edit permissions"
+        title={t("team.title")}
+        subtitle={t("team.subtitle")}
         action={
           <button className="btn-primary" onClick={() => setAddOpen(true)}>
-            + Add member
+            {t("team.addMember")}
           </button>
         }
       />
@@ -65,6 +69,8 @@ function MemberRow({
   isSelf: boolean;
   onChanged: () => void;
 }) {
+  const t = useT();
+
   // Previously these ignored the result entirely, so a rejected role change
   // (e.g. RLS denial) silently looked like it had worked until the refresh
   // put the old value back. useAction surfaces it as a toast.
@@ -88,10 +94,10 @@ function MemberRow({
       />
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-ink">
-          {member.full_name || "Unnamed"}
-          {isSelf && <span className="ml-2 text-xs text-ink-faint">(you)</span>}
+          {member.full_name || t("team.unnamed")}
+          {isSelf && <span className="ml-2 text-xs text-ink-faint">{t("team.you")}</span>}
         </p>
-        <p className="text-xs text-ink-faint">{roleLabel(member.role)}</p>
+        <p className="text-xs text-ink-faint">{t(roleKey(member.role))}</p>
       </div>
 
       {/* Edit-data grant (not shown for managers — they always can) */}
@@ -105,7 +111,7 @@ function MemberRow({
               : "bg-surface-soft text-ink-faint"
           }`}
         >
-          {member.can_edit ? "Can edit data" : "View only"}
+          {member.can_edit ? t("team.canEdit") : t("team.viewOnly")}
         </button>
       )}
 
@@ -117,9 +123,9 @@ function MemberRow({
           onChange={(e) => setRole(e.target.value as UserRole)}
           className="rounded-lg border border-surface-border bg-surface px-2 py-1.5 text-sm"
         >
-          <option value="engineer">Engineer</option>
-          <option value="organizer">Organizer</option>
-          <option value="head">Head</option>
+          <option value="engineer">{t("role.engineer")}</option>
+          <option value="organizer">{t("role.organizer")}</option>
+          <option value="head">{t("role.head")}</option>
         </select>
       )}
     </div>
@@ -133,6 +139,7 @@ function AddMemberModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const t = useT();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -149,31 +156,31 @@ function AddMemberModal({
 
   return (
     <Modal
-      title="Add team member"
+      title={t("team.addMemberTitle")}
       onClose={onClose}
       footer={
         <div className="flex justify-end gap-2">
           <button className="btn-ghost" onClick={onClose} disabled={saving}>
-            Cancel
+            {t("common.cancel")}
           </button>
           <button className="btn-primary" onClick={submit} disabled={saving}>
-            {saving ? "Creating…" : "Create account"}
+            {saving ? t("team.creating") : t("team.create")}
           </button>
         </div>
       }
     >
       <div className="space-y-4">
         <div>
-          <label className="label">Full name</label>
+          <label className="label">{t("team.fullName")}</label>
           <input
             className="input"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            placeholder="e.g. Ahmed Hassan"
+            placeholder={t("team.namePlaceholder")}
           />
         </div>
         <div>
-          <label className="label">Email</label>
+          <label className="label">{t("login.email")}</label>
           <input
             type="email"
             className="input"
@@ -183,27 +190,27 @@ function AddMemberModal({
           />
         </div>
         <div>
-          <label className="label">Temporary password</label>
+          <label className="label">{t("team.tempPassword")}</label>
           <input
             type="text"
             className="input"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 6 characters"
+            placeholder={t("team.passwordPlaceholder")}
           />
         </div>
         <div>
-          <label className="label">Role</label>
+          <label className="label">{t("team.role")}</label>
           <select
             className="input"
             value={role}
             onChange={(e) => setRole(e.target.value as UserRole)}
           >
-            <option value="engineer">Engineer</option>
-            <option value="organizer">Organizer</option>
-            <option value="head">Head of engineers</option>
+            <option value="engineer">{t("role.engineer")}</option>
+            <option value="organizer">{t("role.organizer")}</option>
+            <option value="head">{t("role.head")}</option>
           </select>
-          <p className="mt-1.5 text-xs text-ink-faint">{ROLE_HINTS[role]}</p>
+          <p className="mt-1.5 text-xs text-ink-faint">{t(ROLE_HINTS[role])}</p>
         </div>
 
         {error && (
@@ -216,10 +223,8 @@ function AddMemberModal({
   );
 }
 
-const ROLE_HINTS: Record<UserRole, string> = {
-  engineer:
-    "Adds tasks and customers, and manages what they own. Grant “Can edit data” for spare parts and the rest of the shared data.",
-  organizer:
-    "Full access to spare parts, customers and every task — but cannot manage accounts.",
-  head: "Full access, including creating accounts and changing roles.",
+const ROLE_HINTS: Record<UserRole, StringKey> = {
+  engineer: "team.hintEngineer",
+  organizer: "team.hintOrganizer",
+  head: "team.hintHead",
 };

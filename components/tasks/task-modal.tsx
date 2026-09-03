@@ -18,6 +18,9 @@ import {
   updateTask,
 } from "@/app/(app)/tasks/actions";
 import Modal from "@/components/modal";
+import { useT } from "@/lib/i18n/provider";
+import { statusKey, priorityKey } from "@/lib/i18n/task-keys";
+import DescriptionField from "./description-field";
 import CustomFields from "@/components/fields/CustomFields";
 import TaskActivity from "./task-activity";
 import TaskParts from "./task-parts";
@@ -46,6 +49,7 @@ export default function TaskModal({
   onSaved: (t: Task) => void;
   onDeleted: (id: string) => void;
 }) {
+  const t = useT();
   const isNew = !task;
   const editable = isNew || canEditTask(profile, task!);
 
@@ -90,7 +94,7 @@ export default function TaskModal({
 
   async function save() {
     if (!title.trim()) {
-      setError("Title is required");
+      setError(t("task.titleRequired"));
       return;
     }
     setSaving(true);
@@ -116,7 +120,7 @@ export default function TaskModal({
 
   async function remove() {
     if (!task) return;
-    if (!confirm("Delete this task?")) return;
+    if (!confirm(t("task.confirmDelete"))) return;
     setSaving(true);
     const res = await deleteTask(task.id);
     setSaving(false);
@@ -131,42 +135,42 @@ export default function TaskModal({
     <div className="flex items-center justify-between gap-2">
       {!isNew ? (
         <button className="btn-danger" onClick={remove} disabled={saving}>
-          Delete
+          {t("common.delete")}
         </button>
       ) : (
         <span />
       )}
       <div className="flex gap-2">
         <button className="btn-ghost" onClick={onClose} disabled={saving}>
-          Cancel
+          {t("common.cancel")}
         </button>
         <button className="btn-primary" onClick={save} disabled={saving}>
-          {saving ? "Saving…" : "Save"}
+          {saving ? t("common.saving") : t("common.save")}
         </button>
       </div>
     </div>
   ) : (
     <p className="text-center text-xs text-ink-faint">
-      You can only edit tasks assigned to you.
+      {t("task.onlyOwn")}
     </p>
   );
 
   return (
     <Modal
-      title={isNew ? "New task" : editable ? "Edit task" : "Task"}
+      title={isNew ? t("task.new") : editable ? t("task.edit") : t("task.one")}
       onClose={onClose}
       footer={footer}
     >
       <div className="space-y-4">
         {isNew && templates.length > 0 && (
           <div>
-            <label className="label">Start from template</label>
+            <label className="label">{t("task.template")}</label>
             <select
               className="input"
               defaultValue=""
               onChange={(e) => applyTemplate(e.target.value)}
             >
-              <option value="">Blank task</option>
+              <option value="">{t("task.blank")}</option>
               {templates.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
@@ -177,29 +181,25 @@ export default function TaskModal({
         )}
 
         <div>
-          <label className="label">Title</label>
+          <label className="label">{t("task.title")}</label>
           <input
             className="input"
             value={title}
             disabled={!editable}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Repair chair unit at Clinic A"
+            placeholder={t("task.titlePlaceholder")}
           />
         </div>
 
-        <div>
-          <label className="label">Description</label>
-          <textarea
-            className="input min-h-[80px] resize-y"
-            value={description}
-            disabled={!editable}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
+        <DescriptionField
+          value={description}
+          onChange={setDescription}
+          disabled={!editable}
+        />
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Status</label>
+            <label className="label">{t("task.status")}</label>
             <select
               className="input"
               value={status}
@@ -208,13 +208,13 @@ export default function TaskModal({
             >
               {TASK_STATUSES.map((s) => (
                 <option key={s.key} value={s.key}>
-                  {s.label}
+                  {t(statusKey(s.key))}
                 </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="label">Priority</label>
+            <label className="label">{t("task.priority")}</label>
             <select
               className="input capitalize"
               value={priority}
@@ -223,7 +223,7 @@ export default function TaskModal({
             >
               {TASK_PRIORITIES.map((p) => (
                 <option key={p} value={p}>
-                  {p}
+                  {t(priorityKey(p))}
                 </option>
               ))}
             </select>
@@ -231,7 +231,7 @@ export default function TaskModal({
         </div>
 
         <div>
-          <label className="label">Due date</label>
+          <label className="label">{t("task.dueDate")}</label>
           <input
             type="date"
             className="input"
@@ -242,7 +242,7 @@ export default function TaskModal({
         </div>
 
         <div>
-          <label className="label">Assignees</label>
+          <label className="label">{t("task.assignees")}</label>
           <AssigneeSection
             isNew={isNew}
             taskId={task?.id}
@@ -254,7 +254,7 @@ export default function TaskModal({
         </div>
 
         <div>
-          <label className="label">Customer (optional)</label>
+          <label className="label">{t("task.customer")}</label>
           <select
             className="input"
             value={customerId}

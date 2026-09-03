@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n/provider";
 import { createClient } from "@/lib/supabase/client";
 import Scanner from "@/components/scan/scanner";
 
@@ -22,6 +23,7 @@ export default function CommandPalette({
   open: boolean;
   onClose: () => void;
 }) {
+  const t = useT();
   const router = useRouter();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
@@ -98,7 +100,7 @@ export default function CommandPalette({
             ref={inputRef}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search customers, parts, tasks…"
+            placeholder={t("search.placeholder")}
             className="w-full bg-surface px-4 py-3.5 text-sm text-ink outline-none placeholder:text-ink-faint"
           />
           {canScan && (

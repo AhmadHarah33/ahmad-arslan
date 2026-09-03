@@ -13,11 +13,14 @@ export default function Modal({
   onClose,
   children,
   footer,
+  wide = false,
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  /** Roomier surface for writing-focused dialogs (long descriptions). */
+  wide?: boolean;
 }) {
   const [closing, setClosing] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -96,9 +99,9 @@ export default function Modal({
         aria-hidden="true"
       />
       <div
-        className={`glass glass-strong relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-3xl sm:rounded-3xl ${
-          closing ? "animate-window-out" : "animate-window"
-        }`}
+        className={`glass glass-strong relative z-10 flex max-h-[92vh] w-full flex-col rounded-t-3xl sm:rounded-3xl ${
+          wide ? "max-w-3xl" : "max-w-lg"
+        } ${closing ? "animate-window-out" : "animate-window"}`}
         style={{
           transform: drag ? `translateY(${drag}px)` : undefined,
           transition: drag ? "none" : "transform 0.2s",

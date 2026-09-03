@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getServerT } from "@/lib/i18n/server";
+import { statusKey } from "@/lib/i18n/task-keys";
 import { greeting, isManager } from "@/lib/permissions";
 import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import { PriorityChip, StatusChip } from "@/components/ui";
@@ -11,6 +13,7 @@ import { STATUS_VAR, TASK_STATUSES } from "@/lib/types";
 import type { Profile, SparePart, Task } from "@/lib/types";
 
 export default async function DashboardPage() {
+  const t = getServerT();
   const profile = await requireProfile();
   // Head and organizer both get the team-wide view; engineers see their own.
   const head = isManager(profile);
@@ -42,11 +45,11 @@ export default async function DashboardPage() {
   sparePartCount = parts.length;
 
 
-  const open = allTasks.filter((t) => t.status !== "done");
-  const overdue = open.filter((t) => dueStatus(t.due_date) === "overdue");
+  const open = allTasks.filter((task) => task.status !== "done");
+  const overdue = open.filter((task) => dueStatus(task.due_date) === "overdue");
   const weekAgo = Date.now() - 7 * 86400000;
   const doneThisWeek = allTasks.filter(
-    (t) => t.status === "done" && t.completed_at && new Date(t.completed_at).getTime() >= weekAgo
+    (task) => task.status === "done" && task.completed_at && new Date(task.completed_at).getTime() >= weekAgo
   );
   const lowStock = parts.filter((p) => (p.min_quantity ?? 0) > 0 && p.quantity <= (p.min_quantity ?? 0));
 
@@ -54,21 +57,21 @@ export default async function DashboardPage() {
   const visible = head
     ? open
     : open.filter(
-        (t) => t.assignees.length === 0 || t.assignees.some((a) => a.id === profile.id)
+        (task) => task.assignees.length === 0 || task.assignees.some((a) => a.id === profile.id)
       );
 
   // Progress: head → per engineer; engineer → their own.
   const progress = head
     ? engineers
         .map((e) => {
-          const mine = allTasks.filter((t) => t.assignees.some((a) => a.id === e.id));
-          return { name: e.full_name || e.first_name, done: mine.filter((t) => t.status === "done").length, total: mine.length };
+          const mine = allTasks.filter((task) => task.assignees.some((a) => a.id === e.id));
+          return { name: e.full_name || e.first_name, done: mine.filter((task) => task.status === "done").length, total: mine.length };
         })
         .filter((r) => r.total > 0)
         .sort((a, b) => b.total - a.total)
     : (() => {
-        const mine = allTasks.filter((t) => t.assignees.some((a) => a.id === profile.id));
-        return [{ name: "My completion", done: mine.filter((t) => t.status === "done").length, total: mine.length }];
+        const mine = allTasks.filter((task) => task.assignees.some((a) => a.id === profile.id));
+        return [{ name: "My completion", done: mine.filter((task) => task.status === "done").length, total: mine.length }];
       })();
 
   const Header = (
@@ -113,13 +116,13 @@ export default async function DashboardPage() {
     // board uses, so the ring reads as a straight breakdown of the four
     // columns. (Overdue isn't a segment — it cuts across statuses and already
     // has its own tile above.)
-    const statusSegments = TASK_STATUSES.map(({ key, label }) => ({
-      label,
-      value: allTasks.filter((t) => t.status === key).length,
+    const statusSegments = TASK_STATUSES.map(({ key }) => ({
+      label: t(statusKey(key)),
+      value: allTasks.filter((task) => task.status === key).length,
       color: `rgb(var(${STATUS_VAR[key]}))`,
     }));
     const months = lastMonths(allTasks);
-    const unassigned = open.filter((t) => t.assignees.length === 0);
+    const unassigned = open.filter((task) => task.assignees.length === 0);
 
     return (
       <div className="space-y-4">
@@ -133,15 +136,15 @@ export default async function DashboardPage() {
         {statTiles}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <Card title="Cases by status">
+          <Card title={t("dash.byStatus")}>
             <Donut segments={statusSegments} />
           </Card>
 
-          <Card title="Cases over the year" className="xl:col-span-2">
+          <Card title={t("dash.overYear")} className="xl:col-span-2">
             <MonthBars data={months} />
           </Card>
 
-          <Card title="Engineers leaderboard">
+          <Card title={t("dash.leaderboard")}>
             {progress.length === 0 ? (
               <p className="text-sm text-ink-faint">No assigned tasks yet.</p>
             ) : (
@@ -163,14 +166,14 @@ export default async function DashboardPage() {
               <p className="text-sm text-ink-faint">Everything is assigned. 🎉</p>
             ) : (
               <ul className="max-h-56 space-y-1.5 overflow-y-auto">
-                {unassigned.map((t) => (
-                  <li key={t.id}>
+                {unassigned.map((task) => (
+                  <li key={task.id}>
                     <Link href="/tasks" className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-surface-soft">
-                      <StatusChip status={t.status} />
-                      <span className="min-w-0 flex-1 truncate text-sm text-ink">{t.title}</span>
-                      {t.due_date && dueStatus(t.due_date) !== "none" && (
-                        <span className={`chip ${DUE_STYLES[dueStatus(t.due_date) as "overdue" | "soon"]}`}>
-                          {dueStatus(t.due_date) === "overdue" ? "Overdue" : "Soon"}
+                      <StatusChip status={task.status} />
+                      <span className="min-w-0 flex-1 truncate text-sm text-ink">{task.title}</span>
+                      {task.due_date && dueStatus(task.due_date) !== "none" && (
+                        <span className={`chip ${DUE_STYLES[dueStatus(task.due_date) as "overdue" | "soon"]}`}>
+                          {dueStatus(task.due_date) === "overdue" ? "Overdue" : "Soon"}
                         </span>
                       )}
                     </Link>
@@ -197,9 +200,9 @@ export default async function DashboardPage() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <Tile href="/tasks" title="Tasks" value={`${open.length} open`} desc="Kanban board & list" />
-          <Tile href="/customers" title="Customers" value={`${customerCount} total`} desc="By brand & machine" />
-          <Tile href="/spare-parts" title="Spare parts" value={`${sparePartCount} items`} desc="Inventory by company" />
+          <Tile href="/tasks" title={t("nav.tasks")} value={`${open.length} ${t("dash.open")}`} desc={t("dash.tasksDesc")} />
+          <Tile href="/customers" title={t("nav.customers")} value={`${customerCount} ${t("common.total")}`} desc={t("dash.customersDesc")} />
+          <Tile href="/spare-parts" title={t("parts.title")} value={`${sparePartCount} ${t("parts.items")}`} desc={t("dash.partsDesc")} />
         </div>
       </div>
     );
@@ -286,22 +289,22 @@ function lastMonths(tasks: Task[]) {
 function TaskGrid({ tasks }: { tasks: Task[] }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {tasks.map((t) => {
-        const st = dueStatus(t.due_date);
+      {tasks.map((task) => {
+        const st = dueStatus(task.due_date);
         return (
           <Link
-            key={t.id}
+            key={task.id}
             href="/tasks"
             className="card block p-3 transition hover:shadow-pop"
           >
             <p className="line-clamp-2 text-sm font-semibold leading-snug text-ink">
-              {t.title}
+              {task.title}
             </p>
 
             <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-              <AvatarGroup people={t.assignees} size={20} max={3} />
-              <PriorityChip priority={t.priority} />
-              {t.due_date && (
+              <AvatarGroup people={task.assignees} size={20} max={3} />
+              <PriorityChip priority={task.priority} />
+              {task.due_date && (
                 <span
                   className={`ml-auto text-xs ${
                     st === "none"
@@ -309,7 +312,7 @@ function TaskGrid({ tasks }: { tasks: Task[] }) {
                       : `chip px-2 py-0.5 ${DUE_STYLES[st]}`
                   }`}
                 >
-                  {formatDateShort(t.due_date)}
+                  {formatDateShort(task.due_date)}
                 </span>
               )}
             </div>

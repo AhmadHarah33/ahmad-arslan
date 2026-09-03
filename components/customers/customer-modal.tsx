@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Customer } from "@/lib/types";
 import { saveCustomer, deleteCustomer } from "@/app/(app)/customers/actions";
 import Modal from "@/components/modal";
+import { useT } from "@/lib/i18n/provider";
 import CustomFields from "@/components/fields/CustomFields";
 import ServiceHistory from "./service-history";
 import Maintenance from "./maintenance";
@@ -23,6 +24,7 @@ export default function CustomerModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
   const isNew = !customer;
   const [name, setName] = useState(customer?.name ?? "");
   const [location, setLocation] = useState(customer?.location ?? "");
@@ -53,7 +55,7 @@ export default function CustomerModal({
 
   function save() {
     if (!name.trim()) {
-      setValidationError("Name is required");
+      setValidationError(t("customers.nameRequired"));
       return;
     }
     setValidationError(null);
@@ -68,7 +70,7 @@ export default function CustomerModal({
 
   function remove() {
     if (!customer) return;
-    if (!confirm("Delete this customer?")) return;
+    if (!confirm(t("customers.confirmDelete"))) return;
     setValidationError(null);
     doDelete(customer.id);
   }
@@ -77,17 +79,17 @@ export default function CustomerModal({
     <div className="flex items-center justify-between gap-2">
       {!isNew ? (
         <button className="btn-danger" onClick={remove} disabled={saving}>
-          Delete
+          {t("common.delete")}
         </button>
       ) : (
         <span />
       )}
       <div className="flex gap-2">
         <button className="btn-ghost" onClick={onClose} disabled={saving}>
-          Cancel
+          {t("common.cancel")}
         </button>
         <button className="btn-primary" onClick={save} disabled={saving}>
-          {saving ? "Saving…" : "Save"}
+          {saving ? t("common.saving") : t("common.save")}
         </button>
       </div>
     </div>
@@ -95,13 +97,13 @@ export default function CustomerModal({
 
   return (
     <Modal
-      title={isNew ? "New customer" : editable ? "Edit customer" : name}
+      title={isNew ? t("customers.new") : editable ? t("customers.edit") : name}
       onClose={onClose}
       footer={footer}
     >
       <div className="space-y-4">
         <div>
-          <label className="label">Name</label>
+          <label className="label">{t("customers.name")}</label>
           <input
             className="input"
             value={name}
@@ -111,7 +113,7 @@ export default function CustomerModal({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">City</label>
+            <label className="label">{t("customers.city")}</label>
             <input
               className="input"
               value={location}
@@ -120,7 +122,7 @@ export default function CustomerModal({
             />
           </div>
           <div>
-            <label className="label">Model</label>
+            <label className="label">{t("customers.model")}</label>
             <input
               className="input"
               value={machine}
@@ -130,7 +132,7 @@ export default function CustomerModal({
           </div>
         </div>
         <div>
-          <label className="label">SN</label>
+          <label className="label">{t("customers.sn")}</label>
           <input
             className="input"
             value={serial}
@@ -141,20 +143,20 @@ export default function CustomerModal({
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label className="label mb-0">Attachment links</label>
+            <label className="label mb-0">{t("customers.links")}</label>
             {editable && (
               <button
                 type="button"
                 className="text-sm font-medium text-brand-600"
                 onClick={() => setLinks((p) => [...p, { label: "", url: "" }])}
               >
-                + Add link
+                {t("customers.addLink")}
               </button>
             )}
           </div>
           {links.length === 0 && (
             <p className="text-sm text-ink-faint">
-              No links yet (e.g. paste a Google Drive URL).
+              {t("customers.noLinks")}
             </p>
           )}
           <div className="space-y-2">
@@ -200,7 +202,7 @@ export default function CustomerModal({
 
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
-            <p className="label">Properties</p>
+            <p className="label">{t("customers.properties")}</p>
             <CustomFields
               entity="customer"
               recordId={customer!.id}
@@ -212,7 +214,7 @@ export default function CustomerModal({
 
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
-            <p className="label">Machine QR</p>
+            <p className="label">{t("customers.qr")}</p>
             <div className="flex items-center gap-4">
               <div className="rounded-lg bg-white p-2">
                 <QrCode value={customerQrValue(name)} size={120} />
@@ -227,7 +229,7 @@ export default function CustomerModal({
 
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
-            <p className="label">Preventive maintenance</p>
+            <p className="label">{t("customers.maintenance")}</p>
             <Maintenance customerId={customer!.id} editable={editable} />
           </div>
         )}

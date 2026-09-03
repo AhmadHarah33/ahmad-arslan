@@ -20,6 +20,8 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { PriorityChip, STATUS_TONE } from "@/components/ui";
 import { STATUS_VAR, TASK_STATUSES } from "@/lib/types";
+import { useT } from "@/lib/i18n/provider";
+import { statusKey } from "@/lib/i18n/task-keys";
 import type { Customer, Profile, Task, TaskStatus } from "@/lib/types";
 import { canEditTask } from "@/lib/permissions";
 import { moveTask } from "@/app/(app)/tasks/actions";
@@ -108,6 +110,7 @@ export default function TasksBoard({
   fieldValues: ValueMap;
   commentCounts: CountMap;
 }) {
+  const t = useT();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [view, setView] = useState<"board" | "list">("board");
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -355,7 +358,7 @@ export default function TasksBoard({
               >
                 <Column
                   status={col.key}
-                  label={col.label}
+                  label={t(statusKey(col.key))}
                   tasks={byStatus[col.key]}
                   profile={profile}
                   fieldDefs={fieldDefs}
@@ -789,6 +792,7 @@ function MobileActionSheet({
   onMove: (status: TaskStatus) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const otherStatuses = TASK_STATUSES.filter((s) => s.key !== task.status);
   const itemClass =
     "flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-ink hover:bg-surface-soft";
@@ -821,7 +825,7 @@ function MobileActionSheet({
             {otherStatuses.map((s) => (
               <button key={s.key} onClick={() => onMove(s.key)} className={itemClass}>
                 <StatusDot status={s.key} />
-                {s.label}
+                {t(statusKey(s.key))}
               </button>
             ))}
             <button onClick={onBack} className={`${itemClass} text-ink-faint`}>

@@ -7,6 +7,7 @@ import { addComment, deleteComment } from "@/app/(app)/tasks/comment-actions";
 import type { Profile } from "@/lib/types";
 import { isManager } from "@/lib/permissions";
 import { useAction } from "@/lib/use-action";
+import { useT } from "@/lib/i18n/provider";
 
 type Comment = {
   id: string;
@@ -31,6 +32,7 @@ export default function TaskActivity({
   taskId: string;
   profile: Profile;
 }) {
+  const t = useT();
   const [comments, setComments] = useState<Comment[]>([]);
   const [body, setBody] = useState("");
 
@@ -95,7 +97,7 @@ export default function TaskActivity({
   return (
     <div className="space-y-3">
       {comments.length === 0 && (
-        <p className="text-sm text-ink-faint">No comments yet.</p>
+        <p className="text-sm text-ink-faint">{t("task.noComments")}</p>
       )}
       {comments.map((c) => (
         <div key={c.id} className="flex gap-2.5">
@@ -121,13 +123,13 @@ export default function TaskActivity({
       <div className="flex gap-2">
         <input
           className="input"
-          placeholder="Write a comment…"
+          placeholder={t("task.commentPlaceholder")}
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
         />
         <button className="btn-primary shrink-0" onClick={submit} disabled={busy}>
-          {busy ? "…" : "Post"}
+          {busy ? "…" : t("task.post")}
         </button>
       </div>
     </div>

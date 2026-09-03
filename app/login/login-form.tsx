@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "@/lib/i18n/provider";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginForm() {
   const router = useRouter();
+  const t = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
@@ -40,7 +42,7 @@ export default function LoginForm() {
     <form onSubmit={onSubmit} className="space-y-4">
       <div>
         <label className="label" htmlFor="email">
-          Email
+          {t("login.email")}
         </label>
         <input
           id="email"
@@ -56,7 +58,7 @@ export default function LoginForm() {
 
       <div>
         <label className="label" htmlFor="password">
-          Password
+          {t("login.password")}
         </label>
         <input
           id="password"
@@ -77,7 +79,7 @@ export default function LoginForm() {
           checked={remember}
           onChange={(e) => setRemember(e.target.checked)}
         />
-        Remember this device
+        {t("login.remember")}
       </label>
 
       {error && (
@@ -87,7 +89,7 @@ export default function LoginForm() {
       )}
 
       <button type="submit" className="btn-primary w-full" disabled={loading}>
-        {loading ? "Signing in…" : "Sign in"}
+        {loading ? t("login.signingIn") : t("login.submit")}
       </button>
     </form>
   );

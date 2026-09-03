@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Modal from "@/components/modal";
+import { useLanguage } from "@/lib/i18n/provider";
+import { LANGUAGES } from "@/lib/i18n/dictionary";
 import { ACCENTS, MODES, applyTheme } from "@/lib/theme";
 import type { ThemeMode } from "@/lib/theme";
 import { applyBackground } from "@/lib/background";
@@ -25,6 +27,7 @@ export default function SettingsModal({
   initialBgBlur: number;
   onClose: () => void;
 }) {
+  const { lang, setLang, t } = useLanguage();
   const [accent, setAccent] = useState(initialAccent || "sky");
   const [mode, setMode] = useState<ThemeMode>(initialMode || "system");
   const [bgStyle, setBgStyle] = useState<BackgroundStyle>(initialBgStyle);
@@ -72,10 +75,25 @@ export default function SettingsModal({
   }
 
   return (
-    <Modal title="Appearance" onClose={onClose}>
+    <Modal title={t("settings.title")} onClose={onClose}>
       <div className="space-y-5">
         <div>
-          <p className="label">Accent color</p>
+          <p className="label">{t("shell.language")}</p>
+          <div className="seg flex">
+            {LANGUAGES.map((l) => (
+              <button
+                key={l.id}
+                onClick={() => setLang(l.id)}
+                className={`seg-btn flex-1 ${lang === l.id ? "seg-btn-on" : ""}`}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="label">{t("settings.accent")}</p>
           <div className="flex flex-wrap gap-2.5">
             {ACCENTS.map((a) => (
               <button
@@ -96,7 +114,7 @@ export default function SettingsModal({
         </div>
 
         <div>
-          <p className="label">Mode</p>
+          <p className="label">{t("settings.mode")}</p>
           <div className="seg flex">
             {MODES.map((m) => (
               <button
@@ -113,7 +131,7 @@ export default function SettingsModal({
         {isOwner && (
           <div className="border-t border-surface-border pt-4">
             <p className="label">
-              Background <span className="font-normal normal-case">(applies to everyone)</span>
+              {t("settings.background")} <span className="font-normal normal-case">(applies to everyone)</span>
             </p>
             <div className="seg mb-3 flex">
               <button
@@ -132,7 +150,7 @@ export default function SettingsModal({
             {bgStyle === "wallpaper" && (
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs text-ink-muted">
-                  <span>Blur</span>
+                  <span>{t("settings.blur")}</span>
                   <span>{bgBlur}%</span>
                 </div>
                 <input

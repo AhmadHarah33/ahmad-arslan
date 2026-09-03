@@ -10,6 +10,7 @@ import Modal from "@/components/modal";
 import ImportExport from "@/components/data/import-export";
 import Fab from "@/components/fab";
 import { PageHeader } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 import PartModal from "./part-modal";
 import { useAction } from "@/lib/use-action";
 
@@ -24,6 +25,7 @@ export default function SparePartsView({
   parts: SparePart[];
   initialQuery?: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const editable = canEditData(profile);
   const [query, setQuery] = useState(initialQuery);
@@ -66,8 +68,8 @@ export default function SparePartsView({
   return (
     <div>
       <PageHeader
-        title="Spare parts"
-        subtitle={`${parts.length} items · ${companies.length} companies`}
+        title={t("parts.title")}
+        subtitle={`${parts.length} ${t("parts.items")} · ${companies.length} ${t("parts.companies")}`}
         action={
           <div className="flex items-center gap-2">
             {editable && (
@@ -84,25 +86,25 @@ export default function SparePartsView({
             )}
             {editable && (
               <button className="btn-ghost hidden md:inline-flex" onClick={() => setCompanyModal(true)}>
-                + Company
+                {t("parts.newCompany")}
               </button>
             )}
           </div>
         }
       />
 
-      {editable && <Fab onClick={() => setCompanyModal(true)} label="New company" />}
+      {editable && <Fab onClick={() => setCompanyModal(true)} label={t("parts.newCompany")} />}
 
       <input
         className="input mb-5"
-        placeholder="Search parts…"
+        placeholder={t("parts.searchPlaceholder")}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
 
       {companies.length === 0 && (
         <div className="card px-5 py-10 text-center text-sm text-ink-faint">
-          No companies yet. {editable && "Add one to start your inventory."}
+          {t("parts.noCompanies")} {editable && t("parts.startInventory")}
         </div>
       )}
 
@@ -128,13 +130,13 @@ export default function SparePartsView({
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
-                  Add part
+                  {t("parts.addPart")}
                 </button>
               )}
             </div>
             {cParts.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-surface-border px-4 py-6 text-center text-sm text-ink-faint">
-                No parts here yet.
+                {t("parts.noPartsHere")}
               </p>
             ) : (
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
@@ -159,7 +161,7 @@ export default function SparePartsView({
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <span className="text-[10px] text-ink-faint">No photo</span>
+                        <span className="text-[10px] text-ink-faint">{t("parts.noPhoto")}</span>
                       )}
                     </div>
                     <div className="p-2">
@@ -169,9 +171,9 @@ export default function SparePartsView({
                       <div className="mt-0.5 flex items-center justify-between text-[11px] text-ink-faint">
                         {p.part_number ? <span className="truncate">#{p.part_number}</span> : <span />}
                         {(p.min_quantity ?? 0) > 0 && p.quantity <= (p.min_quantity ?? 0) ? (
-                          <span className="chip bg-amber-50 px-1.5 py-0 text-amber-700">Low · {p.quantity}</span>
+                          <span className="chip bg-amber-50 px-1.5 py-0 text-amber-700">{t("parts.low")} · {p.quantity}</span>
                         ) : (
-                          <span className="shrink-0">Qty {p.quantity}</span>
+                          <span className="shrink-0">{t("parts.qty")} {p.quantity}</span>
                         )}
                       </div>
                     </div>
@@ -184,10 +186,10 @@ export default function SparePartsView({
       </div>
 
       {companyModal && (
-        <Modal title="New company" onClose={() => setCompanyModal(false)}>
+        <Modal title={t("parts.newCompany")} onClose={() => setCompanyModal(false)}>
           <div className="space-y-4">
             <div>
-              <label className="label">Company name</label>
+              <label className="label">{t("parts.companyName")}</label>
               <input
                 className="input"
                 value={companyName}

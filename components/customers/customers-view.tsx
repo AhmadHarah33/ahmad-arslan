@@ -10,6 +10,7 @@ import ImportExport from "@/components/data/import-export";
 import { dueStatus, formatDate } from "@/lib/dates";
 import Fab from "@/components/fab";
 import { PageHeader } from "@/components/ui";
+import { useT } from "@/lib/i18n/provider";
 import CustomerModal from "./customer-modal";
 
 type ValueMap = Record<string, Record<string, unknown>>;
@@ -27,6 +28,7 @@ export default function CustomersView({
   fieldValues: ValueMap;
   initialQuery?: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
   const [modal, setModal] = useState<{ open: boolean; customer: Customer | null }>(
@@ -78,11 +80,11 @@ export default function CustomersView({
     if (buckets.has("__none"))
       ordered.push({
         key: "__none",
-        label: "Unspecified",
+        label: t("customers.unspecified"),
         items: buckets.get("__none")!,
       });
     return ordered;
-  }, [filtered, brandDef, fieldValues]);
+  }, [filtered, brandDef, fieldValues, t]);
 
   function brandLabel(c: Customer): string {
     if (!brandDef) return "";
@@ -148,8 +150,8 @@ export default function CustomersView({
   return (
     <div>
       <PageHeader
-        title="Customers"
-        subtitle={`${initialCustomers.length} total`}
+        title={t("customers.title")}
+        subtitle={`${initialCustomers.length} ${t("common.total")}`}
         action={
           <div className="flex items-center gap-2">
             {editable && (
@@ -164,7 +166,7 @@ export default function CustomersView({
                 className="btn-primary hidden md:inline-flex"
                 onClick={() => setModal({ open: true, customer: null })}
               >
-                + New
+                {t("common.new")}
               </button>
             )}
           </div>
@@ -178,7 +180,7 @@ export default function CustomersView({
       {expiring.length > 0 && (
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
           <p className="text-sm font-semibold text-amber-800">
-            Warranties expiring soon
+            {t("customers.warrantyBanner")}
           </p>
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-amber-700">
             {expiring.slice(0, 8).map(({ c, date }) => (
@@ -196,14 +198,14 @@ export default function CustomersView({
 
       <input
         className="input mb-4"
-        placeholder="Search name, location, machine or SN…"
+        placeholder={t("customers.searchPlaceholder")}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
 
       {filtered.length === 0 ? (
         <div className="card px-5 py-10 text-center text-sm text-ink-faint">
-          No customers found.
+          {t("customers.none")}
         </div>
       ) : (
         <div className="space-y-6">
