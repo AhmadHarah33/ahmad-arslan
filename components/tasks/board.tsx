@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   closestCorners,
   defaultDropAnimationSideEffects,
@@ -114,6 +115,8 @@ export default function TasksBoard({
   commentCounts: CountMap;
 }) {
   const t = useT();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [view, setView] = useState<"board" | "list">("board");
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -375,9 +378,19 @@ export default function TasksBoard({
               </div>
             ))}
           </div>
-          <DragOverlay dropAnimation={dropAnimation}>
-            {activeTask ? <CardBody task={activeTask} lifted {...cardProps} /> : null}
-          </DragOverlay>
+          {/* Portalled to <body> on purpose. DragOverlay is position:fixed,
+              and the app shell wraps page content in a `.glass-strong` panel
+              whose backdrop-filter makes it the containing block for fixed
+              descendants — so the dragged card was positioned relative to that
+              panel and floated away from the cursor by the sidebar width and
+              header height. Same root cause as the modal fix. */}
+          {mounted &&
+            createPortal(
+              <DragOverlay dropAnimation={dropAnimation}>
+                {activeTask ? <CardBody task={activeTask} lifted {...cardProps} /> : null}
+              </DragOverlay>,
+              document.body
+            )}
         </DndContext>
       ) : (
         <ListView
