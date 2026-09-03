@@ -586,13 +586,19 @@ function Column({
         )}
       </div>
 
-      {/* Faint wash in the column's own hue groups its cards and gives the
-          drop target an obvious edge; it deepens while dragging over it.
+      {/* Neutral lane at rest: the column's hue lives in its header chip, and
+          five tinted lanes side by side made the board read as colored blocks
+          before it read as cards. The hue still flashes in while a card is
+          dragged over, which is the one moment the target needs to be obvious.
           Only background/ring transition — never `transform` — so it can't
           fight the drag transform dnd-kit applies to the cards inside. */}
       <div
         ref={setNodeRef}
-        style={{ background: `rgb(var(${tint}) / ${isOver ? 0.14 : 0.05})` }}
+        style={{
+          background: isOver
+            ? `rgb(var(${tint}) / 0.12)`
+            : "rgb(var(--tone-neutral) / 0.07)",
+        }}
         className={`min-h-[140px] space-y-2.5 rounded-2xl p-2.5 transition-[background-color,box-shadow] duration-150 ${
           isOver ? "ring-1" : "ring-0"
         }`}

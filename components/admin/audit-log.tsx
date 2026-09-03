@@ -6,10 +6,12 @@ type AuditRow = {
   created_at: string;
 };
 
+// Theme tones, not fixed bg-*-50: those are light-mode-only and glare on a
+// dark card.
 const ACTION_STYLE: Record<string, string> = {
-  insert: "bg-green-50 text-green-700",
-  update: "bg-blue-50 text-blue-700",
-  delete: "bg-red-50 text-red-700",
+  insert: "tone-done",
+  update: "tone-progress",
+  delete: "tone-stuck",
 };
 
 export default function AuditLog({ rows }: { rows: AuditRow[] }) {

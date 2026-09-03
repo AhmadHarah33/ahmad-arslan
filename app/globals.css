@@ -64,10 +64,10 @@
      panels sat ~13 points off the background, which read as one flat black
      sheet with no card edges. Body and secondary text are lifted too — the
      old muted/faint pair was grey-on-grey at anything under full brightness. */
-  --canvas: 8 9 12;
-  --surface: 27 30 38;
-  --surface-soft: 39 43 54;
-  --surface-border: 58 63 78;
+  --canvas: 0 0 0;
+  --surface: 21 23 29;
+  --surface-soft: 33 36 45;
+  --surface-border: 55 60 74;
   --ink: 242 244 249;
   --ink-muted: 182 190 204;
   --ink-faint: 147 156 173;
@@ -274,9 +274,12 @@ body {
       transition hover:bg-surface-soft hover:text-ink;
   }
 
+  /* Outlined for the same reason the chips are: a solid red block is louder
+     than a Delete button needs to be next to Cancel and Save. The red text
+     and ring still mark it as the destructive one. */
   .btn-danger {
-    @apply btn border border-transparent hover:opacity-80;
-    background: rgb(var(--tone-stuck) / 0.14);
+    @apply btn hover:bg-surface-soft;
+    border: 1px solid rgb(var(--tone-stuck) / var(--tone-ring));
     color: rgb(var(--tone-stuck-ink));
   }
 
@@ -347,40 +350,69 @@ body {
     color: rgb(var(--tone-stuck-ink));
   }
 
-  /* Semantic tones for status + priority. Each is a tinted fill with an ink
-     picked for contrast, so a chip stays readable in light and dark alike
-     (a fixed `bg-blue-50` chip would glare on a dark card). */
+  /* Semantic tones for status + priority.
+     Outline, not fill: a board column of solidly tinted pills turns every card
+     into a block of color, and the status is a label — it shouldn't shout
+     louder than the task title. The hue survives in the ring and the text, so
+     Done vs Stuck still reads at a glance.
+     The ring is an inset box-shadow rather than a border so adding it doesn't
+     change any chip's box size. --tone-ring is dialled down in dark mode,
+     where a saturated hairline on near-black reads much hotter than the same
+     line on white. */
+  :root {
+    --tone-ring: 0.5;
+  }
+  :root[data-mode="dark"] {
+    --tone-ring: 0.34;
+  }
+
   .tone-neutral {
-    background: rgb(var(--tone-neutral) / 0.14);
     color: rgb(var(--tone-neutral-ink));
+    box-shadow: inset 0 0 0 1px rgb(var(--tone-neutral) / var(--tone-ring));
   }
   .tone-progress {
-    background: rgb(var(--tone-progress) / 0.14);
     color: rgb(var(--tone-progress-ink));
+    box-shadow: inset 0 0 0 1px rgb(var(--tone-progress) / var(--tone-ring));
   }
   .tone-done {
+    color: rgb(var(--tone-done-ink));
+    box-shadow: inset 0 0 0 1px rgb(var(--tone-done) / var(--tone-ring));
+  }
+  .tone-stuck {
+    color: rgb(var(--tone-stuck-ink));
+    box-shadow: inset 0 0 0 1px rgb(var(--tone-stuck) / var(--tone-ring));
+  }
+  .tone-warn {
+    color: rgb(var(--tone-warn-ink));
+    box-shadow: inset 0 0 0 1px rgb(var(--tone-warn) / var(--tone-ring));
+  }
+  .tone-purple {
+    color: rgb(var(--tone-purple-ink));
+    box-shadow: inset 0 0 0 1px rgb(var(--tone-purple) / var(--tone-ring));
+  }
+  .tone-yellow {
+    color: rgb(var(--tone-yellow-ink));
+    box-shadow: inset 0 0 0 1px rgb(var(--tone-yellow) / var(--tone-ring));
+  }
+  .tone-orange {
+    color: rgb(var(--tone-orange-ink));
+    box-shadow: inset 0 0 0 1px rgb(var(--tone-orange) / var(--tone-ring));
+  }
+
+  /* The old filled treatment, kept for the few places that are meant to read
+     as a block rather than a label: an error alert, and the dashboard stat
+     tiles' icon wells. Theme-aware, unlike the fixed bg-*-50 they replace. */
+  .tone-soft-done {
     background: rgb(var(--tone-done) / 0.14);
     color: rgb(var(--tone-done-ink));
   }
-  .tone-stuck {
-    background: rgb(var(--tone-stuck) / 0.14);
-    color: rgb(var(--tone-stuck-ink));
-  }
-  .tone-warn {
+  .tone-soft-warn {
     background: rgb(var(--tone-warn) / 0.16);
     color: rgb(var(--tone-warn-ink));
   }
-  .tone-purple {
-    background: rgb(var(--tone-purple) / 0.14);
-    color: rgb(var(--tone-purple-ink));
-  }
-  .tone-yellow {
-    background: rgb(var(--tone-yellow) / 0.18);
-    color: rgb(var(--tone-yellow-ink));
-  }
-  .tone-orange {
-    background: rgb(var(--tone-orange) / 0.16);
-    color: rgb(var(--tone-orange-ink));
+  .tone-soft-stuck {
+    background: rgb(var(--tone-stuck) / 0.14);
+    color: rgb(var(--tone-stuck-ink));
   }
 }
 

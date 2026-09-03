@@ -12,21 +12,25 @@ export function StatTile({
   tone?: "default" | "danger" | "warn" | "good";
   icon?: React.ReactNode;
 }) {
-  const toneClass =
+  // The number takes the tone's ink token rather than a fixed Tailwind red/
+  // amber/emerald, which are tuned for white and go muddy on the dark canvas.
+  const toneInk =
     tone === "danger"
-      ? "text-red-600"
+      ? "--tone-stuck-ink"
       : tone === "warn"
-      ? "text-amber-600"
+      ? "--tone-warn-ink"
       : tone === "good"
-      ? "text-emerald-600"
-      : "text-ink";
+      ? "--tone-done-ink"
+      : null;
+  // Stat-tile icon wells stay filled — they read as a block, not a label —
+  // but on theme tones so they don't glare in dark mode.
   const iconTone =
     tone === "danger"
-      ? "bg-red-50 text-red-600"
+      ? "tone-soft-stuck"
       : tone === "warn"
-      ? "bg-amber-50 text-amber-600"
+      ? "tone-soft-warn"
       : tone === "good"
-      ? "bg-emerald-50 text-emerald-600"
+      ? "tone-soft-done"
       : "bg-surface-soft text-ink-muted";
   return (
     <div className="card flex items-center gap-3 p-3.5">
@@ -38,7 +42,10 @@ export function StatTile({
         </span>
       )}
       <div className="min-w-0">
-        <p className={`text-xl font-bold leading-tight ${toneClass}`}>
+        <p
+          className="text-xl font-bold leading-tight text-ink"
+          style={toneInk ? { color: `rgb(var(${toneInk}))` } : undefined}
+        >
           {typeof value === "number" ? <CountUp value={value} /> : value}
         </p>
         <p className="truncate text-xs font-medium text-ink-muted">{label}</p>
