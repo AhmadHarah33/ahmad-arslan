@@ -94,6 +94,7 @@ function TaskTags({
 }
 
 export default function TasksBoard({
+  openNewOnMount = false,
   profile,
   initialTasks,
   engineers,
@@ -102,6 +103,8 @@ export default function TasksBoard({
   fieldValues,
   commentCounts,
 }: {
+  // Dashboard "New task" quick action links to /tasks?new=1.
+  openNewOnMount?: boolean;
   profile: Profile;
   initialTasks: Task[];
   engineers: Engineer[];
@@ -119,7 +122,7 @@ export default function TasksBoard({
     open: boolean;
     task: Task | null;
     status: TaskStatus;
-  }>({ open: false, task: null, status: "todo" });
+  }>({ open: openNewOnMount, task: null, status: "todo" });
   // Mobile-only "⋯" menu on a card: edit, or move to another column.
   const [actionSheet, setActionSheet] = useState<{
     task: Task;
@@ -315,14 +318,14 @@ export default function TasksBoard({
             className={`seg-btn ${view === "board" ? "seg-btn-on" : ""}`}
           >
             <BoardIcon className="h-4 w-4" />
-            Board
+            {t("task.viewBoard")}
           </button>
           <button
             onClick={() => setView("list")}
             className={`seg-btn ${view === "list" ? "seg-btn-on" : ""}`}
           >
             <ListIcon className="h-4 w-4" />
-            List
+            {t("task.viewList")}
           </button>
         </div>
         <button
@@ -330,7 +333,7 @@ export default function TasksBoard({
           onClick={() => openNew()}
         >
           <PlusIcon className="h-4 w-4" />
-          Create Task
+          {t("task.create")}
         </button>
       </div>
 
@@ -469,6 +472,7 @@ function Column({
   onNew: () => void;
   onMenu: (t: Task) => void;
 } & CardExtras) {
+  const t = useT();
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const [menu, setMenu] = useState(false);
   const tint = STATUS_VAR[status];
@@ -534,11 +538,11 @@ function Column({
         }`}
       >
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-          {tasks.map((t) => (
+          {tasks.map((card) => (
             <SortableCard
-              key={t.id}
-              task={t}
-              draggable={draggableDesktop && canEditTask(profile, t)}
+              key={card.id}
+              task={card}
+              draggable={draggableDesktop && canEditTask(profile, card)}
               fieldDefs={fieldDefs}
               fieldValues={fieldValues}
               onOpen={onOpen}
@@ -553,7 +557,7 @@ function Column({
             className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-surface-border py-6 text-xs font-medium text-ink-faint transition hover:border-ink-faint hover:text-ink-muted"
           >
             <PlusIcon className="h-3.5 w-3.5" />
-            Add a task
+            {t("task.addToColumn")}
           </button>
         )}
       </div>

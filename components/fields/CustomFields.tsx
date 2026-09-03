@@ -17,6 +17,7 @@ import type {
   FieldType,
 } from "@/lib/customFields";
 import { toastErr } from "@/lib/toast";
+import { useT } from "@/lib/i18n/provider";
 import { SkeletonRows } from "@/components/skeleton";
 import {
   createField,
@@ -39,6 +40,7 @@ export default function CustomFields({
   canManage: boolean;
   canEditValues: boolean;
 }) {
+  const t = useT();
   const [defs, setDefs] = useState<FieldDefinition[]>([]);
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
@@ -114,7 +116,7 @@ export default function CustomFields({
       ))}
 
       {defs.length === 0 && !canManage && (
-        <p className="text-sm text-ink-faint">No custom fields yet.</p>
+        <p className="text-sm text-ink-faint">{t("fields.none")}</p>
       )}
 
       {canManage &&
@@ -357,6 +359,7 @@ function SelectInput({
   onSave: (v: unknown) => void;
   onOptionsChanged: (opts: FieldOption[]) => void;
 }) {
+  const t = useT();
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const selected = multi
@@ -417,7 +420,7 @@ function SelectInput({
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addOption()}
-              placeholder="New option"
+              placeholder={t("fields.newOption")}
             />
             <button className="text-xs text-brand-600" onClick={addOption}>
               Add
@@ -549,6 +552,7 @@ function AddFieldForm({
   onCancel: () => void;
   onCreated: (def: FieldDefinition) => void;
 }) {
+  const t = useT();
   const [label, setLabel] = useState("");
   const [type, setType] = useState<FieldType>("text");
   const [saving, setSaving] = useState(false);
@@ -582,7 +586,7 @@ function AddFieldForm({
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder="Property name (e.g. TEŞHİS)"
+          placeholder={t("fields.namePlaceholder")}
         />
       </div>
       <div className="mb-3 flex flex-wrap gap-1.5">

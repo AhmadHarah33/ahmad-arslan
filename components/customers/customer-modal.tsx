@@ -165,7 +165,7 @@ export default function CustomerModal({
                 <div key={i} className="flex gap-2">
                   <input
                     className="input w-1/3"
-                    placeholder="Label"
+                    placeholder={t("customers.linkLabel")}
                     value={l.label}
                     onChange={(e) => updateLink(i, { label: e.target.value })}
                   />
@@ -236,7 +236,7 @@ export default function CustomerModal({
 
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
-            <p className="label">Service history</p>
+            <p className="label">{t("customers.serviceHistory")}</p>
             <ServiceHistory customerId={customer!.id} />
           </div>
         )}

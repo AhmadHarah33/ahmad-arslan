@@ -194,7 +194,7 @@ export default function SparePartsView({
                 className="input"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="e.g. Sirona"
+                placeholder={t("parts.companyPlaceholder")}
                 autoFocus
               />
             </div>

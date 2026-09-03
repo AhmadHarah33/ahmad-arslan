@@ -133,7 +133,7 @@ body {
 }
 
 body {
-  @apply text-ink antialiased;
+  @apply font-sans text-ink antialiased;
   background-color: rgb(var(--canvas));
   /* Respect iOS safe areas when installed to the home screen. */
   padding-top: env(safe-area-inset-top);

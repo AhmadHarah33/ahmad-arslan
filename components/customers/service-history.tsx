@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { StatusChip } from "@/components/ui";
 import { SkeletonRows } from "@/components/skeleton";
 import { formatDate } from "@/lib/dates";
+import { useT } from "@/lib/i18n/provider";
 import type { TaskStatus } from "@/lib/types";
 
 type HistoryRow = {
@@ -18,6 +19,7 @@ type HistoryRow = {
 // Read-only list of this customer's tasks (open + past) — the machine's
 // service history.
 export default function ServiceHistory({ customerId }: { customerId: string }) {
+  const t = useT();
   const [rows, setRows] = useState<HistoryRow[] | null>(null);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function ServiceHistory({ customerId }: { customerId: string }) {
 
   if (rows === null) return <SkeletonRows rows={3} />;
   if (rows.length === 0)
-    return <p className="text-sm text-ink-faint">No tasks for this customer yet.</p>;
+    return <p className="text-sm text-ink-faint">{t("customers.noTasks")}</p>;
 
   return (
     <ul className="space-y-1.5">

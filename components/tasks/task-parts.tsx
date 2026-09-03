@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { addTaskPart, removeTaskPart } from "@/app/(app)/tasks/parts-actions";
 import { useAction } from "@/lib/use-action";
+import { useT } from "@/lib/i18n/provider";
 
 type UsedRow = { id: string; spare_part_id: string; name: string; quantity: number };
 type PartOption = { id: string; name: string };
@@ -17,6 +18,7 @@ export default function TaskParts({
   editable: boolean;
 }) {
   const [used, setUsed] = useState<UsedRow[]>([]);
+  const t = useT();
   const [parts, setParts] = useState<PartOption[]>([]);
   const [partId, setPartId] = useState("");
   const [qty, setQty] = useState(1);
@@ -80,7 +82,7 @@ export default function TaskParts({
   return (
     <div className="space-y-2">
       {used.length === 0 && (
-        <p className="text-sm text-ink-faint">No parts recorded.</p>
+        <p className="text-sm text-ink-faint">{t("task.noParts")}</p>
       )}
       {used.map((r) => (
         <div
@@ -105,7 +107,7 @@ export default function TaskParts({
             value={partId}
             onChange={(e) => setPartId(e.target.value)}
           >
-            <option value="">Add a part…</option>
+            <option value="">{t("task.addPart")}</option>
             {parts.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}

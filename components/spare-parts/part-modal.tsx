@@ -11,6 +11,7 @@ import {
   saveSparePart,
 } from "@/app/(app)/spare-parts/actions";
 import Modal from "@/components/modal";
+import { useT } from "@/lib/i18n/provider";
 import CustomFields from "@/components/fields/CustomFields";
 
 export default function PartModal({
@@ -28,6 +29,7 @@ export default function PartModal({
 }) {
   const isNew = !part;
   const [name, setName] = useState(part?.name ?? "");
+  const t = useT();
   const [partNumber, setPartNumber] = useState(part?.part_number ?? "");
   const [quantity, setQuantity] = useState<number>(part?.quantity ?? 0);
   const [minQuantity, setMinQuantity] = useState<number>(part?.min_quantity ?? 0);
@@ -138,7 +140,7 @@ export default function PartModal({
     >
       <div className="space-y-4">
         <div>
-          <label className="label">Part name</label>
+          <label className="label">{t("parts.partName")}</label>
           <input
             className="input"
             value={name}
@@ -148,7 +150,7 @@ export default function PartModal({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Part number</label>
+            <label className="label">{t("parts.partNumber")}</label>
             <input
               className="input"
               value={partNumber}
@@ -157,7 +159,7 @@ export default function PartModal({
             />
           </div>
           <div>
-            <label className="label">Quantity</label>
+            <label className="label">{t("parts.quantity")}</label>
             <input
               type="number"
               min={0}
@@ -169,7 +171,7 @@ export default function PartModal({
           </div>
         </div>
         <div>
-          <label className="label">Low-stock threshold</label>
+          <label className="label">{t("parts.threshold")}</label>
           <input
             type="number"
             min={0}
@@ -181,7 +183,7 @@ export default function PartModal({
           />
         </div>
         <div>
-          <label className="label">Notes</label>
+          <label className="label">{t("parts.notes")}</label>
           <textarea
             className="input min-h-[70px] resize-y"
             value={notes}
@@ -192,7 +194,7 @@ export default function PartModal({
 
         {/* Photos */}
         <div>
-          <label className="label">Photos</label>
+          <label className="label">{t("misc.photos")}</label>
           <div className="grid grid-cols-3 gap-2">
             {photos.map((p) => (
               <div key={p.id} className="group relative">

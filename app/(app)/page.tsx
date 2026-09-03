@@ -3,6 +3,8 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getServerT } from "@/lib/i18n/server";
 import { statusKey } from "@/lib/i18n/task-keys";
+import { greetingKey } from "@/lib/i18n/greeting";
+import QuickActions, { SharedDrives } from "@/components/dashboard/quick-actions";
 import { greeting, isManager } from "@/lib/permissions";
 import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import { PriorityChip, StatusChip } from "@/components/ui";
@@ -71,38 +73,38 @@ export default async function DashboardPage() {
         .sort((a, b) => b.total - a.total)
     : (() => {
         const mine = allTasks.filter((task) => task.assignees.some((a) => a.id === profile.id));
-        return [{ name: "My completion", done: mine.filter((task) => task.status === "done").length, total: mine.length }];
+        return [{ name: t("dash.myCompletion"), done: mine.filter((task) => task.status === "done").length, total: mine.length }];
       })();
 
   const Header = (
     <div>
       <h1 className="text-[26px] font-bold tracking-tight text-ink md:text-[32px]">
-        Good {greeting().toLowerCase()},{" "}
+        {t(greetingKey())},{" "}
         {profile.first_name || profile.full_name || "there"}
       </h1>
       <p className="mt-1 text-sm text-ink-muted">
-        Stay on top of your tasks, monitor progress, and track status.
+        {t("dash.subtitle")}
       </p>
     </div>
   );
 
   const statTiles = (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <StatTile label="Open tasks" value={open.length} icon={<TasksGlyph />} />
+      <StatTile label={t("dash.openTasks")} value={open.length} icon={<TasksGlyph />} />
       <StatTile
-        label="Overdue"
+        label={t("dash.overdue")}
         value={overdue.length}
         tone={overdue.length ? "danger" : "default"}
         icon={<ClockGlyph />}
       />
       <StatTile
-        label="Done this week"
+        label={t("dash.doneWeek")}
         value={doneThisWeek.length}
         tone="good"
         icon={<CheckGlyph />}
       />
       <StatTile
-        label="Low stock"
+        label={t("dash.lowStock")}
         value={lowStock.length}
         tone={lowStock.length ? "warn" : "default"}
         icon={<BoxGlyph />}
@@ -129,7 +131,7 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           {Header}
           <Link href="/tasks" className="text-sm font-medium text-brand-600">
-            View board →
+            {t("dash.viewBoard")} →
           </Link>
         </div>
 
@@ -146,7 +148,7 @@ export default async function DashboardPage() {
 
           <Card title={t("dash.leaderboard")}>
             {progress.length === 0 ? (
-              <p className="text-sm text-ink-faint">No assigned tasks yet.</p>
+              <p className="text-sm text-ink-faint">{t("task.noAssigned")}</p>
             ) : (
               <ol className="space-y-3">
                 {progress.slice(0, 6).map((r, i) => (
@@ -161,7 +163,7 @@ export default async function DashboardPage() {
             )}
           </Card>
 
-          <Card title={`Unassigned (${unassigned.length})`}>
+          <Card title={`${t("task.unassigned")} (${unassigned.length})`}>
             {unassigned.length === 0 ? (
               <p className="text-sm text-ink-faint">Everything is assigned. 🎉</p>
             ) : (
@@ -185,7 +187,7 @@ export default async function DashboardPage() {
 
           <Card title={`Low stock (${lowStock.length})`}>
             {lowStock.length === 0 ? (
-              <p className="text-sm text-ink-faint">All parts above threshold.</p>
+              <p className="text-sm text-ink-faint">{t("parts.aboveThreshold")}</p>
             ) : (
               <ul className="max-h-56 space-y-1.5 overflow-y-auto">
                 {lowStock.map((p) => (
@@ -204,6 +206,8 @@ export default async function DashboardPage() {
           <Tile href="/customers" title={t("nav.customers")} value={`${customerCount} ${t("common.total")}`} desc={t("dash.customersDesc")} />
           <Tile href="/spare-parts" title={t("parts.title")} value={`${sparePartCount} ${t("parts.items")}`} desc={t("dash.partsDesc")} />
         </div>
+
+        <SharedDrives />
       </div>
     );
   }
@@ -214,10 +218,12 @@ export default async function DashboardPage() {
       {Header}
       {statTiles}
 
+      <QuickActions />
+
       {progress.length > 0 && (
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-muted">
-            Your progress
+            {t("dash.yourProgress")}
           </h2>
           <div className="card space-y-3 p-4">
             {progress.map((r) => (
@@ -230,20 +236,22 @@ export default async function DashboardPage() {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
-            My tasks & unassigned
+            {t("dash.myTasks")}
           </h2>
           <Link href="/tasks" className="text-sm font-medium text-brand-600">
-            View board →
+            {t("dash.viewBoard")} →
           </Link>
         </div>
         {visible.length === 0 ? (
           <div className="card px-5 py-8 text-center text-sm text-ink-faint">
-            Nothing assigned to you and nothing unassigned. 🎉
+            {t("dash.allClear")} 🎉
           </div>
         ) : (
           <TaskGrid tasks={visible} />
         )}
       </section>
+
+      <SharedDrives />
     </div>
   );
 }

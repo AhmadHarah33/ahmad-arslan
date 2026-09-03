@@ -290,7 +290,7 @@ export default function AppShell({
               </button>
               <button
                 onClick={() => pickMode(mode === "dark" ? "light" : "dark")}
-                aria-label="Toggle dark mode"
+                aria-label={t("misc.toggleDark")}
                 className="icon-btn h-9 w-9"
               >
                 {mode === "dark" ? (

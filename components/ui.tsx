@@ -1,3 +1,7 @@
+"use client";
+
+import { useT } from "@/lib/i18n/provider";
+import { priorityKey } from "@/lib/i18n/task-keys";
 import type { TaskPriority, TaskStatus } from "@/lib/types";
 
 export function PageHeader({
@@ -49,10 +53,13 @@ const PRIORITY_STYLES: Record<TaskPriority, string> = {
 };
 
 export function PriorityChip({ priority }: { priority: TaskPriority }) {
+  const t = useT();
   return (
-    <span className={`chip capitalize ${PRIORITY_STYLES[priority]}`}>
+    // No `capitalize`: it applies the page's locale casing rules, and under
+    // lang="tr" that turns a leading i into İ.
+    <span className={`chip ${PRIORITY_STYLES[priority]}`}>
       <FlagIcon className="h-3 w-3" />
-      {priority}
+      {t(priorityKey(priority))}
     </span>
   );
 }

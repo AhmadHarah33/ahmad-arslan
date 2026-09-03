@@ -5,7 +5,11 @@ import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import TasksBoard from "@/components/tasks/board";
 import type { Customer, Profile } from "@/lib/types";
 
-export default async function TasksPage() {
+export default async function TasksPage({
+  searchParams,
+}: {
+  searchParams?: { new?: string };
+}) {
   const profile = await requireProfile();
 
 
@@ -37,6 +41,7 @@ export default async function TasksPage() {
 
   return (
     <TasksBoard
+      openNewOnMount={searchParams?.new === "1"}
       profile={profile}
       initialTasks={taskList}
       engineers={(engineers ?? []) as Profile[]}

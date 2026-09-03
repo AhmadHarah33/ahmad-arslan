@@ -1,6 +1,17 @@
 import type { Metadata, Viewport } from "next";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n/provider";
+
+// latin-ext carries the Turkish glyphs (ğ ı İ ş ç ö ü) — without it Turkish
+// text falls back mid-word and looks broken. next/font self-hosts the files at
+// build time, so there is no runtime request to Google and it works offline.
+const poppins = Poppins({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Mars Technical Support",
@@ -51,7 +62,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={poppins.variable}>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <LanguageProvider>{children}</LanguageProvider>

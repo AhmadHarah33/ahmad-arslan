@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatDate } from "@/lib/dates";
 import { saveSchedule, deleteSchedule } from "@/app/(app)/customers/maintenance-actions";
 import { useAction } from "@/lib/use-action";
+import { useT } from "@/lib/i18n/provider";
 
 type Schedule = {
   id: string;
@@ -30,6 +31,7 @@ export default function Maintenance({
   editable: boolean;
 }) {
   const [rows, setRows] = useState<Schedule[]>([]);
+  const t = useT();
   const [title, setTitle] = useState("Preventive maintenance");
   const [interval, setInterval] = useState(6);
   const [nextDue, setNextDue] = useState(inMonths(6));
@@ -84,7 +86,7 @@ export default function Maintenance({
   return (
     <div className="space-y-2">
       {rows.length === 0 && (
-        <p className="text-sm text-ink-faint">No maintenance scheduled.</p>
+        <p className="text-sm text-ink-faint">{t("customers.noMaintenance")}</p>
       )}
       {rows.map((r) => (
         <div
@@ -119,7 +121,7 @@ export default function Maintenance({
             className="input"
             value={interval}
             onChange={(e) => setInterval(Number(e.target.value))}
-            title="Interval (months)"
+            title={t("customers.interval")}
           />
           <input
             type="date"

@@ -69,6 +69,10 @@ export default function TaskModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
+  // Templates load after mount. Render the field from the start (disabled
+  // while loading) rather than mounting it on arrival, which pushed Title and
+  // everything under it down a row a moment after the modal opened.
+  const [templatesLoading, setTemplatesLoading] = useState(true);
 
   useEffect(() => {
     if (!isNew) return;
@@ -76,7 +80,9 @@ export default function TaskModal({
     async function load() {
       const supabase = createClient();
       const { data } = await supabase.from("task_templates").select("*").order("name");
-      if (active) setTemplates((data ?? []) as TaskTemplate[]);
+      if (!active) return;
+      setTemplates((data ?? []) as TaskTemplate[]);
+      setTemplatesLoading(false);
     }
     load();
     return () => {
@@ -162,15 +168,18 @@ export default function TaskModal({
       footer={footer}
     >
       <div className="space-y-4">
-        {isNew && templates.length > 0 && (
+        {isNew && (templatesLoading || templates.length > 0) && (
           <div>
             <label className="label">{t("task.template")}</label>
             <select
               className="input"
               defaultValue=""
+              disabled={templatesLoading}
               onChange={(e) => applyTemplate(e.target.value)}
             >
-              <option value="">{t("task.blank")}</option>
+              <option value="">
+                {templatesLoading ? t("common.loading") : t("task.blank")}
+              </option>
               {templates.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
@@ -276,7 +285,7 @@ export default function TaskModal({
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
             <div className="mb-2 flex items-center justify-between">
-              <p className="label mb-0">Activity</p>
+              <p className="label mb-0">{t("misc.activity")}</p>
               <a
                 href={`/print/task/${task!.id}`}
                 target="_blank"
@@ -304,7 +313,7 @@ export default function TaskModal({
 
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
-            <p className="label">Parts used</p>
+            <p className="label">{t("task.partsUsed")}</p>
             <TaskParts taskId={task!.id} editable={editable} />
           </div>
         )}
@@ -341,6 +350,7 @@ function AssigneeSection({
   assignees: AssigneeLite[];
   setAssignees: (v: AssigneeLite[]) => void;
 }) {
+  const t = useT();
   const head = isHead(profile);
   const ids = new Set(assignees.map((a) => a.id));
   const amMember = ids.has(profile.id);
@@ -399,7 +409,7 @@ function AssigneeSection({
             </span>
           ))
         ) : (
-          <span className="text-sm text-ink-faint">Unassigned</span>
+          <span className="text-sm text-ink-faint">{t("task.unassigned")}</span>
         )}
       </div>
       {isNew ? (
