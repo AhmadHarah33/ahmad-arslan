@@ -1,7 +1,7 @@
 // Shared domain types mirroring the Postgres schema.
 
 export type UserRole = "head" | "organizer" | "engineer";
-export type TaskStatus = "todo" | "in_progress" | "done" | "stuck";
+export type TaskStatus = "todo" | "in_progress" | "pending_approval" | "done" | "stuck";
 export type TaskPriority = "low" | "medium" | "high";
 
 export interface Profile {
@@ -43,15 +43,27 @@ export interface CustomerLink {
   url: string;
 }
 
+export type ApprovalAction = "insert" | "update" | "delete";
+export type CustomerStatus = "active" | "inactive";
+
 export interface Customer {
   id: string;
   name: string;
   location: string;
   machine: string;
   serial_number: string;
+  company_id: string | null;
+  contact_person: string;
+  contact_info: string;
+  status: CustomerStatus;
+  is_approved: boolean;
+  pending_action: ApprovalAction | null;
+  approved_by: string | null;
+  approved_at: string | null;
   created_by: string | null;
   created_at: string;
   customer_links?: CustomerLink[];
+  company?: Pick<Company, "id" | "name"> | null;
 }
 
 export interface SparePartPhoto {
@@ -68,9 +80,15 @@ export interface SparePart {
   part_number: string;
   quantity: number;
   min_quantity?: number;
+  price: number | null;
   notes: string;
+  is_approved: boolean;
+  pending_action: ApprovalAction | null;
+  approved_by: string | null;
+  approved_at: string | null;
   created_at: string;
   spare_part_photos?: SparePartPhoto[];
+  company?: Pick<Company, "id" | "name"> | null;
 }
 
 export interface Task {
@@ -100,6 +118,7 @@ export interface TaskTemplate {
 export const TASK_STATUSES: { key: TaskStatus; label: string }[] = [
   { key: "todo", label: "To do" },
   { key: "in_progress", label: "In progress" },
+  { key: "pending_approval", label: "Pending approval" },
   { key: "done", label: "Done" },
   { key: "stuck", label: "Stuck" },
 ];
@@ -110,6 +129,7 @@ export const TASK_STATUSES: { key: TaskStatus; label: string }[] = [
 export const STATUS_VAR: Record<TaskStatus, string> = {
   todo: "--tone-neutral",
   in_progress: "--tone-progress",
+  pending_approval: "--tone-purple",
   done: "--tone-done",
   stuck: "--tone-stuck",
 };

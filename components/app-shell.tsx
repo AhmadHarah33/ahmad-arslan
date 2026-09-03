@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useRef, useState } from "react";
-import type { AssigneeLite, Profile } from "@/lib/types";
+import type { AssigneeLite, Company, Profile } from "@/lib/types";
 import { isHead } from "@/lib/permissions";
 import { useT } from "@/lib/i18n/provider";
 import { roleKey } from "@/lib/i18n/roles";
@@ -27,12 +27,14 @@ const NAV = [
 export default function AppShell({
   profile,
   teammates,
+  companies,
   bgStyle,
   bgBlur,
   children,
 }: {
   profile: Profile;
   teammates: AssigneeLite[];
+  companies: Company[];
   bgStyle: BackgroundStyle;
   bgBlur: number;
   children: React.ReactNode;
@@ -40,6 +42,18 @@ export default function AppShell({
   const t = useT();
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeBrand = searchParams.get("brand") ?? "";
+  const [expandedTree, setExpandedTree] = useState<Set<"customers" | "parts">>(
+    () => new Set(activeBrand ? (["customers", "parts"] as const) : [])
+  );
+  function toggleTree(id: "customers" | "parts") {
+    setExpandedTree((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -164,22 +178,92 @@ export default function AppShell({
           </div>
 
           {/* Pages */}
-          <nav className="mt-4 flex flex-1 flex-col gap-0.5">
-            {nav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                prefetch
-                className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition ${
-                  active(item.href)
-                    ? "bg-surface-soft text-ink"
-                    : "text-ink-muted hover:bg-surface-soft hover:text-ink"
-                }`}
-              >
-                <item.icon className="h-4 w-4 shrink-0" />
-                {t(item.key)}
-              </Link>
-            ))}
+          <nav className="mt-4 flex flex-1 flex-col gap-0.5 overflow-y-auto">
+            {nav.map((item) => {
+              const treeId =
+                item.key === "nav.customers"
+                  ? "customers"
+                  : item.key === "nav.parts"
+                  ? "parts"
+                  : null;
+
+              if (!treeId) {
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    prefetch
+                    className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                      active(item.href)
+                        ? "bg-surface-soft text-ink"
+                        : "text-ink-muted hover:bg-surface-soft hover:text-ink"
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    {t(item.key)}
+                  </Link>
+                );
+              }
+
+              const isOpen = expandedTree.has(treeId);
+              const onThisPage = active(item.href);
+              const noBrand = onThisPage && !activeBrand;
+
+              return (
+                <div key={item.href}>
+                  <div
+                    className={`flex items-center gap-1 rounded-xl pr-1 text-sm font-medium transition ${
+                      noBrand
+                        ? "bg-surface-soft text-ink"
+                        : "text-ink-muted hover:bg-surface-soft hover:text-ink"
+                    }`}
+                  >
+                    <Link
+                      href={item.href}
+                      prefetch
+                      className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2"
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{t(item.key)}</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => toggleTree(treeId)}
+                      aria-expanded={isOpen}
+                      aria-label={t(treeId === "customers" ? "customers.brands" : "parts.brands")}
+                      className="icon-btn h-6 w-6 shrink-0"
+                    >
+                      <ChevronIcon
+                        className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                  </div>
+
+                  {isOpen && (
+                    <div className="ml-4 mt-0.5 space-y-0.5 border-l border-surface-border pl-2.5">
+                      {treeId === "customers" && (
+                        <TreeLink
+                          href="/customers?brand=__none__"
+                          label={t("customers.noBrand")}
+                          active={onThisPage && activeBrand === "__none__"}
+                        />
+                      )}
+                      {companies.map((c) => (
+                        <TreeLink
+                          key={c.id}
+                          href={`${item.href}?brand=${c.id}`}
+                          label={c.name}
+                          active={onThisPage && activeBrand === c.id}
+                        />
+                      ))}
+                      {companies.length === 0 && (
+                        <p className="px-2 py-1 text-xs text-ink-faint">—</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </nav>
 
           {/* Bottom: light/dark, then settings next to sign out */}
@@ -394,6 +478,31 @@ function TeamIcon(p: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+// One brand entry under the Customers/Parts tree in the sidebar.
+function TreeLink({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      prefetch
+      className={`block truncate rounded-lg px-2 py-1.5 text-[13px] font-medium transition ${
+        active
+          ? "bg-surface-soft text-ink"
+          : "text-ink-faint hover:bg-surface-soft hover:text-ink"
+      }`}
+    >
+      {label}
+    </Link>
+  );
+}
+
 function ChevronIcon(p: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>

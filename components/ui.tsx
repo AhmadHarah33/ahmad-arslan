@@ -1,7 +1,7 @@
 "use client";
 
 import { useT } from "@/lib/i18n/provider";
-import { priorityKey } from "@/lib/i18n/task-keys";
+import { priorityKey, statusKey } from "@/lib/i18n/task-keys";
 import type { TaskPriority, TaskStatus } from "@/lib/types";
 
 export function PageHeader({
@@ -31,19 +31,14 @@ export function PageHeader({
 export const STATUS_TONE: Record<TaskStatus, string> = {
   todo: "tone-neutral",
   in_progress: "tone-progress",
+  pending_approval: "tone-purple",
   done: "tone-done",
   stuck: "tone-stuck",
 };
 
-const STATUS_LABELS: Record<TaskStatus, string> = {
-  todo: "To do",
-  in_progress: "In progress",
-  done: "Done",
-  stuck: "Stuck",
-};
-
 export function StatusChip({ status }: { status: TaskStatus }) {
-  return <span className={`chip ${STATUS_TONE[status]}`}>{STATUS_LABELS[status]}</span>;
+  const t = useT();
+  return <span className={`chip ${STATUS_TONE[status]}`}>{t(statusKey(status))}</span>;
 }
 
 const PRIORITY_STYLES: Record<TaskPriority, string> = {

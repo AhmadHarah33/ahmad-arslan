@@ -79,6 +79,9 @@ export default function TaskModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
+  // Drives the "will be sent for approval" notice below; kept in sync by
+  // TaskParts rather than re-querying task_parts here too.
+  const [hasParts, setHasParts] = useState(false);
   // Templates load after mount. Render the field from the start (disabled
   // while loading) rather than mounting it on arrival, which pushed Title and
   // everything under it down a row a moment after the modal opened.
@@ -234,7 +237,9 @@ export default function TaskModal({
               disabled={!editable}
               onChange={(e) => setStatus(e.target.value as TaskStatus)}
             >
-              {TASK_STATUSES.map((s) => (
+              {TASK_STATUSES.filter(
+                (s) => s.key !== "pending_approval" || status === "pending_approval"
+              ).map((s) => (
                 <option key={s.key} value={s.key}>
                   {t(statusKey(s.key))}
                 </option>
@@ -313,6 +318,21 @@ export default function TaskModal({
           </p>
         )}
 
+        {!isNew && current!.status === "pending_approval" && (
+          <p className="rounded-lg border border-dashed border-surface-border px-3 py-2.5 text-xs text-ink-faint">
+            {t("task.pendingApprovalBanner")}
+          </p>
+        )}
+
+        {!isNew &&
+          current!.status !== "pending_approval" &&
+          status === "done" &&
+          hasParts && (
+            <p className="rounded-lg bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+              {t("task.markDoneNotice")}
+            </p>
+          )}
+
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
             <div className="mb-2 flex items-center justify-between">
@@ -345,7 +365,7 @@ export default function TaskModal({
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
             <p className="label">{t("task.partsUsed")}</p>
-            <TaskParts taskId={current!.id} editable={editable} />
+            <TaskParts taskId={current!.id} editable={editable} onCountChange={(n) => setHasParts(n > 0)} />
           </div>
         )}
 
@@ -382,10 +402,7 @@ function AssigneeSection({
   setAssignees: (v: AssigneeLite[]) => void;
 }) {
   const t = useT();
-  const head = isHead(profile);
   const ids = new Set(assignees.map((a) => a.id));
-  const amMember = ids.has(profile.id);
-  const isUnassigned = assignees.length === 0;
 
   async function toggle(p: Profile) {
     const lite = selfLite(p);
@@ -404,70 +421,29 @@ function AssigneeSection({
     }
   }
 
-  // Head: full multi-select of engineers.
-  if (head) {
-    return (
-      <div className="flex flex-wrap gap-1.5">
-        {engineers.map((e) => {
-          const on = ids.has(e.id);
-          return (
-            <button
-              key={e.id}
-              type="button"
-              onClick={() => toggle(e)}
-              className={`chip cursor-pointer ${
-                on
-                  ? "bg-brand-50 text-brand-700 ring-2 ring-brand-300"
-                  : "bg-surface-soft text-ink-muted"
-              }`}
-            >
-              {e.full_name || e.first_name}
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
-
-  // Engineer view.
+  // Everyone gets the same unconstrained multi-select — any signed-in user
+  // assigns or unassigns anyone, including themselves.
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
-        {assignees.length > 0 ? (
-          assignees.map((a) => (
-            <span key={a.id} className="chip bg-surface-soft text-ink-muted">
-              {a.full_name || a.first_name}
-            </span>
-          ))
-        ) : (
-          <span className="text-sm text-ink-faint">{t("task.unassigned")}</span>
-        )}
-      </div>
-      {isNew ? (
-        <label className="flex items-center gap-2 text-sm text-ink-muted">
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-surface-border text-brand-600"
-            checked={amMember}
-            onChange={() => toggle(profile)}
-          />
-          Assign to me
-        </label>
-      ) : isUnassigned ? (
-        <button className="btn-ghost px-3 py-1.5 text-sm" onClick={() => toggle(profile)}>
-          Claim this task
-        </button>
-      ) : amMember ? (
-        <button
-          className="btn-ghost px-3 py-1.5 text-sm"
-          onClick={() => toggle(profile)}
-        >
-          Leave task
-        </button>
-      ) : (
-        <p className="text-xs text-ink-faint">
-          Assigned to someone else — only the head can change this.
-        </p>
+    <div className="flex flex-wrap gap-1.5">
+      {engineers.map((e) => {
+        const on = ids.has(e.id);
+        return (
+          <button
+            key={e.id}
+            type="button"
+            onClick={() => toggle(e)}
+            className={`chip cursor-pointer ${
+              on
+                ? "bg-brand-50 text-brand-700 ring-2 ring-brand-300"
+                : "bg-surface-soft text-ink-muted"
+            }`}
+          >
+            {e.full_name || e.first_name}
+          </button>
+        );
+      })}
+      {engineers.length === 0 && (
+        <span className="text-sm text-ink-faint">{t("task.unassigned")}</span>
       )}
     </div>
   );

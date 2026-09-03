@@ -9,6 +9,10 @@ type CustomerInput = {
   location: string;
   machine: string;
   serial_number: string;
+  company_id: string | null;
+  contact_person: string;
+  contact_info: string;
+  status: "active" | "inactive";
   links: LinkInput[];
 };
 
@@ -40,6 +44,10 @@ export async function saveCustomer(id: string | null, input: CustomerInput) {
         location: input.location.trim(),
         machine: input.machine.trim(),
         serial_number: input.serial_number.trim(),
+        company_id: input.company_id,
+        contact_person: input.contact_person.trim(),
+        contact_info: input.contact_info.trim(),
+        status: input.status,
       })
       .eq("id", id);
     if (error) return { error: error.message };
@@ -51,6 +59,10 @@ export async function saveCustomer(id: string | null, input: CustomerInput) {
         location: input.location.trim(),
         machine: input.machine.trim(),
         serial_number: input.serial_number.trim(),
+        company_id: input.company_id,
+        contact_person: input.contact_person.trim(),
+        contact_info: input.contact_info.trim(),
+        status: input.status,
         created_by: uid,
       })
       .select("id")
@@ -80,5 +92,25 @@ export async function deleteCustomer(id: string) {
   if (error) return { error: error.message };
   revalidatePath("/customers");
   revalidatePath("/");
+  return { ok: true };
+}
+
+// Approve/reject a pending customer change. RLS-independent — the RPCs
+// themselves check the caller is head/organizer and raise otherwise; see
+// gate_customer_upsert / gate_customer_delete / approve_customer /
+// reject_customer in supabase/migrations.
+export async function approveCustomer(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("approve_customer", { p_id: id });
+  if (error) return { error: error.message };
+  revalidatePath("/customers");
+  return { ok: true };
+}
+
+export async function rejectCustomer(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("reject_customer", { p_id: id });
+  if (error) return { error: error.message };
+  revalidatePath("/customers");
   return { ok: true };
 }

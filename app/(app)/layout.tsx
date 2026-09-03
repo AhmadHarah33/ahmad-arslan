@@ -4,7 +4,7 @@ import AppShell from "@/components/app-shell";
 import ThemeProvider from "@/components/theme/theme-provider";
 import BackgroundProvider from "@/components/theme/background-provider";
 import type { ThemeMode } from "@/lib/theme";
-import type { AppSettings, AssigneeLite } from "@/lib/types";
+import type { AppSettings, AssigneeLite, Company } from "@/lib/types";
 
 const FALLBACK_SETTINGS: AppSettings = {
   id: 1,
@@ -24,14 +24,17 @@ export default async function AppGroupLayout({
   const profile = await requireProfile();
 
   const supabase = createClient();
-  const [{ data }, { data: people }] = await Promise.all([
+  const [{ data }, { data: people }, { data: companiesData }] = await Promise.all([
     supabase.from("app_settings").select("*").eq("id", 1).single(),
     supabase.from("profiles").select("id, full_name, first_name").order("full_name"),
+    supabase.from("companies").select("*").order("name"),
   ]);
   // The app_settings row is seeded by migration; fall back rather than crash
   // the whole shell if it is ever missing.
   const settings: AppSettings = (data as AppSettings | null) ?? FALLBACK_SETTINGS;
   const teammates = (people ?? []) as AssigneeLite[];
+  // Feeds the Customers/Parts brand tree in the sidebar.
+  const companies = (companiesData ?? []) as Company[];
 
   return (
     <>
@@ -43,6 +46,7 @@ export default async function AppGroupLayout({
       <AppShell
         profile={profile}
         teammates={teammates}
+        companies={companies}
         bgStyle={settings.bg_style}
         bgBlur={settings.bg_blur}
       >

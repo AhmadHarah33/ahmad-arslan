@@ -19,19 +19,21 @@ export function canEditData(profile: Profile | null | undefined): boolean {
   return !!profile && (isManager(profile) || profile.can_edit);
 }
 
-// Can the user edit this specific task? Head and organizer edit all; engineers
-// edit tasks they own (an assignee, or the creator).
+// Can the user edit this task? Every signed-in user can edit and reassign
+// every task — kept as a function (rather than inlining `!!profile` at each
+// call site) so the "everyone" policy has one place to change, and because
+// it still reads naturally at each call site ("can this profile edit this
+// task"). The one exception — approving a completed task that consumed
+// spare parts — is enforced in the database trigger, not here; see
+// set_task_completed in supabase/migrations.
 export function canEditTask(
   profile: Profile | null | undefined,
-  task: {
+  _task: {
     created_by: string | null;
     assignees?: { id: string }[];
   }
 ): boolean {
-  if (!profile) return false;
-  if (isManager(profile)) return true;
-  if (task.created_by === profile.id) return true;
-  return !!task.assignees?.some((a) => a.id === profile.id);
+  return !!profile;
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {

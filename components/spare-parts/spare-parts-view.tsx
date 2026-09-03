@@ -3,14 +3,16 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Company, Profile, SparePart } from "@/lib/types";
-import { canEditData } from "@/lib/permissions";
-import { photoUrl } from "@/lib/storage";
+import { isManager } from "@/lib/permissions";
 import { saveCompany } from "@/app/(app)/spare-parts/actions";
+import { approveSparePart, rejectSparePart } from "@/app/(app)/spare-parts/actions";
 import Modal from "@/components/modal";
 import ImportExport from "@/components/data/import-export";
 import Fab from "@/components/fab";
 import { PageHeader } from "@/components/ui";
 import { useT } from "@/lib/i18n/provider";
+import { toastErr } from "@/lib/toast";
+import PendingBadge from "@/components/pending-badge";
 import PartModal from "./part-modal";
 import { useAction } from "@/lib/use-action";
 
@@ -18,16 +20,18 @@ export default function SparePartsView({
   profile,
   companies,
   parts,
+  brandFilter,
   initialQuery = "",
 }: {
   profile: Profile;
   companies: Company[];
   parts: SparePart[];
+  brandFilter: string;
   initialQuery?: string;
 }) {
   const t = useT();
   const router = useRouter();
-  const editable = canEditData(profile);
+  const manager = isManager(profile);
   const [query, setQuery] = useState(initialQuery);
   const [companyModal, setCompanyModal] = useState(false);
   const [companyName, setCompanyName] = useState("");
@@ -38,31 +42,59 @@ export default function SparePartsView({
       router.refresh();
     },
   });
-  const [partModal, setPartModal] = useState<{
-    open: boolean;
-    part: SparePart | null;
-    companyId: string | null;
-  }>({ open: false, part: null, companyId: null });
+  const [partModal, setPartModal] = useState<{ open: boolean; part: SparePart | null }>(
+    { open: false, part: null }
+  );
 
-  const grouped = useMemo(() => {
+  const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return companies.map((c) => ({
-      company: c,
-      parts: parts.filter(
-        (p) =>
-          p.company_id === c.id &&
-          (!q ||
-            [p.name, p.part_number, p.notes]
-              .join(" ")
-              .toLowerCase()
-              .includes(q))
-      ),
-    }));
-  }, [companies, parts, query]);
+    if (!q) return parts;
+    return parts.filter((p) =>
+      [p.name, p.part_number, p.notes, p.company?.name]
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [query, parts]);
 
   function addCompany() {
     if (!companyName.trim()) return;
     submitCompany(null, companyName);
+  }
+
+  function selectBrand(id: string) {
+    const params = new URLSearchParams();
+    if (id) params.set("brand", id);
+    router.push(`/spare-parts${params.toString() ? `?${params}` : ""}`);
+  }
+
+  async function approve(id: string) {
+    const res = await approveSparePart(id);
+    if (res?.error) return toastErr(res.error);
+    router.refresh();
+  }
+
+  async function reject(p: SparePart) {
+    const key =
+      p.pending_action === "delete"
+        ? "approval.rejectConfirmDelete"
+        : p.pending_action === "insert"
+        ? "approval.rejectConfirmInsert"
+        : "approval.rejectConfirm";
+    if (!confirm(t(key))) return;
+    const res = await rejectSparePart(p.id);
+    if (res?.error) return toastErr(res.error);
+    router.refresh();
+  }
+
+  function statusChip(p: SparePart) {
+    if (!p.is_approved) return <PendingBadge action={p.pending_action} />;
+    const low = (p.min_quantity ?? 0) > 0 && p.quantity <= (p.min_quantity ?? 0);
+    return (
+      <span className={`chip ${low ? "tone-warn" : "tone-done"}`}>
+        {t(low ? "parts.lowStock" : "parts.inStock")}
+      </span>
+    );
   }
 
   return (
@@ -72,118 +104,107 @@ export default function SparePartsView({
         subtitle={`${parts.length} ${t("parts.items")} · ${companies.length} ${t("parts.companies")}`}
         action={
           <div className="flex items-center gap-2">
-            {editable && (
-              <ImportExport
-                kind="parts"
-                columns={["company", "name", "part_number", "quantity"]}
-                exportRows={parts.map((p) => ({
-                  company: companies.find((c) => c.id === p.company_id)?.name ?? "",
-                  name: p.name,
-                  part_number: p.part_number,
-                  quantity: p.quantity,
-                }))}
-              />
-            )}
-            {editable && (
-              <button className="btn-ghost hidden md:inline-flex" onClick={() => setCompanyModal(true)}>
-                {t("parts.newCompany")}
-              </button>
-            )}
+            <ImportExport
+              kind="parts"
+              columns={["company", "name", "part_number", "quantity"]}
+              exportRows={parts.map((p) => ({
+                company: p.company?.name ?? "",
+                name: p.name,
+                part_number: p.part_number,
+                quantity: p.quantity,
+              }))}
+            />
+            <button className="btn-ghost hidden md:inline-flex" onClick={() => setCompanyModal(true)}>
+              {t("parts.newCompany")}
+            </button>
           </div>
         }
       />
 
-      {editable && <Fab onClick={() => setCompanyModal(true)} label={t("parts.newCompany")} />}
+      <Fab onClick={() => setPartModal({ open: true, part: null })} />
 
-      <input
-        className="input mb-5"
-        placeholder={t("parts.searchPlaceholder")}
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+        <input
+          className="input flex-1"
+          placeholder={t("parts.searchPlaceholder")}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <select
+          className="input sm:w-56"
+          value={brandFilter}
+          onChange={(e) => selectBrand(e.target.value)}
+        >
+          <option value="">{t("parts.allParts")}</option>
+          {companies.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      {companies.length === 0 && (
+      {companies.length === 0 ? (
         <div className="card px-5 py-10 text-center text-sm text-ink-faint">
-          {t("parts.noCompanies")} {editable && t("parts.startInventory")}
+          {t("parts.noCompanies")} {t("parts.startInventory")}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="card px-5 py-10 text-center text-sm text-ink-faint">
+          {t("parts.noPartsHere")}
+        </div>
+      ) : (
+        <div className="card overflow-x-auto p-0">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-surface-border text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                <th className="px-4 py-3">{t("parts.partNumber")}</th>
+                <th className="px-4 py-3">{t("parts.partName")}</th>
+                <th className="px-4 py-3">{t("customers.brand")}</th>
+                <th className="px-4 py-3">{t("parts.quantity")}</th>
+                <th className="px-4 py-3">{t("task.status")}</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((p) => (
+                <tr
+                  key={p.id}
+                  onClick={() => setPartModal({ open: true, part: p })}
+                  className="cursor-pointer border-b border-surface-border last:border-0 hover:bg-surface-soft"
+                >
+                  <td className="px-4 py-3 text-ink-muted">
+                    {p.part_number || "—"}
+                  </td>
+                  <td className="px-4 py-3 font-medium text-ink">{p.name}</td>
+                  <td className="px-4 py-3 text-ink-muted">{p.company?.name ?? "—"}</td>
+                  <td className="px-4 py-3 text-ink-muted">{p.quantity}</td>
+                  <td className="px-4 py-3">{statusChip(p)}</td>
+                  <td className="px-4 py-3 text-right">
+                    {!p.is_approved && manager ? (
+                      <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => approve(p.id)}
+                          className="btn-primary h-7 px-2.5 text-xs"
+                        >
+                          {t("approval.approve")}
+                        </button>
+                        <button
+                          onClick={() => reject(p)}
+                          className="btn-ghost h-7 px-2.5 text-xs"
+                        >
+                          {t("approval.reject")}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-ink-faint">{t("common.edit")}</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
-
-      <div className="space-y-6">
-        {grouped.map(({ company, parts: cParts }) => (
-          <section key={company.id}>
-            <div className="card mb-3 flex items-center gap-2 px-3.5 py-2.5">
-              <h2 className="text-sm font-semibold text-ink">{company.name}</h2>
-              <span className="rounded-full bg-surface-soft px-2 py-0.5 text-xs font-medium text-ink-muted">
-                {cParts.length}
-              </span>
-              {editable && (
-                <button
-                  className="ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-ink-muted transition hover:bg-surface-soft hover:text-ink"
-                  onClick={() =>
-                    setPartModal({
-                      open: true,
-                      part: null,
-                      companyId: company.id,
-                    })
-                  }
-                >
-                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                  {t("parts.addPart")}
-                </button>
-              )}
-            </div>
-            {cParts.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-surface-border px-4 py-6 text-center text-sm text-ink-faint">
-                {t("parts.noPartsHere")}
-              </p>
-            ) : (
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
-                {cParts.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() =>
-                      setPartModal({
-                        open: true,
-                        part: p,
-                        companyId: company.id,
-                      })
-                    }
-                    className="card block overflow-hidden text-left transition hover:shadow-pop"
-                  >
-                    <div className="flex h-20 items-center justify-center bg-surface-soft">
-                      {p.spare_part_photos && p.spare_part_photos[0] ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={photoUrl(p.spare_part_photos[0].storage_path)}
-                          alt={p.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-[10px] text-ink-faint">{t("parts.noPhoto")}</span>
-                      )}
-                    </div>
-                    <div className="p-2">
-                      <p className="truncate text-sm font-medium text-ink">
-                        {p.name}
-                      </p>
-                      <div className="mt-0.5 flex items-center justify-between text-[11px] text-ink-faint">
-                        {p.part_number ? <span className="truncate">#{p.part_number}</span> : <span />}
-                        {(p.min_quantity ?? 0) > 0 && p.quantity <= (p.min_quantity ?? 0) ? (
-                          <span className="chip bg-amber-50 px-1.5 py-0 text-amber-700">{t("parts.low")} · {p.quantity}</span>
-                        ) : (
-                          <span className="shrink-0">{t("parts.qty")} {p.quantity}</span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
-        ))}
-      </div>
 
       {companyModal && (
         <Modal title={t("parts.newCompany")} onClose={() => setCompanyModal(false)}>
@@ -199,34 +220,25 @@ export default function SparePartsView({
               />
             </div>
             <div className="flex justify-end gap-2">
-              <button
-                className="btn-ghost"
-                onClick={() => setCompanyModal(false)}
-              >
-                Cancel
+              <button className="btn-ghost" onClick={() => setCompanyModal(false)}>
+                {t("common.cancel")}
               </button>
-              <button
-                className="btn-primary"
-                onClick={addCompany}
-                disabled={savingCompany}
-              >
-                {savingCompany ? "Saving…" : "Add"}
+              <button className="btn-primary" onClick={addCompany} disabled={savingCompany}>
+                {savingCompany ? t("common.saving") : t("common.add")}
               </button>
             </div>
           </div>
         </Modal>
       )}
 
-      {partModal.open && partModal.companyId && (
+      {partModal.open && (
         <PartModal
-          editable={editable}
-          companyId={partModal.companyId}
+          profile={profile}
+          companies={companies}
           part={partModal.part}
-          onClose={() =>
-            setPartModal({ open: false, part: null, companyId: null })
-          }
+          onClose={() => setPartModal({ open: false, part: null })}
           onChanged={() => {
-            setPartModal({ open: false, part: null, companyId: null });
+            setPartModal({ open: false, part: null });
             router.refresh();
           }}
         />

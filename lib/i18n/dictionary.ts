@@ -91,6 +91,7 @@ const en = {
   // Task statuses / priorities
   "status.todo": "To do",
   "status.in_progress": "In progress",
+  "status.pending_approval": "Pending approval",
   "status.done": "Done",
   "status.stuck": "Stuck",
   "priority.low": "Low",
@@ -164,6 +165,39 @@ const en = {
   "role.head": "Head of engineers",
   "role.organizer": "Organizer",
   "role.engineer": "Engineer",
+
+  // Approval workflow
+  "approval.pending": "Pending approval",
+  "approval.pendingInsert": "New — pending approval",
+  "approval.pendingUpdate": "Edited — pending approval",
+  "approval.pendingDelete": "Pending deletion",
+  "approval.approve": "Approve",
+  "approval.reject": "Reject",
+  "approval.rejectConfirm": "Reject this change? It will be reverted to what it was before.",
+  "approval.rejectConfirmInsert": "Reject this? It will be removed.",
+  "approval.rejectConfirmDelete": "Reject this deletion? The record will be kept as-is.",
+  "approval.approvedBy": "Approved",
+  "approval.pendingExplain": "This change is waiting for the organizer or head to review it.",
+
+  "task.markDoneNotice": "Spare parts attached. This task will be sent to the organizer for inventory deduction and final approval before it counts as done.",
+  "task.pendingApprovalBanner": "Waiting on the organizer or head to approve this completion — stock will be deducted once approved.",
+  "task.approveCompletion": "Approve — mark done",
+  "task.sendBack": "Send back",
+
+  "customers.brand": "Brand",
+  "customers.contactPerson": "Contact person",
+  "customers.contactInfo": "Contact info",
+  "customers.active": "Active",
+  "customers.inactive": "Inactive",
+  "customers.noBrand": "No brand",
+  "customers.allCustomers": "All customers",
+  "customers.brands": "Brands",
+
+  "parts.price": "Price",
+  "parts.inStock": "In stock",
+  "parts.lowStock": "Low stock",
+  "parts.allParts": "All spare parts",
+  "parts.brands": "Brands",
 
   // Dashboard
   "dash.byStatus": "Cases by status",
@@ -325,6 +359,7 @@ const tr: Record<StringKey, string> = {
 
   "status.todo": "Yapılacak",
   "status.in_progress": "Devam ediyor",
+  "status.pending_approval": "Onay bekliyor",
   "status.done": "Tamamlandı",
   "status.stuck": "Takıldı",
   "priority.low": "Düşük",
@@ -394,6 +429,39 @@ const tr: Record<StringKey, string> = {
   "role.head": "Baş mühendis",
   "role.organizer": "Organizatör",
   "role.engineer": "Mühendis",
+
+  // Approval workflow
+  "approval.pending": "Onay bekliyor",
+  "approval.pendingInsert": "Yeni — onay bekliyor",
+  "approval.pendingUpdate": "Düzenlendi — onay bekliyor",
+  "approval.pendingDelete": "Silme onayı bekliyor",
+  "approval.approve": "Onayla",
+  "approval.reject": "Reddet",
+  "approval.rejectConfirm": "Bu değişiklik reddedilsin mi? Önceki haline döndürülecek.",
+  "approval.rejectConfirmInsert": "Bu reddedilsin mi? Kaydı kaldırılacak.",
+  "approval.rejectConfirmDelete": "Bu silme işlemi reddedilsin mi? Kayıt olduğu gibi kalacak.",
+  "approval.approvedBy": "Onaylandı",
+  "approval.pendingExplain": "Bu değişiklik organizatör veya baş mühendisin incelemesini bekliyor.",
+
+  "task.markDoneNotice": "Yedek parça eklendi. Bu görev, stoktan düşülmesi ve son onay için organizatöre gönderilecek; onaylanana kadar tamamlanmış sayılmaz.",
+  "task.pendingApprovalBanner": "Organizatör veya baş mühendisin bu tamamlamayı onaylaması bekleniyor — onaylandığında stoktan düşülecek.",
+  "task.approveCompletion": "Onayla — tamamlandı işaretle",
+  "task.sendBack": "Geri gönder",
+
+  "customers.brand": "Marka",
+  "customers.contactPerson": "Yetkili kişi",
+  "customers.contactInfo": "İletişim bilgisi",
+  "customers.active": "Aktif",
+  "customers.inactive": "Pasif",
+  "customers.noBrand": "Marka yok",
+  "customers.allCustomers": "Tüm müşteriler",
+  "customers.brands": "Markalar",
+
+  "parts.price": "Fiyat",
+  "parts.inStock": "Stokta",
+  "parts.lowStock": "Az stok",
+  "parts.allParts": "Tüm yedek parçalar",
+  "parts.brands": "Markalar",
 
   "dash.byStatus": "Duruma göre işler",
   "dash.quickActions": "Hızlı işlemler",

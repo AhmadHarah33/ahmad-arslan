@@ -13,9 +13,13 @@ type PartOption = { id: string; name: string };
 export default function TaskParts({
   taskId,
   editable,
+  onCountChange,
 }: {
   taskId: string;
   editable: boolean;
+  // Lets the task modal show the "sent for approval" notice as soon as a
+  // part is attached, without re-fetching task_parts itself.
+  onCountChange?: (count: number) => void;
 }) {
   const [used, setUsed] = useState<UsedRow[]>([]);
   const t = useT();
@@ -35,14 +39,14 @@ export default function TaskParts({
         supabase.from("spare_parts").select("id, name").order("name"),
       ]);
       if (!active) return;
-      setUsed(
-        (tp ?? []).map((r: any) => ({
-          id: r.id,
-          spare_part_id: r.spare_part_id,
-          name: r.part?.name ?? "Part",
-          quantity: r.quantity,
-        }))
-      );
+      const rows = (tp ?? []).map((r: any) => ({
+        id: r.id,
+        spare_part_id: r.spare_part_id,
+        name: r.part?.name ?? "Part",
+        quantity: r.quantity,
+      }));
+      setUsed(rows);
+      onCountChange?.(rows.length);
       setParts((sp ?? []) as PartOption[]);
     }
     load();
@@ -54,15 +58,19 @@ export default function TaskParts({
   const { run: attachPart, pending: busy } = useAction(addTaskPart, {
     onSuccess: (res) => {
       const name = parts.find((p) => p.id === partId)?.name ?? "Part";
-      setUsed((prev) => [
-        ...prev,
-        {
-          id: (res as any)?.row?.id ?? `tmp-${Date.now()}`,
-          spare_part_id: partId,
-          name,
-          quantity: Number(qty) || 1,
-        },
-      ]);
+      setUsed((prev) => {
+        const next = [
+          ...prev,
+          {
+            id: (res as any)?.row?.id ?? `tmp-${Date.now()}`,
+            spare_part_id: partId,
+            name,
+            quantity: Number(qty) || 1,
+          },
+        ];
+        onCountChange?.(next.length);
+        return next;
+      });
       setPartId("");
       setQty(1);
     },
@@ -76,7 +84,12 @@ export default function TaskParts({
 
   async function remove(id: string) {
     const res = await detachPart(id);
-    if (res) setUsed((prev) => prev.filter((r) => r.id !== id));
+    if (res)
+      setUsed((prev) => {
+        const next = prev.filter((r) => r.id !== id);
+        onCountChange?.(next.length);
+        return next;
+      });
   }
 
   return (

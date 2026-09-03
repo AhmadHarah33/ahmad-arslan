@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { Customer } from "@/lib/types";
-import { saveCustomer, deleteCustomer } from "@/app/(app)/customers/actions";
+import type { Company, Customer, CustomerStatus, Profile } from "@/lib/types";
+import {
+  saveCustomer,
+  deleteCustomer,
+  approveCustomer,
+  rejectCustomer,
+} from "@/app/(app)/customers/actions";
+import { isManager } from "@/lib/permissions";
 import Modal from "@/components/modal";
 import { useT } from "@/lib/i18n/provider";
 import CustomFields from "@/components/fields/CustomFields";
@@ -10,26 +16,39 @@ import ServiceHistory from "./service-history";
 import Maintenance from "./maintenance";
 import QrCode, { customerQrValue } from "@/components/qr-code";
 import { useAction } from "@/lib/use-action";
+import PendingBadge from "@/components/pending-badge";
 
 type LinkRow = { label: string; url: string };
 
 export default function CustomerModal({
-  editable,
+  profile,
+  companies,
   customer,
   onClose,
   onSaved,
 }: {
-  editable: boolean;
+  profile: Profile;
+  companies: Company[];
   customer: Customer | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const t = useT();
   const isNew = !customer;
+  // Everyone can create/edit; a non-manager's write just lands pending
+  // review (see the customers_gate_upsert trigger). The form itself never
+  // needs to be read-only.
+  const editable = true;
+  const manager = isManager(profile);
+
   const [name, setName] = useState(customer?.name ?? "");
   const [location, setLocation] = useState(customer?.location ?? "");
   const [machine, setMachine] = useState(customer?.machine ?? "");
   const [serial, setSerial] = useState(customer?.serial_number ?? "");
+  const [companyId, setCompanyId] = useState(customer?.company_id ?? "");
+  const [contactPerson, setContactPerson] = useState(customer?.contact_person ?? "");
+  const [contactInfo, setContactInfo] = useState(customer?.contact_info ?? "");
+  const [status, setStatus] = useState<CustomerStatus>(customer?.status ?? "active");
   const [links, setLinks] = useState<LinkRow[]>(
     customer?.customer_links?.map((l) => ({ label: l.label, url: l.url })) ?? []
   );
@@ -48,7 +67,13 @@ export default function CustomerModal({
     deleteCustomer,
     { inline: true, onSuccess: onSaved }
   );
-  const saving = savingSave || savingDelete;
+  const { run: doApprove, pending: approving } = useAction(approveCustomer, {
+    onSuccess: onSaved,
+  });
+  const { run: doReject, pending: rejecting } = useAction(rejectCustomer, {
+    onSuccess: onSaved,
+  });
+  const saving = savingSave || savingDelete || approving || rejecting;
   // Client-side validation wins over a server message: it is what the user
   // must fix first.
   const shownError = validationError ?? saveError ?? deleteError;
@@ -64,6 +89,10 @@ export default function CustomerModal({
       location,
       machine,
       serial_number: serial,
+      company_id: companyId || null,
+      contact_person: contactPerson,
+      contact_info: contactInfo,
+      status,
       links,
     });
   }
@@ -75,7 +104,19 @@ export default function CustomerModal({
     doDelete(customer.id);
   }
 
-  const footer = editable ? (
+  function reject() {
+    if (!customer) return;
+    const key =
+      customer.pending_action === "delete"
+        ? "approval.rejectConfirmDelete"
+        : customer.pending_action === "insert"
+        ? "approval.rejectConfirmInsert"
+        : "approval.rejectConfirm";
+    if (!confirm(t(key))) return;
+    doReject(customer.id);
+  }
+
+  const footer = (
     <div className="flex items-center justify-between gap-2">
       {!isNew ? (
         <button className="btn-danger" onClick={remove} disabled={saving}>
@@ -85,6 +126,20 @@ export default function CustomerModal({
         <span />
       )}
       <div className="flex gap-2">
+        {!isNew && !customer!.is_approved && manager && (
+          <>
+            <button className="btn-ghost" onClick={reject} disabled={saving}>
+              {t("approval.reject")}
+            </button>
+            <button
+              className="btn-primary"
+              onClick={() => doApprove(customer!.id)}
+              disabled={saving}
+            >
+              {t("approval.approve")}
+            </button>
+          </>
+        )}
         <button className="btn-ghost" onClick={onClose} disabled={saving}>
           {t("common.cancel")}
         </button>
@@ -93,15 +148,24 @@ export default function CustomerModal({
         </button>
       </div>
     </div>
-  ) : undefined;
+  );
 
   return (
     <Modal
-      title={isNew ? t("customers.new") : editable ? t("customers.edit") : name}
+      title={isNew ? t("customers.new") : t("customers.edit")}
       onClose={onClose}
       footer={footer}
     >
       <div className="space-y-4">
+        {!isNew && !customer!.is_approved && (
+          <div className="flex items-center gap-2 rounded-xl border border-dashed border-surface-border px-3 py-2.5">
+            <PendingBadge action={customer!.pending_action} />
+            <p className="text-xs text-ink-faint">
+              {t("approval.pendingExplain")}
+            </p>
+          </div>
+        )}
+
         <div>
           <label className="label">{t("customers.name")}</label>
           <input
@@ -110,6 +174,36 @@ export default function CustomerModal({
             disabled={!editable}
             onChange={(e) => setName(e.target.value)}
           />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">{t("customers.brand")}</label>
+            <select
+              className="input"
+              value={companyId}
+              disabled={!editable}
+              onChange={(e) => setCompanyId(e.target.value)}
+            >
+              <option value="">{t("customers.noBrand")}</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">{t("task.status")}</label>
+            <select
+              className="input"
+              value={status}
+              disabled={!editable}
+              onChange={(e) => setStatus(e.target.value as CustomerStatus)}
+            >
+              <option value="active">{t("customers.active")}</option>
+              <option value="inactive">{t("customers.inactive")}</option>
+            </select>
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -139,6 +233,27 @@ export default function CustomerModal({
             disabled={!editable}
             onChange={(e) => setSerial(e.target.value)}
           />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">{t("customers.contactPerson")}</label>
+            <input
+              className="input"
+              value={contactPerson}
+              disabled={!editable}
+              onChange={(e) => setContactPerson(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="label">{t("customers.contactInfo")}</label>
+            <input
+              className="input"
+              value={contactInfo}
+              disabled={!editable}
+              placeholder="+90 5xx xxx xx xx"
+              onChange={(e) => setContactInfo(e.target.value)}
+            />
+          </div>
         </div>
 
         <div>

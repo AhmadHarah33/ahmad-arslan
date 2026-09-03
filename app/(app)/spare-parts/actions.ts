@@ -32,6 +32,7 @@ export async function saveSparePart(
     part_number: string;
     quantity: number;
     min_quantity: number;
+    price: number | null;
     notes: string;
   }
 ) {
@@ -42,10 +43,12 @@ export async function saveSparePart(
     const { error } = await supabase
       .from("spare_parts")
       .update({
+        company_id: input.company_id,
         name: input.name.trim(),
         part_number: input.part_number.trim(),
         quantity: input.quantity,
         min_quantity: input.min_quantity,
+        price: input.price,
         notes: input.notes.trim(),
       })
       .eq("id", id);
@@ -62,6 +65,7 @@ export async function saveSparePart(
       part_number: input.part_number.trim(),
       quantity: input.quantity,
       min_quantity: input.min_quantity,
+      price: input.price,
       notes: input.notes.trim(),
     })
     .select("id")
@@ -107,6 +111,24 @@ export async function deletePhoto(photoId: string, storagePath: string) {
     .from("spare_part_photos")
     .delete()
     .eq("id", photoId);
+  if (error) return { error: error.message };
+  revalidatePath("/spare-parts");
+  return { ok: true };
+}
+
+// Approve/reject a pending spare-part change. See approve_customer's comment
+// in customers/actions.ts — same shape, RPC-enforced.
+export async function approveSparePart(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("approve_spare_part", { p_id: id });
+  if (error) return { error: error.message };
+  revalidatePath("/spare-parts");
+  return { ok: true };
+}
+
+export async function rejectSparePart(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("reject_spare_part", { p_id: id });
   if (error) return { error: error.message };
   revalidatePath("/spare-parts");
   return { ok: true };

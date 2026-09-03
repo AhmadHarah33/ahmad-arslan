@@ -24,7 +24,7 @@ import { STATUS_VAR, TASK_STATUSES } from "@/lib/types";
 import { useT } from "@/lib/i18n/provider";
 import { statusKey } from "@/lib/i18n/task-keys";
 import type { Customer, Profile, Task, TaskStatus } from "@/lib/types";
-import { canEditTask } from "@/lib/permissions";
+import { canEditTask, isManager } from "@/lib/permissions";
 import { moveTask } from "@/app/(app)/tasks/actions";
 import type { FieldDefinition } from "@/lib/customFields";
 import FieldValue from "@/components/fields/FieldValue";
@@ -38,7 +38,14 @@ type CustomerLite = Pick<Customer, "id" | "name">;
 type ValueMap = Record<string, Record<string, unknown>>;
 type CountMap = Record<string, number>;
 
-const STATUS_KEYS = new Set<string>(TASK_STATUSES.map((c) => c.key));
+// "Pending approval" is a landing spot the completion gate puts a task into,
+// not a column anyone drags a card into by hand — dropping straight into it
+// would bypass the has-parts check entirely. Excluded from the drag-target
+// set; the column still renders (from TASK_STATUSES) with its own
+// Approve / Send back buttons instead of drag handles.
+const STATUS_KEYS = new Set<string>(
+  TASK_STATUSES.filter((c) => c.key !== "pending_approval").map((c) => c.key)
+);
 function isColumnId(id: string): id is TaskStatus {
   return STATUS_KEYS.has(id);
 }
@@ -144,6 +151,7 @@ export default function TasksBoard({
     const map: Record<TaskStatus, Task[]> = {
       todo: [],
       in_progress: [],
+      pending_approval: [],
       done: [],
       stuck: [],
     };
@@ -209,6 +217,9 @@ export default function TasksBoard({
 
       const overTask = prev.find((t) => t.id === overId);
       if (!overTask) return prev;
+      if (overTask.status === "pending_approval" && activeTask.status !== "pending_approval") {
+        return prev; // no dropping onto a pending-approval card either
+      }
       const without = prev.filter((t) => t.id !== activeId);
       const overIndex = without.findIndex((t) => t.id === overId);
       const moved =
@@ -264,6 +275,11 @@ export default function TasksBoard({
     if (res?.error) {
       setTasks(before);
       toastErr(res.error);
+    } else if (res?.task && res.task.status !== task.status) {
+      // The server redirected the status (e.g. done -> pending_approval
+      // because parts were attached) — reconcile so the card lands in the
+      // column it actually ended up in, not the one it was dropped on.
+      upsertLocal(res.task);
     }
   }
 
@@ -289,6 +305,8 @@ export default function TasksBoard({
     if (res?.error) {
       setTasks(before);
       toastErr(res.error);
+    } else if (res?.task && res.task.status !== newStatus) {
+      upsertLocal(res.task);
     }
   }
 
@@ -309,7 +327,28 @@ export default function TasksBoard({
     setModal({ open: true, task: null, status });
   }
 
-  const cardProps = { customerName, attachmentCount, commentCounts };
+  const canApprove = isManager(profile);
+
+  async function approveTask(task: Task) {
+    const res = await moveTask(task.id, "done", Date.now());
+    if (res?.error) return toastErr(res.error);
+    if (res?.task) upsertLocal(res.task);
+  }
+
+  async function sendBackTask(task: Task) {
+    const res = await moveTask(task.id, "in_progress", Date.now());
+    if (res?.error) return toastErr(res.error);
+    if (res?.task) upsertLocal(res.task);
+  }
+
+  const cardProps = {
+    customerName,
+    attachmentCount,
+    commentCounts,
+    canApprove,
+    onApproveTask: approveTask,
+    onSendBackTask: sendBackTask,
+  };
 
   return (
     <div>
@@ -355,8 +394,8 @@ export default function TasksBoard({
           onDragEnd={onDragEnd}
           onDragCancel={onDragCancel}
         >
-          {/* Columns scroll sideways until there's room for all four. */}
-          <div className="no-scrollbar snap-x flex items-start gap-3 overflow-x-auto pb-2 xl:grid xl:grid-cols-4 xl:overflow-visible xl:pb-0">
+          {/* Columns scroll sideways until there's room for all five. */}
+          <div className="no-scrollbar snap-x flex items-start gap-3 overflow-x-auto pb-2 xl:grid xl:grid-cols-5 xl:overflow-visible xl:pb-0">
             {TASK_STATUSES.map((col) => (
               <div
                 key={col.key}
@@ -453,6 +492,9 @@ type CardExtras = {
   customerName: (id: string | null) => string;
   attachmentCount: (taskId: string) => number;
   commentCounts: CountMap;
+  canApprove: boolean;
+  onApproveTask: (task: Task) => void;
+  onSendBackTask: (task: Task) => void;
 };
 
 // Status dot used in the column header and the list view.
@@ -489,6 +531,9 @@ function Column({
   onNew: () => void;
   onMenu: (t: Task) => void;
 } & CardExtras) {
+  // Nothing is ever created directly into the review column — a task only
+  // arrives there via the completion gate.
+  const canCreateHere = status !== "pending_approval";
   const t = useT();
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const [menu, setMenu] = useState(false);
@@ -505,22 +550,26 @@ function Column({
         </span>
         <span className="text-xs font-medium text-ink-faint">{tasks.length}</span>
 
-        <button
-          onClick={() => setMenu((v) => !v)}
-          aria-label={`${label} options`}
-          className="icon-btn ml-auto h-7 w-7"
-        >
-          <DotsIcon className="h-4 w-4" />
-        </button>
-        <button
-          onClick={onNew}
-          aria-label={`New task in ${label}`}
-          className="icon-btn h-7 w-7"
-        >
-          <PlusIcon className="h-4 w-4" />
-        </button>
+        {canCreateHere && (
+          <button
+            onClick={() => setMenu((v) => !v)}
+            aria-label={`${label} options`}
+            className="icon-btn ml-auto h-7 w-7"
+          >
+            <DotsIcon className="h-4 w-4" />
+          </button>
+        )}
+        {canCreateHere && (
+          <button
+            onClick={onNew}
+            aria-label={`New task in ${label}`}
+            className="icon-btn h-7 w-7"
+          >
+            <PlusIcon className="h-4 w-4" />
+          </button>
+        )}
 
-        {menu && (
+        {menu && canCreateHere && (
           <>
             <div
               className="fixed inset-0 z-10"
@@ -632,6 +681,9 @@ function CardBody({
   customerName,
   attachmentCount,
   commentCounts,
+  canApprove,
+  onApproveTask,
+  onSendBackTask,
   lifted = false,
   onMenu,
 }: {
@@ -641,9 +693,11 @@ function CardBody({
   lifted?: boolean;
   onMenu?: () => void;
 } & CardExtras) {
+  const t = useT();
   const subtitle = customerName(task.customer_id);
   const files = attachmentCount(task.id);
   const comments = commentCounts[task.id] ?? 0;
+  const pending = task.status === "pending_approval";
 
   return (
     <div className={`task-card relative p-3 ${lifted ? "shadow-pop" : "hover:shadow-card"}`}>
@@ -693,6 +747,36 @@ function CardBody({
           )}
         </div>
       </div>
+
+      {pending && (
+        <div className="mt-2.5 border-t border-surface-border pt-2.5">
+          <p className="text-[11px] leading-snug text-ink-faint">
+            {t("task.pendingApprovalBanner")}
+          </p>
+          {canApprove && (
+            <div className="mt-2 flex gap-1.5">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onApproveTask(task);
+                }}
+                className="btn-primary h-7 flex-1 px-2 text-xs"
+              >
+                {t("task.approveCompletion")}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSendBackTask(task);
+                }}
+                className="btn-ghost h-7 flex-1 px-2 text-xs"
+              >
+                {t("task.sendBack")}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -814,7 +898,11 @@ function MobileActionSheet({
   onClose: () => void;
 }) {
   const t = useT();
-  const otherStatuses = TASK_STATUSES.filter((s) => s.key !== task.status);
+  // Same rule as desktop drag-and-drop: Pending approval isn't a manual
+  // destination, only something the completion gate puts a task into.
+  const otherStatuses = TASK_STATUSES.filter(
+    (s) => s.key !== task.status && s.key !== "pending_approval"
+  );
   const itemClass =
     "flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-ink hover:bg-surface-soft";
 

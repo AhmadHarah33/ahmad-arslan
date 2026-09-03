@@ -121,17 +121,26 @@ export async function removeAssignee(taskId: string, profileId: string) {
   return { ok: true };
 }
 
-// Move a card to a new status/position (used by drag-and-drop).
+// Move a card to a new status/position (used by drag-and-drop, and by the
+// Approve/Send-back buttons on a pending-approval card).
+//
+// Returns the resulting row rather than just { ok: true }: a task with spare
+// parts attached that gets set to 'done' is silently redirected server-side
+// to 'pending_approval' by the set_task_completed trigger, and the caller's
+// optimistic client state needs to be corrected to match what actually
+// landed, not what was requested.
 export async function moveTask(id: string, status: TaskStatus, position: number) {
   const supabase = createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("tasks")
     .update({ status, position })
-    .eq("id", id);
+    .eq("id", id)
+    .select(TASK_SELECT)
+    .single();
 
   if (error) return { error: error.message };
   revalidate();
-  return { ok: true };
+  return { ok: true, task: normalizeTask(data) };
 }
 
 export async function deleteTask(id: string) {

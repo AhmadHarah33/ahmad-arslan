@@ -1,16 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Customer, Profile } from "@/lib/types";
-import { canEditData } from "@/lib/permissions";
+import type { Company, Customer, Profile } from "@/lib/types";
+import { isManager } from "@/lib/permissions";
 import { useRouter } from "next/navigation";
 import type { FieldDefinition } from "@/lib/customFields";
-import FieldValue from "@/components/fields/FieldValue";
 import ImportExport from "@/components/data/import-export";
 import { dueStatus, formatDate } from "@/lib/dates";
 import Fab from "@/components/fab";
 import { PageHeader } from "@/components/ui";
 import { useT } from "@/lib/i18n/provider";
+import { toastErr } from "@/lib/toast";
+import { approveCustomer, rejectCustomer } from "@/app/(app)/customers/actions";
+import PendingBadge from "@/components/pending-badge";
 import CustomerModal from "./customer-modal";
 
 type ValueMap = Record<string, Record<string, unknown>>;
@@ -18,12 +20,16 @@ type ValueMap = Record<string, Record<string, unknown>>;
 export default function CustomersView({
   profile,
   initialCustomers,
+  companies,
+  brandFilter,
   fieldDefs,
   fieldValues,
   initialQuery = "",
 }: {
   profile: Profile;
   initialCustomers: Customer[];
+  companies: Company[];
+  brandFilter: string;
   fieldDefs: FieldDefinition[];
   fieldValues: ValueMap;
   initialQuery?: string;
@@ -34,74 +40,32 @@ export default function CustomersView({
   const [modal, setModal] = useState<{ open: boolean; customer: Customer | null }>(
     { open: false, customer: null }
   );
-  const editable = canEditData(profile);
+  // Everyone can act now (see the DB migration comment on "customers all
+  // authenticated"); a non-manager's change just lands pending review, badged
+  // right in this table. Managers additionally get Approve/Reject controls.
+  const manager = isManager(profile);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return initialCustomers;
     return initialCustomers.filter((c) =>
-      [c.name, c.location, c.machine, c.serial_number]
+      [c.name, c.location, c.machine, c.serial_number, c.contact_person, c.company?.name]
         .join(" ")
         .toLowerCase()
         .includes(q)
     );
   }, [query, initialCustomers]);
 
-  // The Brand custom field is used to group customers (like Spare parts group
-  // by vendor). Falls back to a flat list if no Brand field exists.
-  const brandDef = useMemo(
-    () =>
-      fieldDefs.find(
-        (d) =>
-          (d.field_type === "select" || d.field_type === "multi_select") &&
-          d.label.trim().toLowerCase() === "brand"
-      ),
-    [fieldDefs]
-  );
-
-  const groups = useMemo(() => {
-    if (!brandDef)
-      return [{ key: "all", label: null as string | null, items: filtered }];
-    const buckets = new Map<string, Customer[]>();
-    for (const c of filtered) {
-      const v = fieldValues[c.id]?.[brandDef.id];
-      const optId = Array.isArray(v) ? v[0] : v;
-      const key =
-        optId && brandDef.options.some((o) => o.id === optId)
-          ? String(optId)
-          : "__none";
-      if (!buckets.has(key)) buckets.set(key, []);
-      buckets.get(key)!.push(c);
-    }
-    const ordered: { key: string; label: string | null; items: Customer[] }[] =
-      brandDef.options
-        .filter((o) => buckets.has(o.id))
-        .map((o) => ({ key: o.id, label: o.label, items: buckets.get(o.id)! }));
-    if (buckets.has("__none"))
-      ordered.push({
-        key: "__none",
-        label: t("customers.unspecified"),
-        items: buckets.get("__none")!,
-      });
-    return ordered;
-  }, [filtered, brandDef, fieldValues, t]);
-
-  function brandLabel(c: Customer): string {
-    if (!brandDef) return "";
-    const v = fieldValues[c.id]?.[brandDef.id];
-    const opt = brandDef.options.find((o) => o.id === v);
-    return opt?.label ?? "";
-  }
-
   const exportRows = initialCustomers.map((c) => ({
     name: c.name,
     city: c.location,
     model: c.machine,
     sn: c.serial_number,
-    brand: brandLabel(c),
+    brand: c.company?.name ?? "",
   }));
 
-  // Expiring warranties: customers whose "Warranty End" date is within 30 days.
+  // Expiring warranties: customers whose "Warranty End" custom field is
+  // within 30 days. Independent of the brand table columns below.
   const warrantyDef = useMemo(
     () =>
       fieldDefs.find(
@@ -123,29 +87,30 @@ export default function CustomersView({
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [initialCustomers, warrantyDef, fieldValues]);
 
-  const renderCard = (c: Customer) => (
-    <button
-      key={c.id}
-      onClick={() => setModal({ open: true, customer: c })}
-      className="card block p-4 text-left transition hover:shadow-pop"
-    >
-      <p className="font-semibold text-ink">{c.name}</p>
-      {c.location && (
-        <p className="mt-0.5 text-sm text-ink-muted">📍 {c.location}</p>
-      )}
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-faint">
-        {c.machine && <span>Model: {c.machine}</span>}
-        {c.serial_number && <span>SN: {c.serial_number}</span>}
-      </div>
-      <CustomerTags customerId={c.id} defs={fieldDefs} values={fieldValues} />
-      {c.customer_links && c.customer_links.length > 0 && (
-        <p className="mt-2 text-xs font-medium text-brand-600">
-          {c.customer_links.length} link
-          {c.customer_links.length === 1 ? "" : "s"} attached
-        </p>
-      )}
-    </button>
-  );
+  function selectBrand(id: string) {
+    const params = new URLSearchParams();
+    if (id) params.set("brand", id);
+    router.push(`/customers${params.toString() ? `?${params}` : ""}`);
+  }
+
+  async function approve(id: string) {
+    const res = await approveCustomer(id);
+    if (res?.error) return toastErr(res.error);
+    router.refresh();
+  }
+
+  async function reject(c: Customer) {
+    const key =
+      c.pending_action === "delete"
+        ? "approval.rejectConfirmDelete"
+        : c.pending_action === "insert"
+        ? "approval.rejectConfirmInsert"
+        : "approval.rejectConfirm";
+    if (!confirm(t(key))) return;
+    const res = await rejectCustomer(c.id);
+    if (res?.error) return toastErr(res.error);
+    router.refresh();
+  }
 
   return (
     <div>
@@ -154,28 +119,22 @@ export default function CustomersView({
         subtitle={`${initialCustomers.length} ${t("common.total")}`}
         action={
           <div className="flex items-center gap-2">
-            {editable && (
-              <ImportExport
-                kind="customers"
-                columns={["name", "city", "model", "sn", "brand"]}
-                exportRows={exportRows}
-              />
-            )}
-            {editable && (
-              <button
-                className="btn-primary hidden md:inline-flex"
-                onClick={() => setModal({ open: true, customer: null })}
-              >
-                {t("common.new")}
-              </button>
-            )}
+            <ImportExport
+              kind="customers"
+              columns={["name", "city", "model", "sn", "brand"]}
+              exportRows={exportRows}
+            />
+            <button
+              className="btn-primary hidden md:inline-flex"
+              onClick={() => setModal({ open: true, customer: null })}
+            >
+              {t("common.new")}
+            </button>
           </div>
         }
       />
 
-      {editable && (
-        <Fab onClick={() => setModal({ open: true, customer: null })} />
-      )}
+      <Fab onClick={() => setModal({ open: true, customer: null })} />
 
       {expiring.length > 0 && (
         <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
@@ -196,40 +155,112 @@ export default function CustomersView({
         </div>
       )}
 
-      <input
-        className="input mb-4"
-        placeholder={t("customers.searchPlaceholder")}
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+        <input
+          className="input flex-1"
+          placeholder={t("customers.searchPlaceholder")}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {/* Mirrors the sidebar's brand tree — the sidebar is desktop-only, so
+            this is how a brand gets picked on a phone (and a quick jump on
+            desktop too). */}
+        <select
+          className="input sm:w-56"
+          value={brandFilter}
+          onChange={(e) => selectBrand(e.target.value)}
+        >
+          <option value="">{t("customers.allCustomers")}</option>
+          <option value="__none__">{t("customers.noBrand")}</option>
+          {companies.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {filtered.length === 0 ? (
         <div className="card px-5 py-10 text-center text-sm text-ink-faint">
           {t("customers.none")}
         </div>
       ) : (
-        <div className="space-y-6">
-          {groups.map((g) => (
-            <section key={g.key}>
-              {g.label && (
-                <div className="card mb-3 flex items-center gap-2 px-3.5 py-2.5">
-                  <h2 className="text-sm font-semibold text-ink">{g.label}</h2>
-                  <span className="rounded-full bg-surface-soft px-2 py-0.5 text-xs font-medium text-ink-muted">
-                    {g.items.length}
-                  </span>
-                </div>
-              )}
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {g.items.map(renderCard)}
-              </div>
-            </section>
-          ))}
+        <div className="card overflow-x-auto p-0">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-surface-border text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                <th className="px-4 py-3">{t("customers.name")}</th>
+                <th className="px-4 py-3">{t("customers.brand")}</th>
+                <th className="px-4 py-3">{t("customers.contactPerson")}</th>
+                <th className="px-4 py-3">{t("customers.contactInfo")}</th>
+                <th className="px-4 py-3">{t("task.status")}</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((c) => (
+                <tr
+                  key={c.id}
+                  onClick={() => setModal({ open: true, customer: c })}
+                  className="cursor-pointer border-b border-surface-border last:border-0 hover:bg-surface-soft"
+                >
+                  <td className="px-4 py-3 font-medium text-ink">
+                    {c.name}
+                    {c.location && (
+                      <span className="ml-2 text-xs font-normal text-ink-faint">
+                        {c.location}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-ink-muted">
+                    {c.company?.name ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-ink-muted">
+                    {c.contact_person || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-ink-muted">
+                    {c.contact_info || "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {c.is_approved ? (
+                      <span className={`chip ${c.status === "active" ? "tone-done" : "tone-neutral"}`}>
+                        {t(c.status === "active" ? "customers.active" : "customers.inactive")}
+                      </span>
+                    ) : (
+                      <PendingBadge action={c.pending_action} />
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {!c.is_approved && manager ? (
+                      <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => approve(c.id)}
+                          className="btn-primary h-7 px-2.5 text-xs"
+                        >
+                          {t("approval.approve")}
+                        </button>
+                        <button
+                          onClick={() => reject(c)}
+                          className="btn-ghost h-7 px-2.5 text-xs"
+                        >
+                          {t("approval.reject")}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-ink-faint">{t("common.edit")}</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
       {modal.open && (
         <CustomerModal
-          editable={editable}
+          profile={profile}
+          companies={companies}
           customer={modal.customer}
           onClose={() => setModal({ open: false, customer: null })}
           onSaved={() => {
@@ -240,25 +271,4 @@ export default function CustomersView({
       )}
     </div>
   );
-}
-
-// Render a customer's tag-style custom fields (Brand, Warranty…) as chips.
-function CustomerTags({
-  customerId,
-  defs,
-  values,
-}: {
-  customerId: string;
-  defs: FieldDefinition[];
-  values: ValueMap;
-}) {
-  const recVals = values[customerId];
-  if (!recVals) return null;
-  const chips = defs
-    .filter((d) => d.field_type === "select" || d.field_type === "multi_select")
-    .filter((d) => recVals[d.id] != null && recVals[d.id] !== "")
-    .slice(0, 3)
-    .map((d) => <FieldValue key={d.id} def={d} value={recVals[d.id]} />);
-  if (chips.length === 0) return null;
-  return <div className="mt-2 flex flex-wrap gap-1">{chips}</div>;
 }
