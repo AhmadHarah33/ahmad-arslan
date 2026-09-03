@@ -10,6 +10,7 @@ export default function LoginForm() {
   const t = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,16 +61,34 @@ export default function LoginForm() {
         <label className="label" htmlFor="password">
           {t("login.password")}
         </label>
-        <input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          className="input"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <div className="relative">
+          <input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            className="input pr-11"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          {/* The passwords here are hyphen-grouped strings typed on a Turkish
+              keyboard — being able to see what actually landed in the field is
+              the difference between one attempt and three. */}
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={t(showPassword ? "login.hidePassword" : "login.showPassword")}
+            title={t(showPassword ? "login.hidePassword" : "login.showPassword")}
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-faint transition hover:text-ink"
+          >
+            {showPassword ? (
+              <EyeOffIcon className="h-[18px] w-[18px]" />
+            ) : (
+              <EyeIcon className="h-[18px] w-[18px]" />
+            )}
+          </button>
+        </div>
       </div>
 
       <label className="flex items-center gap-2 text-sm text-ink-muted">
@@ -92,5 +111,23 @@ export default function LoginForm() {
         {loading ? t("login.signingIn") : t("login.submit")}
       </button>
     </form>
+  );
+}
+
+function EyeIcon(p: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon(p: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M10.6 6.2A9.9 9.9 0 0 1 12 5c6.4 0 10 7 10 7a17.3 17.3 0 0 1-3 4M6.3 7.6C3.7 9.2 2 12 2 12s3.6 7 10 7a9.8 9.8 0 0 0 4.2-.9" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18" />
+    </svg>
   );
 }

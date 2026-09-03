@@ -13,8 +13,60 @@ import { PageHeader } from "@/components/ui";
 import { useT } from "@/lib/i18n/provider";
 import { toastErr } from "@/lib/toast";
 import PendingBadge from "@/components/pending-badge";
+import { photoUrl } from "@/lib/storage";
+import PhotoLightbox from "./photo-lightbox";
 import PartModal from "./part-modal";
 import { useAction } from "@/lib/use-action";
+
+// Small square preview in the table row. Clicking it zooms rather than
+// opening the row, so `stopPropagation` — the whole <tr> is a click target.
+// A part with no photo keeps the same footprint so the name column stays
+// aligned down the table.
+function Thumbnail({ part, onZoom }: { part: SparePart; onZoom: () => void }) {
+  const first = part.spare_part_photos?.[0];
+  const extra = (part.spare_part_photos?.length ?? 0) - 1;
+
+  if (!first) {
+    return (
+      <div className="flex h-10 w-10 items-center justify-center rounded-md border border-dashed border-surface-border text-ink-faint">
+        <BoxIcon className="h-4 w-4" />
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onZoom();
+      }}
+      aria-label={`${part.name} — photo`}
+      className="relative block h-10 w-10 overflow-hidden rounded-md border border-surface-border transition hover:ring-2 hover:ring-brand-400"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={photoUrl(first.storage_path)}
+        alt=""
+        loading="lazy"
+        className="h-full w-full object-cover"
+      />
+      {extra > 0 && (
+        <span className="absolute bottom-0 right-0 rounded-tl bg-ink/70 px-1 text-[10px] font-medium leading-tight text-white">
+          +{extra}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function BoxIcon(p: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 2 3 7v10l9 5 9-5V7z" />
+      <path d="M3 7l9 5 9-5M12 12v10" />
+    </svg>
+  );
+}
 
 export default function SparePartsView({
   profile,
@@ -45,6 +97,9 @@ export default function SparePartsView({
   const [partModal, setPartModal] = useState<{ open: boolean; part: SparePart | null }>(
     { open: false, part: null }
   );
+  // Photo blown up from the table thumbnail. Separate from partModal so a
+  // quick visual check never drags the whole edit form open.
+  const [lightbox, setLightbox] = useState<SparePart | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -154,9 +209,12 @@ export default function SparePartsView({
         </div>
       ) : (
         <div className="card overflow-x-auto p-0">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[780px] text-left text-sm">
             <thead>
               <tr className="border-b border-surface-border text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                <th className="w-14 pl-4 pr-2 py-3">
+                  <span className="sr-only">{t("misc.photos")}</span>
+                </th>
                 <th className="px-4 py-3">{t("parts.partNumber")}</th>
                 <th className="px-4 py-3">{t("parts.partName")}</th>
                 <th className="px-4 py-3">{t("customers.brand")}</th>
@@ -172,6 +230,9 @@ export default function SparePartsView({
                   onClick={() => setPartModal({ open: true, part: p })}
                   className="cursor-pointer border-b border-surface-border last:border-0 hover:bg-surface-soft"
                 >
+                  <td className="w-14 pl-4 pr-2 py-2">
+                    <Thumbnail part={p} onZoom={() => setLightbox(p)} />
+                  </td>
                   <td className="px-4 py-3 text-ink-muted">
                     {p.part_number || "—"}
                   </td>
@@ -229,6 +290,14 @@ export default function SparePartsView({
             </div>
           </div>
         </Modal>
+      )}
+
+      {lightbox && (
+        <PhotoLightbox
+          photos={lightbox.spare_part_photos ?? []}
+          title={lightbox.name}
+          onClose={() => setLightbox(null)}
+        />
       )}
 
       {partModal.open && (
