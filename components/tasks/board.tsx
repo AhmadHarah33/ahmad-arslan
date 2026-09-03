@@ -395,7 +395,7 @@ export default function TasksBoard({
           onDragCancel={onDragCancel}
         >
           {/* Columns scroll sideways until there's room for all five. */}
-          <div className="no-scrollbar snap-x flex items-start gap-3 overflow-x-auto pb-2 xl:grid xl:grid-cols-5 xl:overflow-visible xl:pb-0">
+          <div className="no-scrollbar snap-x flex items-start gap-3 overflow-x-auto pb-2 xl:grid xl:grid-cols-5 xl:gap-4 xl:overflow-visible xl:pb-0">
             {TASK_STATUSES.map((col) => (
               <div
                 key={col.key}
@@ -593,7 +593,7 @@ function Column({
       <div
         ref={setNodeRef}
         style={{ background: `rgb(var(${tint}) / ${isOver ? 0.14 : 0.05})` }}
-        className={`min-h-[120px] space-y-2 rounded-2xl p-2 transition-[background-color,box-shadow] duration-150 ${
+        className={`min-h-[140px] space-y-2.5 rounded-2xl p-2.5 transition-[background-color,box-shadow] duration-150 ${
           isOver ? "ring-1" : "ring-0"
         }`}
       >
@@ -664,12 +664,12 @@ function Assignees({ people }: { people: AssigneeLite[] }) {
   const t = useT();
   if (people.length === 0)
     return <span className="text-xs text-ink-faint">{t("task.unassigned")}</span>;
-  if (people.length > 2) return <AvatarGroup people={people} size={18} max={4} />;
+  if (people.length > 2) return <AvatarGroup people={people} size={20} max={4} />;
   return (
     <div className="flex min-w-0 items-center gap-2">
       {people.map((p) => (
         <span key={p.id} className="flex min-w-0 items-center gap-1">
-          <Avatar id={p.id} name={p.full_name || p.first_name} size={18} />
+          <Avatar id={p.id} name={p.full_name || p.first_name} size={20} />
           <span className="truncate text-xs text-ink-muted">
             {p.first_name || p.full_name}
           </span>
@@ -699,7 +699,7 @@ function CardBody({
   const pending = task.status === "pending_approval";
 
   return (
-    <div className={`task-card relative px-3 py-2.5 ${lifted ? "shadow-pop" : "hover:shadow-card"}`}>
+    <div className={`task-card relative px-4 py-3.5 ${lifted ? "shadow-pop" : "hover:shadow-card"}`}>
       {/* Mobile only — desktop uses drag-and-drop to change columns, so the
           menu would be a redundant control there. */}
       {onMenu && (
@@ -709,22 +709,27 @@ function CardBody({
             onMenu();
           }}
           aria-label="Task options"
-          className="icon-btn absolute right-1 top-1 h-6 w-6 md:hidden"
+          className="icon-btn absolute right-1.5 top-1.5 h-6 w-6 md:hidden"
         >
           <DotsIcon className="h-3.5 w-3.5" />
         </button>
       )}
-      <p className={`line-clamp-2 text-sm font-medium leading-snug text-ink ${onMenu ? "pr-6" : ""}`}>
+      <p className={`line-clamp-2 text-[15px] font-medium leading-snug text-ink ${onMenu ? "pr-6" : ""}`}>
         {task.title}
       </p>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+      {/* Assignees and priority sit on their own lines rather than sharing a
+          row: at column width the two together would wrap unevenly, and the
+          stack gives the card its landscape proportion. */}
+      <div className="mt-2.5">
         <Assignees people={task.assignees} />
+      </div>
+      <div className="mt-2">
         <PriorityChip priority={task.priority} />
       </div>
 
       {pending && (
-        <div className="mt-2.5 border-t border-surface-border pt-2.5">
+        <div className="mt-3 border-t border-surface-border pt-2.5">
           <p className="text-[11px] leading-snug text-ink-faint">
             {t("task.pendingApprovalBanner")}
           </p>

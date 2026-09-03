@@ -396,8 +396,20 @@ export default function AppShell({
             </div>
           </header>
 
-          <main className="flex-1 px-4 pb-24 pt-4 md:px-6 md:pb-8 md:pt-2">
-            <div className="mx-auto w-full max-w-6xl">{children}</div>
+          {/* The Kanban board is the one page that earns the extra width: five
+              columns inside max-w-6xl leaves each one barely wider than it is
+              tall, so cards come out square. Everything else here — forms,
+              tables, the dashboard — is text and reads better at a shorter
+              line length, so only /tasks widens. The main's own padding is
+              what keeps the board off the panel's corners. */}
+          <main className="flex-1 px-4 pb-24 pt-4 md:px-6 md:pb-8 md:pt-2 xl:px-8">
+            <div
+              className={`mx-auto w-full ${
+                pathname.startsWith("/tasks") ? "max-w-[1720px]" : "max-w-6xl"
+              }`}
+            >
+              {children}
+            </div>
           </main>
         </div>
       </div>
