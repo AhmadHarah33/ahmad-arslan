@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { supabaseServerUrl } from "./internal-url";
+import { authCookieName } from "./cookie-name";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
@@ -13,6 +14,7 @@ export function createClient() {
     supabaseServerUrl(),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: { name: authCookieName() },
       cookies: {
         getAll() {
           return cookieStore.getAll();

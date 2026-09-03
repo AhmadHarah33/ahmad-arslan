@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServerUrl } from "@/lib/supabase/internal-url";
+import { authCookieName } from "@/lib/supabase/cookie-name";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
@@ -14,6 +15,7 @@ export async function middleware(request: NextRequest) {
     supabaseServerUrl(),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: { name: authCookieName() },
       cookies: {
         getAll() {
           return request.cookies.getAll();
