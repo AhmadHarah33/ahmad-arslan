@@ -37,6 +37,7 @@ export default function TaskModal({
   initialStatus = "todo",
   onClose,
   onSaved,
+  onCreated,
   onDeleted,
 }: {
   profile: Profile;
@@ -47,11 +48,20 @@ export default function TaskModal({
   initialStatus?: TaskStatus;
   onClose: () => void;
   onSaved: (t: Task) => void;
+  // Called after a *create* instead of onSaved, so the board picks the new
+  // task up while this modal stays open.
+  onCreated?: (t: Task) => void;
   onDeleted: (id: string) => void;
 }) {
   const t = useT();
-  const isNew = !task;
-  const editable = isNew || canEditTask(profile, task!);
+  // A brand new task has no id, so comments, custom-field values and
+  // parts-used have nothing to attach to. Rather than hide those sections
+  // behind a second trip through the board, creating a task keeps this modal
+  // open and swaps it into edit mode for the row we just made.
+  const [createdTask, setCreatedTask] = useState<Task | null>(null);
+  const current = task ?? createdTask;
+  const isNew = !current;
+  const editable = isNew || canEditTask(profile, current!);
 
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
@@ -115,26 +125,35 @@ export default function TaskModal({
     };
     const res = isNew
       ? await createTask({ ...base, assignee_ids: assignees.map((a) => a.id) })
-      : await updateTask(task!.id, base);
+      : await updateTask(current!.id, base);
     setSaving(false);
     if (res?.error) {
       setError(res.error);
       return;
     }
-    if (res?.task) onSaved(res.task as Task);
+    if (!res?.task) return;
+    const saved = res.task as Task;
+    if (isNew) {
+      // Keep the dialog up so Properties / Parts used / Activity become
+      // available immediately for the task that was just created.
+      setCreatedTask(saved);
+      onCreated ? onCreated(saved) : onSaved(saved);
+      return;
+    }
+    onSaved(saved);
   }
 
   async function remove() {
-    if (!task) return;
+    if (!current) return;
     if (!confirm(t("task.confirmDelete"))) return;
     setSaving(true);
-    const res = await deleteTask(task.id);
+    const res = await deleteTask(current.id);
     setSaving(false);
     if (res?.error) {
       setError(res.error);
       return;
     }
-    onDeleted(task.id);
+    onDeleted(current.id);
   }
 
   const footer = editable ? (
@@ -148,7 +167,7 @@ export default function TaskModal({
       )}
       <div className="flex gap-2">
         <button className="btn-ghost" onClick={onClose} disabled={saving}>
-          {t("common.cancel")}
+          {createdTask ? t("task.done") : t("common.cancel")}
         </button>
         <button className="btn-primary" onClick={save} disabled={saving}>
           {saving ? t("common.saving") : t("common.save")}
@@ -282,29 +301,41 @@ export default function TaskModal({
         {/* Kept right after the core fields (not after Properties/Parts,
             which can run long with custom fields) so it stays reachable
             without scrolling through the whole form. */}
+        {isNew && (
+          <p className="rounded-lg border border-dashed border-surface-border px-3 py-2.5 text-xs text-ink-faint">
+            {t("task.saveFirst")}
+          </p>
+        )}
+
+        {createdTask && (
+          <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+            {t("task.created")}
+          </p>
+        )}
+
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
             <div className="mb-2 flex items-center justify-between">
               <p className="label mb-0">{t("misc.activity")}</p>
               <a
-                href={`/print/task/${task!.id}`}
+                href={`/print/task/${current!.id}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-sm font-medium text-brand-600"
               >
-                ⭳ Download report
+                ⭳ {t("task.downloadReport")}
               </a>
             </div>
-            <TaskActivity taskId={task!.id} profile={profile} />
+            <TaskActivity taskId={current!.id} profile={profile} />
           </div>
         )}
 
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
-            <p className="label">Properties</p>
+            <p className="label">{t("customers.properties")}</p>
             <CustomFields
               entity="task"
-              recordId={task!.id}
+              recordId={current!.id}
               canManage={canEditData(profile)}
               canEditValues={editable}
             />
@@ -314,7 +345,7 @@ export default function TaskModal({
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
             <p className="label">{t("task.partsUsed")}</p>
-            <TaskParts taskId={task!.id} editable={editable} />
+            <TaskParts taskId={current!.id} editable={editable} />
           </div>
         )}
 

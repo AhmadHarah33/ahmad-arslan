@@ -421,6 +421,10 @@ export default function TasksBoard({
             upsertLocal(t);
             setModal({ open: false, task: null, status: "todo" });
           }}
+          // A create keeps the modal open (so Properties / Parts used /
+          // Activity can be filled in straight away), so the board just takes
+          // the new card and leaves the dialog alone.
+          onCreated={(t) => upsertLocal(t)}
           onDeleted={(id) => {
             removeLocal(id);
             setModal({ open: false, task: null, status: "todo" });
