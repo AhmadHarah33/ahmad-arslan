@@ -1,7 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import type { Company, Customer, CustomerStatus, Profile } from "@/lib/types";
+import type {
+  City,
+  Company,
+  Customer,
+  CustomerStatus,
+  MachineModel,
+  Profile,
+} from "@/lib/types";
+import ComboSelect from "@/components/combo-select";
+import { createCity, createModel } from "@/app/(app)/catalog/actions";
 import {
   saveCustomer,
   deleteCustomer,
@@ -23,12 +32,16 @@ type LinkRow = { label: string; url: string };
 export default function CustomerModal({
   profile,
   companies,
+  cities,
+  models,
   customer,
   onClose,
   onSaved,
 }: {
   profile: Profile;
   companies: Company[];
+  cities: City[];
+  models: MachineModel[];
   customer: Customer | null;
   onClose: () => void;
   onSaved: () => void;
@@ -42,10 +55,22 @@ export default function CustomerModal({
   const manager = isManager(profile);
 
   const [name, setName] = useState(customer?.name ?? "");
-  const [location, setLocation] = useState(customer?.location ?? "");
-  const [machine, setMachine] = useState(customer?.machine ?? "");
+  const [cityId, setCityId] = useState(customer?.city_id ?? "");
+  const [modelId, setModelId] = useState(customer?.model_id ?? "");
   const [serial, setSerial] = useState(customer?.serial_number ?? "");
   const [companyId, setCompanyId] = useState(customer?.company_id ?? "");
+
+  // Models belong to a brand, so the list narrows to the brand on this form.
+  const brandModels = models.filter((m) => m.company_id === companyId);
+
+  // Switching brand invalidates a model from the old one — better to clear it
+  // than to save a customer whose model belongs to a different manufacturer.
+  function pickBrand(id: string) {
+    setCompanyId(id);
+    if (modelId && !models.some((m) => m.id === modelId && m.company_id === id)) {
+      setModelId("");
+    }
+  }
   const [contactPerson, setContactPerson] = useState(customer?.contact_person ?? "");
   const [contactInfo, setContactInfo] = useState(customer?.contact_info ?? "");
   const [status, setStatus] = useState<CustomerStatus>(customer?.status ?? "active");
@@ -86,8 +111,9 @@ export default function CustomerModal({
     setValidationError(null);
     doSave(customer?.id ?? null, {
       name,
-      location,
-      machine,
+      // location/machine text is written by the DB from these two.
+      city_id: cityId || null,
+      model_id: modelId || null,
       serial_number: serial,
       company_id: companyId || null,
       contact_person: contactPerson,
@@ -182,7 +208,7 @@ export default function CustomerModal({
               className="input"
               value={companyId}
               disabled={!editable}
-              onChange={(e) => setCompanyId(e.target.value)}
+              onChange={(e) => pickBrand(e.target.value)}
             >
               <option value="">{t("customers.noBrand")}</option>
               {companies.map((c) => (
@@ -208,20 +234,24 @@ export default function CustomerModal({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">{t("customers.city")}</label>
-            <input
-              className="input"
-              value={location}
-              disabled={!editable}
-              onChange={(e) => setLocation(e.target.value)}
+            <ComboSelect
+              value={cityId}
+              options={cities}
+              onChange={setCityId}
+              onCreate={createCity}
+              emptyLabel={t("customers.noCity")}
             />
           </div>
           <div>
             <label className="label">{t("customers.model")}</label>
-            <input
-              className="input"
-              value={machine}
-              disabled={!editable}
-              onChange={(e) => setMachine(e.target.value)}
+            <ComboSelect
+              value={modelId}
+              options={brandModels}
+              onChange={setModelId}
+              onCreate={(name) => createModel(companyId, name)}
+              emptyLabel={t("customers.noModel")}
+              disabled={!companyId}
+              disabledHint={t("customers.pickBrandFirst")}
             />
           </div>
         </div>
@@ -357,9 +387,7 @@ export default function CustomerModal({
         )}
 
         {shownError && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-            {shownError}
-          </p>
+          <p className="alert-error">{shownError}</p>
         )}
       </div>
     </Modal>

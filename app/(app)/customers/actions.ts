@@ -6,8 +6,11 @@ import { createClient } from "@/lib/supabase/server";
 type LinkInput = { label: string; url: string };
 type CustomerInput = {
   name: string;
-  location: string;
-  machine: string;
+  // The `location` / `machine` text columns are written by the
+  // a_customers_sync_catalog trigger from these two, so the form only ever
+  // sends the link and there is one source of truth.
+  city_id: string | null;
+  model_id: string | null;
   serial_number: string;
   company_id: string | null;
   contact_person: string;
@@ -41,8 +44,8 @@ export async function saveCustomer(id: string | null, input: CustomerInput) {
       .from("customers")
       .update({
         name: input.name.trim(),
-        location: input.location.trim(),
-        machine: input.machine.trim(),
+        city_id: input.city_id,
+        model_id: input.model_id,
         serial_number: input.serial_number.trim(),
         company_id: input.company_id,
         contact_person: input.contact_person.trim(),
@@ -56,8 +59,8 @@ export async function saveCustomer(id: string | null, input: CustomerInput) {
       .from("customers")
       .insert({
         name: input.name.trim(),
-        location: input.location.trim(),
-        machine: input.machine.trim(),
+        city_id: input.city_id,
+        model_id: input.model_id,
         serial_number: input.serial_number.trim(),
         company_id: input.company_id,
         contact_person: input.contact_person.trim(),

@@ -23,6 +23,7 @@ export default function PhotoLightbox({
   onClose: () => void;
 }) {
   const [index, setIndex] = useState(0);
+  const [ready, setReady] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -51,8 +52,16 @@ export default function PhotoLightbox({
       <div className="animate-overlay absolute inset-0 bg-black/75" onClick={onClose} aria-hidden="true" />
 
       {/* w-auto so the column shrinks to the image, keeping the title and the
-          close button aligned to the photo's own edges. */}
-      <div className="animate-window relative z-10 flex max-h-full w-auto max-w-full flex-col items-center gap-3">
+          close button aligned to the photo's own edges — which also means the
+          panel has no width until the image has decoded. Staying hidden until
+          then avoids animating a zero-width box that then snaps out to full
+          size. In practice the thumbnail already put the same URL in cache, so
+          this resolves on the first frame. */}
+      <div
+        className={`relative z-10 flex max-h-full w-auto max-w-full flex-col items-center gap-3 ${
+          ready ? "animate-zoom" : "invisible"
+        }`}
+      >
         <div className="flex w-full items-center justify-between gap-3">
           <p className="truncate text-sm font-medium text-white">{title}</p>
           <button
@@ -68,6 +77,8 @@ export default function PhotoLightbox({
         <img
           src={photoUrl(photos[index].storage_path)}
           alt={title}
+          onLoad={() => setReady(true)}
+          onError={() => setReady(true)}
           className="max-h-[75vh] w-auto max-w-[min(90vw,900px)] rounded-xl object-contain"
         />
 

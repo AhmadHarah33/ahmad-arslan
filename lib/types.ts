@@ -43,6 +43,21 @@ export interface CustomerLink {
   url: string;
 }
 
+// Catalog lists behind the customer form's City and Model pickers. Models
+// hang off a brand, so picking a brand narrows the models on offer.
+export interface City {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface MachineModel {
+  id: string;
+  company_id: string;
+  name: string;
+  created_at: string;
+}
+
 export type ApprovalAction = "insert" | "update" | "delete";
 export type CustomerStatus = "active" | "inactive";
 
@@ -53,6 +68,11 @@ export interface Customer {
   machine: string;
   serial_number: string;
   company_id: string | null;
+  // `location` and `machine` above stay as the denormalized text these two
+  // point at, kept in step by the a_customers_sync_catalog trigger, so search,
+  // import/export and the print sheet keep reading one plain column.
+  city_id: string | null;
+  model_id: string | null;
   contact_person: string;
   contact_info: string;
   status: CustomerStatus;

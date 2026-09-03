@@ -2,7 +2,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { loadFields } from "@/lib/fields.server";
 import CustomersView from "@/components/customers/customers-view";
-import type { Company, Customer } from "@/lib/types";
+import type { City, Company, Customer, MachineModel } from "@/lib/types";
 
 export default async function CustomersPage({
   searchParams,
@@ -22,13 +22,18 @@ export default async function CustomersPage({
   if (brandFilter === "__none__") query = query.is("company_id", null);
   else if (brandFilter) query = query.eq("company_id", brandFilter);
 
-  const [{ data }, { data: companiesData }] = await Promise.all([
-    query,
-    supabase.from("companies").select("*").order("name"),
-  ]);
+  const [{ data }, { data: companiesData }, { data: citiesData }, { data: modelsData }] =
+    await Promise.all([
+      query,
+      supabase.from("companies").select("*").order("name"),
+      supabase.from("cities").select("*").order("name"),
+      supabase.from("machine_models").select("*").order("name"),
+    ]);
 
   const customers = (data ?? []) as Customer[];
   const companies = (companiesData ?? []) as Company[];
+  const cities = (citiesData ?? []) as City[];
+  const models = (modelsData ?? []) as MachineModel[];
   const { defs, valueMap } = await loadFields(
     "customer",
     customers.map((c) => c.id)
@@ -39,6 +44,8 @@ export default async function CustomersPage({
       profile={profile}
       initialCustomers={customers}
       companies={companies}
+      cities={cities}
+      models={models}
       brandFilter={brandFilter}
       fieldDefs={defs}
       fieldValues={valueMap}

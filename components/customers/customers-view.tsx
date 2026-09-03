@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Company, Customer, Profile } from "@/lib/types";
+import type { City, Company, Customer, MachineModel, Profile } from "@/lib/types";
 import { isManager } from "@/lib/permissions";
 import { useRouter } from "next/navigation";
 import type { FieldDefinition } from "@/lib/customFields";
@@ -21,6 +21,8 @@ export default function CustomersView({
   profile,
   initialCustomers,
   companies,
+  cities,
+  models,
   brandFilter,
   fieldDefs,
   fieldValues,
@@ -29,6 +31,8 @@ export default function CustomersView({
   profile: Profile;
   initialCustomers: Customer[];
   companies: Company[];
+  cities: City[];
+  models: MachineModel[];
   brandFilter: string;
   fieldDefs: FieldDefinition[];
   fieldValues: ValueMap;
@@ -261,6 +265,8 @@ export default function CustomersView({
         <CustomerModal
           profile={profile}
           companies={companies}
+          cities={cities}
+          models={models}
           customer={modal.customer}
           onClose={() => setModal({ open: false, customer: null })}
           onSaved={() => {

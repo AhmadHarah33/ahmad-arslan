@@ -22,6 +22,7 @@ const NAV = [
   { href: "/tasks", key: "nav.tasks", icon: TasksIcon },
   { href: "/customers", key: "nav.customers", icon: CustomersIcon },
   { href: "/spare-parts", key: "nav.parts", icon: PartsIcon },
+  { href: "/catalog", key: "nav.catalog", icon: CatalogIcon },
 ] as const;
 
 export default function AppShell({
@@ -471,6 +472,14 @@ function PartsIcon(p: React.SVGProps<SVGSVGElement>) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>
       <path d="M12 2 3 7v10l9 5 9-5V7z" />
       <path d="M3 7l9 5 9-5M12 12v10" />
+    </svg>
+  );
+}
+function CatalogIcon(p: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10v16H5.5A1.5 1.5 0 0 1 4 18.5z" />
+      <path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14z" />
     </svg>
   );
 }

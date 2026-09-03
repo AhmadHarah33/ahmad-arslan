@@ -60,13 +60,17 @@
 
 /* ---- Neutral tokens: dark mode (explicit only, no system-following) ----- */
 :root[data-mode="dark"] {
-  --canvas: 10 11 14;
-  --surface: 23 25 32;
-  --surface-soft: 32 35 44;
-  --surface-border: 44 48 60;
-  --ink: 235 237 242;
-  --ink-muted: 162 169 184;
-  --ink-faint: 122 130 145;
+  /* Deeper canvas with a distinctly lifted surface: at the old values the
+     panels sat ~13 points off the background, which read as one flat black
+     sheet with no card edges. Body and secondary text are lifted too — the
+     old muted/faint pair was grey-on-grey at anything under full brightness. */
+  --canvas: 8 9 12;
+  --surface: 27 30 38;
+  --surface-soft: 39 43 54;
+  --surface-border: 58 63 78;
+  --ink: 242 244 249;
+  --ink-muted: 182 190 204;
+  --ink-faint: 147 156 173;
 
   /* Lighter, less saturated tones so tinted chips read on dark surfaces. */
   --tone-neutral: 148 163 184;
@@ -202,7 +206,9 @@ body {
   }
   :root[data-mode="dark"] .glass {
     background: rgb(var(--surface) / 0.92);
-    border-color: rgb(255 255 255 / 0.07);
+    /* 0.07 was invisible against the panel it sat on, so tables and cards had
+       no perceptible edge. */
+    border-color: rgb(255 255 255 / 0.13);
     box-shadow: 0 10px 26px -18px rgb(0 0 0 / 0.8);
   }
   /* Chrome (app frame, bars, modals): frosted, not a flat opaque panel — kept
@@ -232,7 +238,7 @@ body {
       transition-shadow duration-150;
   }
   :root[data-mode="dark"] .task-card {
-    border-color: rgb(255 255 255 / 0.08);
+    border-color: rgb(255 255 255 / 0.13);
   }
 
   .btn {
@@ -322,6 +328,23 @@ body {
 
   .chip {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+
+  /* Accent text ("+ Add link", "View board →", inline actions) is brand-600,
+     which is a mid-dark tone picked to sit on white. On the dark surface it
+     reads as dim grey. Lifting the utility itself keeps every call site
+     consistent without threading a second class through ten components, and
+     leaves bg-brand-600 (the logo, tinted tiles) alone. */
+  :root[data-mode="dark"] .text-brand-600 {
+    color: rgb(var(--brand-300));
+  }
+
+  /* Inline form error. Tone-based rather than a fixed bg-red-50/text-red-700,
+     which renders as a bright light box sitting in the middle of a dark form. */
+  .alert-error {
+    @apply rounded-lg px-3 py-2 text-sm;
+    background: rgb(var(--tone-stuck) / 0.14);
+    color: rgb(var(--tone-stuck-ink));
   }
 
   /* Semantic tones for status + priority. Each is a tinted fill with an ink
@@ -422,6 +445,15 @@ body {
 @media (min-width: 640px) {
   .animate-window { animation: pop-in 0.2s ease-out both; }
 }
+/* Photo lightbox. Deliberately not .animate-window: that slides up from the
+   bottom edge under 640px, which on a full-bleed image reads as the picture
+   being dragged across the screen. A short scale-and-fade in place is what a
+   zoom should look like, and it behaves the same at every width. */
+@keyframes zoom-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+.animate-zoom { animation: zoom-in 0.16s ease-out both; }
 .animate-toast { animation: toast-in 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
 .animate-pop { animation: pop-in 0.18s ease-out; }
 
@@ -453,6 +485,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-overlay,
   .animate-window,
+  .animate-zoom,
   .animate-overlay-out,
   .animate-window-out,
   .animate-toast,
