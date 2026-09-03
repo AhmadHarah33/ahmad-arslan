@@ -128,8 +128,8 @@ export const TASK_STATUSES: { key: TaskStatus; label: string }[] = [
 // light/dark switch without a second palette.
 export const STATUS_VAR: Record<TaskStatus, string> = {
   todo: "--tone-neutral",
-  in_progress: "--tone-progress",
-  pending_approval: "--tone-purple",
+  in_progress: "--tone-yellow",
+  pending_approval: "--tone-orange",
   done: "--tone-done",
   stuck: "--tone-stuck",
 };

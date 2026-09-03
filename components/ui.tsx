@@ -30,8 +30,8 @@ export function PageHeader({
 // light and dark mode; see the --tone-* tokens there.
 export const STATUS_TONE: Record<TaskStatus, string> = {
   todo: "tone-neutral",
-  in_progress: "tone-progress",
-  pending_approval: "tone-purple",
+  in_progress: "tone-yellow",
+  pending_approval: "tone-orange",
   done: "tone-done",
   stuck: "tone-stuck",
 };

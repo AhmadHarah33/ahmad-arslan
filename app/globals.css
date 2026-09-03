@@ -34,6 +34,14 @@
   --tone-warn-ink: 180 83 9;
   --tone-purple: 147 51 234;
   --tone-purple-ink: 126 34 206;
+  /* In progress (yellow) and Pending approval (orange). Distinct from
+     --tone-warn, which means "needs attention" on priority and due dates —
+     a column hue and a warning are different jobs and drift apart easily if
+     they share one token. */
+  --tone-yellow: 234 179 8;
+  --tone-yellow-ink: 161 98 7;
+  --tone-orange: 249 115 22;
+  --tone-orange-ink: 194 65 12;
 
   /* accent — sky (default) */
   --brand-50: 240 249 255;
@@ -73,6 +81,10 @@
   --tone-warn-ink: 252 211 77;
   --tone-purple: 192 132 252;
   --tone-purple-ink: 216 180 254;
+  --tone-yellow: 250 204 21;
+  --tone-yellow-ink: 253 224 71;
+  --tone-orange: 251 146 60;
+  --tone-orange-ink: 253 186 116;
 
   color-scheme: dark;
 }
@@ -213,8 +225,10 @@ body {
      the moment cards reflow (drag reorder, column resize), and a solid panel
      reads cleaner anyway. Shadow-only hover/lift keeps `transform` free for
      dnd-kit's own drag/reorder transform. */
+  /* rounded-lg, not -xl: the board cards read as flat rectangles rather than
+     pills, which is what makes a dense Kanban column scannable. */
   .task-card {
-    @apply rounded-xl border border-surface-border bg-surface shadow-card
+    @apply rounded-lg border border-surface-border bg-surface shadow-card
       transition-shadow duration-150;
   }
   :root[data-mode="dark"] .task-card {
@@ -336,6 +350,14 @@ body {
   .tone-purple {
     background: rgb(var(--tone-purple) / 0.14);
     color: rgb(var(--tone-purple-ink));
+  }
+  .tone-yellow {
+    background: rgb(var(--tone-yellow) / 0.18);
+    color: rgb(var(--tone-yellow-ink));
+  }
+  .tone-orange {
+    background: rgb(var(--tone-orange) / 0.16);
+    color: rgb(var(--tone-orange-ink));
   }
 }
 

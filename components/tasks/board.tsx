@@ -23,12 +23,12 @@ import { PriorityChip, STATUS_TONE } from "@/components/ui";
 import { STATUS_VAR, TASK_STATUSES } from "@/lib/types";
 import { useT } from "@/lib/i18n/provider";
 import { statusKey } from "@/lib/i18n/task-keys";
-import type { Customer, Profile, Task, TaskStatus } from "@/lib/types";
+import type { AssigneeLite, Customer, Profile, Task, TaskStatus } from "@/lib/types";
 import { canEditTask, isManager } from "@/lib/permissions";
 import { moveTask } from "@/app/(app)/tasks/actions";
 import type { FieldDefinition } from "@/lib/customFields";
 import FieldValue from "@/components/fields/FieldValue";
-import { AvatarGroup } from "@/components/avatar";
+import { Avatar, AvatarGroup } from "@/components/avatar";
 import { dueStatus, formatDateShort } from "@/lib/dates";
 import TaskModal from "./task-modal";
 import { toastErr } from "@/lib/toast";
@@ -406,8 +406,6 @@ export default function TasksBoard({
                   label={t(statusKey(col.key))}
                   tasks={byStatus[col.key]}
                   profile={profile}
-                  fieldDefs={fieldDefs}
-                  fieldValues={fieldValues}
                   draggableDesktop={isDesktop}
                   onOpen={(task) => setModal({ open: true, task, status: col.key })}
                   onNew={() => openNew(col.key)}
@@ -512,8 +510,6 @@ function Column({
   label,
   tasks,
   profile,
-  fieldDefs,
-  fieldValues,
   draggableDesktop,
   onOpen,
   onNew,
@@ -524,8 +520,6 @@ function Column({
   label: string;
   tasks: Task[];
   profile: Profile;
-  fieldDefs: FieldDefinition[];
-  fieldValues: ValueMap;
   draggableDesktop: boolean;
   onOpen: (t: Task) => void;
   onNew: () => void;
@@ -609,8 +603,6 @@ function Column({
               key={card.id}
               task={card}
               draggable={draggableDesktop && canEditTask(profile, card)}
-              fieldDefs={fieldDefs}
-              fieldValues={fieldValues}
               onOpen={onOpen}
               onMenu={onMenu}
               {...extras}
@@ -634,16 +626,12 @@ function Column({
 function SortableCard({
   task,
   draggable,
-  fieldDefs,
-  fieldValues,
   onOpen,
   onMenu,
   ...extras
 }: {
   task: Task;
   draggable: boolean;
-  fieldDefs: FieldDefinition[];
-  fieldValues: ValueMap;
   onOpen: (t: Task) => void;
   onMenu: (t: Task) => void;
 } & CardExtras) {
@@ -663,24 +651,40 @@ function SortableCard({
       // draggable) it would block normal vertical scrolling over cards.
       className={`cursor-pointer ${draggable ? "touch-none" : ""} ${isDragging ? "opacity-0" : ""}`}
     >
-      <CardBody
-        task={task}
-        fieldDefs={fieldDefs}
-        fieldValues={fieldValues}
-        onMenu={() => onMenu(task)}
-        {...extras}
-      />
+      <CardBody task={task} onMenu={() => onMenu(task)} {...extras} />
     </div>
   );
 }
 
+// Assignees as avatar + first name, the way the reference board reads them —
+// a bare initials circle makes you hover every card to find out whose it is.
+// Past two people the names stop fitting a column, so it falls back to the
+// overlapping stack.
+function Assignees({ people }: { people: AssigneeLite[] }) {
+  const t = useT();
+  if (people.length === 0)
+    return <span className="text-xs text-ink-faint">{t("task.unassigned")}</span>;
+  if (people.length > 2) return <AvatarGroup people={people} size={18} max={4} />;
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      {people.map((p) => (
+        <span key={p.id} className="flex min-w-0 items-center gap-1">
+          <Avatar id={p.id} name={p.full_name || p.first_name} size={18} />
+          <span className="truncate text-xs text-ink-muted">
+            {p.first_name || p.full_name}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// Deliberately minimal: title, who it's on, and priority. Everything else
+// about a task — customer, due date, tags, attachments, comments — lives one
+// click away in the modal, so a column stays scannable at a glance instead of
+// being a wall of badges.
 function CardBody({
   task,
-  fieldDefs,
-  fieldValues,
-  customerName,
-  attachmentCount,
-  commentCounts,
   canApprove,
   onApproveTask,
   onSendBackTask,
@@ -688,19 +692,14 @@ function CardBody({
   onMenu,
 }: {
   task: Task;
-  fieldDefs?: FieldDefinition[];
-  fieldValues?: ValueMap;
   lifted?: boolean;
   onMenu?: () => void;
-} & CardExtras) {
+} & Pick<CardExtras, "canApprove" | "onApproveTask" | "onSendBackTask">) {
   const t = useT();
-  const subtitle = customerName(task.customer_id);
-  const files = attachmentCount(task.id);
-  const comments = commentCounts[task.id] ?? 0;
   const pending = task.status === "pending_approval";
 
   return (
-    <div className={`task-card relative p-3 ${lifted ? "shadow-pop" : "hover:shadow-card"}`}>
+    <div className={`task-card relative px-3 py-2.5 ${lifted ? "shadow-pop" : "hover:shadow-card"}`}>
       {/* Mobile only — desktop uses drag-and-drop to change columns, so the
           menu would be a redundant control there. */}
       {onMenu && (
@@ -715,37 +714,13 @@ function CardBody({
           <DotsIcon className="h-3.5 w-3.5" />
         </button>
       )}
-      <p className={`line-clamp-2 text-sm font-semibold leading-snug text-ink ${onMenu ? "pr-6" : ""}`}>
+      <p className={`line-clamp-2 text-sm font-medium leading-snug text-ink ${onMenu ? "pr-6" : ""}`}>
         {task.title}
       </p>
-      {subtitle && (
-        <p className="mt-1 truncate text-xs text-ink-muted">{subtitle}</p>
-      )}
 
-      {fieldDefs && fieldValues && (
-        <TaskTags taskId={task.id} defs={fieldDefs} values={fieldValues} max={2} />
-      )}
-
-      {/* Meta row. It wraps rather than truncating, so nothing can end up
-          sitting on top of anything else in a narrow column. */}
-      <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <AvatarGroup people={task.assignees} size={20} max={3} />
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <Assignees people={task.assignees} />
         <PriorityChip priority={task.priority} />
-        <div className="ml-auto flex items-center gap-2 text-xs text-ink-faint">
-          {task.due_date && <DueBadge due={task.due_date} />}
-          {files > 0 && (
-            <span className="flex items-center gap-1" title={`${files} attachments`}>
-              <ClipIcon className="h-3.5 w-3.5" />
-              {files}
-            </span>
-          )}
-          {comments > 0 && (
-            <span className="flex items-center gap-1" title={`${comments} comments`}>
-              <CommentIcon className="h-3.5 w-3.5" />
-              {comments}
-            </span>
-          )}
-        </div>
       </div>
 
       {pending && (
