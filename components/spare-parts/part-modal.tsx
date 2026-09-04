@@ -18,6 +18,7 @@ import { useT } from "@/lib/i18n/provider";
 import CustomFields from "@/components/fields/CustomFields";
 import PendingBadge from "@/components/pending-badge";
 import { useAction } from "@/lib/use-action";
+import { parseAmount, sanitizeAmount } from "@/lib/money";
 
 export default function PartModal({
   profile,
@@ -74,7 +75,7 @@ export default function PartModal({
       part_number: partNumber,
       quantity: Number(quantity) || 0,
       min_quantity: Number(minQuantity) || 0,
-      price: price.trim() ? Number(price) : null,
+      price: parseAmount(price),
       notes,
     });
     if (res?.error || !res?.id) {
@@ -256,15 +257,17 @@ export default function PartModal({
           </div>
           <div>
             <label className="label">{t("parts.price")}</label>
+            {/* Plain text with a digit filter rather than type="number": the
+                spinner arrows and the browser's own mid-typing validation got
+                in the way of just entering an amount. */}
             <input
-              type="number"
-              min={0}
-              step="0.01"
+              type="text"
+              inputMode="decimal"
               className="input"
               value={price}
               disabled={!editable}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="0.00"
+              onChange={(e) => setPrice(sanitizeAmount(e.target.value))}
+              placeholder="0"
             />
           </div>
         </div>

@@ -27,6 +27,7 @@ import DescriptionField from "./description-field";
 import CustomFields from "@/components/fields/CustomFields";
 import TaskParts from "./task-parts";
 import ComboSelect from "@/components/combo-select";
+import { formatAmount, parseAmount, sanitizeAmount } from "@/lib/money";
 import { createCity, createModel } from "@/app/(app)/catalog/actions";
 import { createClient } from "@/lib/supabase/client";
 import type { AssigneeLite, TaskTemplate } from "@/lib/types";
@@ -156,8 +157,8 @@ export default function TaskModal({
       city_id: cityId || null,
       company_id: companyId || null,
       model_id: modelId || null,
-      parts_cost: partsCost.trim() ? Number(partsCost) : null,
-      service_charge: serviceCharge.trim() ? Number(serviceCharge) : null,
+      parts_cost: parseAmount(partsCost),
+      service_charge: parseAmount(serviceCharge),
     };
     const res = isNew
       ? await createTask({ ...base, assignee_ids: assignees.map((a) => a.id) })
@@ -445,27 +446,25 @@ export default function TaskModal({
               <div>
                 <label className="label">{t("task.partsCost")}</label>
                 <input
-                  type="number"
-                  min={0}
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   className="input"
                   value={partsCost}
                   disabled={!editable}
-                  placeholder="0.00"
-                  onChange={(e) => setPartsCost(e.target.value)}
+                  placeholder="0"
+                  onChange={(e) => setPartsCost(sanitizeAmount(e.target.value))}
                 />
               </div>
               <div>
                 <label className="label">{t("task.serviceCharge")}</label>
                 <input
-                  type="number"
-                  min={0}
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   className="input"
                   value={serviceCharge}
                   disabled={!editable}
-                  placeholder="0.00"
-                  onChange={(e) => setServiceCharge(e.target.value)}
+                  placeholder="0"
+                  onChange={(e) => setServiceCharge(sanitizeAmount(e.target.value))}
                 />
               </div>
             </div>
@@ -473,7 +472,7 @@ export default function TaskModal({
               <p className="mt-1.5 text-xs text-ink-muted">
                 {t("task.total")}:{" "}
                 <span className="font-semibold text-ink">
-                  {((Number(partsCost) || 0) + (Number(serviceCharge) || 0)).toFixed(2)}
+                  {formatAmount((parseAmount(partsCost) ?? 0) + (parseAmount(serviceCharge) ?? 0))}
                 </span>
               </p>
             )}

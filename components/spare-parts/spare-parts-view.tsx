@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Company, Profile, SparePart } from "@/lib/types";
 import { isManager } from "@/lib/permissions";
@@ -14,6 +14,7 @@ import { useT } from "@/lib/i18n/provider";
 import { toastErr } from "@/lib/toast";
 import PendingBadge from "@/components/pending-badge";
 import { photoUrl } from "@/lib/storage";
+import { formatAmount } from "@/lib/money";
 import PhotoLightbox from "./photo-lightbox";
 import PartModal from "./part-modal";
 import { useAction } from "@/lib/use-action";
@@ -111,6 +112,21 @@ export default function SparePartsView({
         .includes(q)
     );
   }, [query, parts]);
+
+  // One flat list of every brand's parts was hard to scan, so the rows are
+  // grouped under a brand heading. This is on top of the sidebar/dropdown
+  // filter, not instead of it: filtering to one brand simply leaves one group.
+  const groups = useMemo(() => {
+    const byBrand = new Map<string, { name: string; rows: SparePart[] }>();
+    for (const p of filtered) {
+      const id = p.company_id ?? "__none__";
+      if (!byBrand.has(id)) {
+        byBrand.set(id, { name: p.company?.name ?? t("customers.noBrand"), rows: [] });
+      }
+      byBrand.get(id)!.rows.push(p);
+    }
+    return [...byBrand.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [filtered, t]);
 
   function addCompany() {
     if (!companyName.trim()) return;
@@ -218,7 +234,7 @@ export default function SparePartsView({
         </div>
       ) : (
         <div className="card overflow-x-auto p-0">
-          <table className="w-full min-w-[860px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b border-surface-border text-xs font-semibold uppercase tracking-wide text-ink-faint">
                 <th className="w-14 pl-4 pr-2 py-3">
@@ -226,7 +242,6 @@ export default function SparePartsView({
                 </th>
                 <th className="px-4 py-3">{t("parts.partNumber")}</th>
                 <th className="px-4 py-3">{t("parts.partName")}</th>
-                <th className="px-4 py-3">{t("customers.brand")}</th>
                 <th className="px-4 py-3">{t("parts.quantity")}</th>
                 <th className="px-4 py-3">{t("parts.price")}</th>
                 <th className="px-4 py-3">{t("task.status")}</th>
@@ -234,7 +249,18 @@ export default function SparePartsView({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
+              {groups.map((g) => (
+                <Fragment key={g.name}>
+                  <tr>
+                    <th
+                      colSpan={7}
+                      className="bg-surface-soft px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted"
+                    >
+                      {g.name}
+                      <span className="ml-2 font-normal text-ink-faint">{g.rows.length}</span>
+                    </th>
+                  </tr>
+                  {g.rows.map((p) => (
                 <tr
                   key={p.id}
                   onClick={() => setPartModal({ open: true, part: p })}
@@ -247,11 +273,8 @@ export default function SparePartsView({
                     {p.part_number || "—"}
                   </td>
                   <td className="px-4 py-3 font-medium text-ink">{p.name}</td>
-                  <td className="px-4 py-3 text-ink-muted">{p.company?.name ?? "—"}</td>
                   <td className="px-4 py-3 text-ink-muted">{p.quantity}</td>
-                  <td className="px-4 py-3 text-ink-muted">
-                    {p.price != null ? Number(p.price).toFixed(2) : "—"}
-                  </td>
+                  <td className="px-4 py-3 text-ink-muted">{formatAmount(p.price)}</td>
                   <td className="px-4 py-3">{statusChip(p)}</td>
                   <td className="px-4 py-3 text-right">
                     {!p.is_approved && manager ? (
@@ -274,6 +297,8 @@ export default function SparePartsView({
                     )}
                   </td>
                 </tr>
+                  ))}
+                </Fragment>
               ))}
             </tbody>
           </table>
