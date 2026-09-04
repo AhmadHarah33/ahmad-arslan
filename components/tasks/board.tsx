@@ -23,7 +23,16 @@ import { PriorityChip, STATUS_TONE } from "@/components/ui";
 import { STATUS_VAR, TASK_STATUSES } from "@/lib/types";
 import { useT } from "@/lib/i18n/provider";
 import { statusKey } from "@/lib/i18n/task-keys";
-import type { AssigneeLite, Customer, Profile, Task, TaskStatus } from "@/lib/types";
+import type {
+  AssigneeLite,
+  City,
+  Company,
+  Customer,
+  MachineModel,
+  Profile,
+  Task,
+  TaskStatus,
+} from "@/lib/types";
 import { canEditTask, isManager } from "@/lib/permissions";
 import { moveTask } from "@/app/(app)/tasks/actions";
 import type { FieldDefinition } from "@/lib/customFields";
@@ -107,6 +116,9 @@ export default function TasksBoard({
   initialTasks,
   engineers,
   customers,
+  companies,
+  cities,
+  models,
   fieldDefs,
   fieldValues,
   commentCounts,
@@ -117,6 +129,9 @@ export default function TasksBoard({
   initialTasks: Task[];
   engineers: Engineer[];
   customers: CustomerLite[];
+  companies: Company[];
+  cities: City[];
+  models: MachineModel[];
   fieldDefs: FieldDefinition[];
   fieldValues: ValueMap;
   commentCounts: CountMap;
@@ -175,6 +190,20 @@ export default function TasksBoard({
         const v = vals[d.id];
         return n + (Array.isArray(v) ? v.length : 0);
       }, 0);
+    };
+  }, [fieldDefs, fieldValues]);
+
+  // Rapor is the one Properties field that does not block completion, so a
+  // finished job missing its report gets flagged on the card instead. Only on
+  // done / pending cards: before that there is nothing to report yet, and a
+  // dot on every To do card would just be noise.
+  const reportMissing = useMemo(() => {
+    const def = fieldDefs.find((d) => d.label === "Rapor");
+    return (task: Task) => {
+      if (!def) return false;
+      if (task.status !== "done" && task.status !== "pending_approval") return false;
+      const v = fieldValues[task.id]?.[def.id];
+      return !Array.isArray(v) || v.length === 0;
     };
   }, [fieldDefs, fieldValues]);
 
@@ -345,6 +374,7 @@ export default function TasksBoard({
     customerName,
     attachmentCount,
     commentCounts,
+    reportMissing,
     canApprove,
     onApproveTask: approveTask,
     onSendBackTask: sendBackTask,
@@ -464,6 +494,9 @@ export default function TasksBoard({
           profile={profile}
           engineers={engineers}
           customers={customers}
+          companies={companies}
+          cities={cities}
+          models={models}
           task={modal.task}
           initialStatus={modal.status}
           onClose={() => setModal({ open: false, task: null, status: "todo" })}
@@ -490,6 +523,7 @@ type CardExtras = {
   customerName: (id: string | null) => string;
   attachmentCount: (taskId: string) => number;
   commentCounts: CountMap;
+  reportMissing: (task: Task) => boolean;
   canApprove: boolean;
   onApproveTask: (task: Task) => void;
   onSendBackTask: (task: Task) => void;
@@ -694,20 +728,33 @@ function CardBody({
   canApprove,
   onApproveTask,
   onSendBackTask,
+  reportMissing,
   lifted = false,
   onMenu,
 }: {
   task: Task;
   lifted?: boolean;
   onMenu?: () => void;
-} & Pick<CardExtras, "canApprove" | "onApproveTask" | "onSendBackTask">) {
+} & Pick<
+  CardExtras,
+  "canApprove" | "onApproveTask" | "onSendBackTask" | "reportMissing"
+>) {
   const t = useT();
   const pending = task.status === "pending_approval";
+  const noReport = reportMissing(task);
 
   return (
     <div className={`task-card relative px-4 py-3.5 ${lifted ? "shadow-pop" : "hover:shadow-card"}`}>
       {/* Mobile only — desktop uses drag-and-drop to change columns, so the
           menu would be a redundant control there. */}
+      {noReport && (
+        <span
+          title={t("task.reportMissing")}
+          aria-label={t("task.reportMissing")}
+          className="absolute right-2 top-2 h-2 w-2 rounded-full"
+          style={{ background: "rgb(var(--tone-stuck))" }}
+        />
+      )}
       {onMenu && (
         <button
           onClick={(e) => {
@@ -715,12 +762,18 @@ function CardBody({
             onMenu();
           }}
           aria-label="Task options"
-          className="icon-btn absolute right-1.5 top-1.5 h-6 w-6 md:hidden"
+          className={`icon-btn absolute top-1.5 h-6 w-6 md:hidden ${
+            noReport ? "right-6" : "right-1.5"
+          }`}
         >
           <DotsIcon className="h-3.5 w-3.5" />
         </button>
       )}
-      <p className={`line-clamp-2 text-[15px] font-medium leading-snug text-ink ${onMenu ? "pr-6" : ""}`}>
+      <p
+        className={`line-clamp-2 text-[15px] font-medium leading-snug text-ink ${
+          onMenu ? (noReport ? "pr-12" : "pr-6") : noReport ? "pr-4" : ""
+        }`}
+      >
         {task.title}
       </p>
 

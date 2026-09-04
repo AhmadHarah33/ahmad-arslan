@@ -118,6 +118,14 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   customer_id: string | null;
+  // Catalog links, replacing the old "Yer" / "Makina" custom fields so the
+  // city list is shared with customers and models can be filtered by brand.
+  city_id: string | null;
+  company_id: string | null;
+  model_id: string | null;
+  // What the job cost in parts, and what the customer is charged for it.
+  parts_cost: number | null;
+  service_charge: number | null;
   position: number;
   due_date: string | null;
   created_by: string | null;

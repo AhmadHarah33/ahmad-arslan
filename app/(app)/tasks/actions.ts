@@ -18,15 +18,21 @@ function revalidate() {
   revalidatePath("/");
 }
 
-export async function createTask(input: {
+type TaskFields = {
   title: string;
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
-  assignee_ids: string[];
   customer_id: string | null;
   due_date: string | null;
-}) {
+  city_id: string | null;
+  company_id: string | null;
+  model_id: string | null;
+  parts_cost: number | null;
+  service_charge: number | null;
+};
+
+export async function createTask(input: TaskFields & { assignee_ids: string[] }) {
 
   const supabase = createClient();
   const uid = await currentUserId();
@@ -41,6 +47,11 @@ export async function createTask(input: {
       priority: input.priority,
       customer_id: input.customer_id,
       due_date: input.due_date,
+      city_id: input.city_id,
+      company_id: input.company_id,
+      model_id: input.model_id,
+      parts_cost: input.parts_cost,
+      service_charge: input.service_charge,
       position: Date.now(),
       created_by: uid,
     })
@@ -66,17 +77,7 @@ export async function createTask(input: {
   return { ok: true, task: full ? normalizeTask(full) : undefined };
 }
 
-export async function updateTask(
-  id: string,
-  input: {
-    title: string;
-    description: string;
-    status: TaskStatus;
-    priority: TaskPriority;
-    customer_id: string | null;
-    due_date: string | null;
-  }
-) {
+export async function updateTask(id: string, input: TaskFields) {
 
   const supabase = createClient();
   const { data, error } = await supabase
@@ -88,6 +89,11 @@ export async function updateTask(
       priority: input.priority,
       customer_id: input.customer_id,
       due_date: input.due_date,
+      city_id: input.city_id,
+      company_id: input.company_id,
+      model_id: input.model_id,
+      parts_cost: input.parts_cost,
+      service_charge: input.service_charge,
     })
     .eq("id", id)
     .select(TASK_SELECT)

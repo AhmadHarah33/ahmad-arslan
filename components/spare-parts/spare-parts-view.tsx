@@ -161,16 +161,25 @@ export default function SparePartsView({
           <div className="flex items-center gap-2">
             <ImportExport
               kind="parts"
-              columns={["company", "name", "part_number", "quantity"]}
+              columns={["company", "name", "part_number", "quantity", "price"]}
               exportRows={parts.map((p) => ({
                 company: p.company?.name ?? "",
                 name: p.name,
                 part_number: p.part_number,
                 quantity: p.quantity,
+                price: p.price ?? "",
               }))}
             />
             <button className="btn-ghost hidden md:inline-flex" onClick={() => setCompanyModal(true)}>
               {t("parts.newCompany")}
+            </button>
+            {/* The FAB below is md:hidden, so without this there was no way to
+                add a spare part from a desktop browser. */}
+            <button
+              className="btn-primary hidden md:inline-flex"
+              onClick={() => setPartModal({ open: true, part: null })}
+            >
+              {t("parts.newPart")}
             </button>
           </div>
         }
@@ -209,7 +218,7 @@ export default function SparePartsView({
         </div>
       ) : (
         <div className="card overflow-x-auto p-0">
-          <table className="w-full min-w-[780px] text-left text-sm">
+          <table className="w-full min-w-[860px] text-left text-sm">
             <thead>
               <tr className="border-b border-surface-border text-xs font-semibold uppercase tracking-wide text-ink-faint">
                 <th className="w-14 pl-4 pr-2 py-3">
@@ -219,6 +228,7 @@ export default function SparePartsView({
                 <th className="px-4 py-3">{t("parts.partName")}</th>
                 <th className="px-4 py-3">{t("customers.brand")}</th>
                 <th className="px-4 py-3">{t("parts.quantity")}</th>
+                <th className="px-4 py-3">{t("parts.price")}</th>
                 <th className="px-4 py-3">{t("task.status")}</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -239,6 +249,9 @@ export default function SparePartsView({
                   <td className="px-4 py-3 font-medium text-ink">{p.name}</td>
                   <td className="px-4 py-3 text-ink-muted">{p.company?.name ?? "—"}</td>
                   <td className="px-4 py-3 text-ink-muted">{p.quantity}</td>
+                  <td className="px-4 py-3 text-ink-muted">
+                    {p.price != null ? Number(p.price).toFixed(2) : "—"}
+                  </td>
                   <td className="px-4 py-3">{statusChip(p)}</td>
                   <td className="px-4 py-3 text-right">
                     {!p.is_approved && manager ? (

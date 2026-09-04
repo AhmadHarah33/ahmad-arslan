@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { addTaskPart, removeTaskPart } from "@/app/(app)/tasks/parts-actions";
 import { useAction } from "@/lib/use-action";
@@ -46,7 +46,6 @@ export default function TaskParts({
         quantity: r.quantity,
       }));
       setUsed(rows);
-      onCountChange?.(rows.length);
       setParts((sp ?? []) as PartOption[]);
     }
     load();
@@ -55,22 +54,28 @@ export default function TaskParts({
     };
   }, [taskId]);
 
+  // Reporting the count from an effect, not from inside the state updaters:
+  // calling the parent's setState during another component's render is a
+  // React warning and, because updaters can be invoked more than once, it
+  // fired at unpredictable moments.
+  const notify = useRef(onCountChange);
+  notify.current = onCountChange;
+  useEffect(() => {
+    notify.current?.(used.length);
+  }, [used.length]);
+
   const { run: attachPart, pending: busy } = useAction(addTaskPart, {
     onSuccess: (res) => {
       const name = parts.find((p) => p.id === partId)?.name ?? "Part";
-      setUsed((prev) => {
-        const next = [
-          ...prev,
-          {
-            id: (res as any)?.row?.id ?? `tmp-${Date.now()}`,
-            spare_part_id: partId,
-            name,
-            quantity: Number(qty) || 1,
-          },
-        ];
-        onCountChange?.(next.length);
-        return next;
-      });
+      setUsed((prev) => [
+        ...prev,
+        {
+          id: (res as any)?.row?.id ?? `tmp-${Date.now()}`,
+          spare_part_id: partId,
+          name,
+          quantity: Number(qty) || 1,
+        },
+      ]);
       setPartId("");
       setQty(1);
     },
@@ -84,12 +89,7 @@ export default function TaskParts({
 
   async function remove(id: string) {
     const res = await detachPart(id);
-    if (res)
-      setUsed((prev) => {
-        const next = prev.filter((r) => r.id !== id);
-        onCountChange?.(next.length);
-        return next;
-      });
+    if (res) setUsed((prev) => prev.filter((r) => r.id !== id));
   }
 
   return (

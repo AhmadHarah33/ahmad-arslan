@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/types";
 import type {
+  City,
+  Company,
   Customer,
+  MachineModel,
   Profile,
   Task,
   TaskPriority,
@@ -22,8 +25,9 @@ import { useT } from "@/lib/i18n/provider";
 import { statusKey, priorityKey } from "@/lib/i18n/task-keys";
 import DescriptionField from "./description-field";
 import CustomFields from "@/components/fields/CustomFields";
-import TaskActivity from "./task-activity";
 import TaskParts from "./task-parts";
+import ComboSelect from "@/components/combo-select";
+import { createCity, createModel } from "@/app/(app)/catalog/actions";
 import { createClient } from "@/lib/supabase/client";
 import type { AssigneeLite, TaskTemplate } from "@/lib/types";
 import { useEffect } from "react";
@@ -33,6 +37,9 @@ export default function TaskModal({
   profile,
   engineers,
   customers,
+  companies,
+  cities,
+  models,
   task,
   initialStatus = "todo",
   onClose,
@@ -43,6 +50,9 @@ export default function TaskModal({
   profile: Profile;
   engineers: Profile[];
   customers: Pick<Customer, "id" | "name">[];
+  companies: Company[];
+  cities: City[];
+  models: MachineModel[];
   task: Task | null;
   // Column a new task starts in (set when created from a column's menu).
   initialStatus?: TaskStatus;
@@ -76,6 +86,24 @@ export default function TaskModal({
   );
   const [customerId, setCustomerId] = useState<string>(task?.customer_id ?? "");
   const [dueDate, setDueDate] = useState<string>(task?.due_date ?? "");
+  const [cityId, setCityId] = useState<string>(task?.city_id ?? "");
+  const [companyId, setCompanyId] = useState<string>(task?.company_id ?? "");
+  const [modelId, setModelId] = useState<string>(task?.model_id ?? "");
+  const [partsCost, setPartsCost] = useState<string>(
+    task?.parts_cost != null ? String(task.parts_cost) : ""
+  );
+  const [serviceCharge, setServiceCharge] = useState<string>(
+    task?.service_charge != null ? String(task.service_charge) : ""
+  );
+
+  // Models belong to a brand, so the list narrows to the brand on this task.
+  const brandModels = models.filter((m) => m.company_id === companyId);
+  function pickBrand(id: string) {
+    setCompanyId(id);
+    if (modelId && !models.some((m) => m.id === modelId && m.company_id === id)) {
+      setModelId("");
+    }
+  }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
@@ -125,6 +153,11 @@ export default function TaskModal({
       priority,
       customer_id: customerId || null,
       due_date: dueDate || null,
+      city_id: cityId || null,
+      company_id: companyId || null,
+      model_id: modelId || null,
+      parts_cost: partsCost.trim() ? Number(partsCost) : null,
+      service_charge: serviceCharge.trim() ? Number(serviceCharge) : null,
     };
     const res = isNew
       ? await createTask({ ...base, assignee_ids: assignees.map((a) => a.id) })
@@ -333,10 +366,10 @@ export default function TaskModal({
             </p>
           )}
 
-        {!isNew && (
-          <div className="border-t border-surface-border pt-4">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="label mb-0">{t("misc.activity")}</p>
+        <div className="border-t border-surface-border pt-4">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="label mb-0">{t("customers.properties")}</p>
+            {!isNew && (
               <a
                 href={`/print/task/${current!.id}`}
                 target="_blank"
@@ -345,27 +378,105 @@ export default function TaskModal({
               >
                 ⭳ {t("task.downloadReport")}
               </a>
-            </div>
-            <TaskActivity taskId={current!.id} profile={profile} />
+            )}
           </div>
-        )}
 
-        {!isNew && (
-          <div className="border-t border-surface-border pt-4">
-            <p className="label">{t("customers.properties")}</p>
-            <CustomFields
-              entity="task"
-              recordId={current!.id}
-              canManage={canEditData(profile)}
-              canEditValues={editable}
+          {/* City / brand / model come from the shared catalog rather than
+              per-field option lists, so adding a model on the Catalog page
+              shows up here immediately and the model list follows the brand. */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">{t("task.city")}</label>
+              <ComboSelect
+                value={cityId}
+                options={cities}
+                onChange={setCityId}
+                onCreate={createCity}
+                emptyLabel={t("customers.noCity")}
+              />
+            </div>
+            <div>
+              <label className="label">{t("customers.brand")}</label>
+              <select
+                className="input"
+                value={companyId}
+                onChange={(e) => pickBrand(e.target.value)}
+              >
+                <option value="">{t("customers.noBrand")}</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="mt-3">
+            <label className="label">{t("task.model")}</label>
+            <ComboSelect
+              value={modelId}
+              options={brandModels}
+              onChange={setModelId}
+              onCreate={(name) => createModel(companyId, name)}
+              emptyLabel={t("customers.noModel")}
+              disabled={!companyId}
+              disabledHint={t("customers.pickBrandFirst")}
             />
           </div>
-        )}
+
+          {!isNew && (
+            <div className="mt-4">
+              <CustomFields
+                entity="task"
+                recordId={current!.id}
+                canManage={canEditData(profile)}
+                canEditValues={editable}
+              />
+            </div>
+          )}
+        </div>
 
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
             <p className="label">{t("task.partsUsed")}</p>
             <TaskParts taskId={current!.id} editable={editable} onCountChange={(n) => setHasParts(n > 0)} />
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">{t("task.partsCost")}</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className="input"
+                  value={partsCost}
+                  disabled={!editable}
+                  placeholder="0.00"
+                  onChange={(e) => setPartsCost(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label">{t("task.serviceCharge")}</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className="input"
+                  value={serviceCharge}
+                  disabled={!editable}
+                  placeholder="0.00"
+                  onChange={(e) => setServiceCharge(e.target.value)}
+                />
+              </div>
+            </div>
+            {(partsCost.trim() || serviceCharge.trim()) && (
+              <p className="mt-1.5 text-xs text-ink-muted">
+                {t("task.total")}:{" "}
+                <span className="font-semibold text-ink">
+                  {((Number(partsCost) || 0) + (Number(serviceCharge) || 0)).toFixed(2)}
+                </span>
+              </p>
+            )}
           </div>
         )}
 
