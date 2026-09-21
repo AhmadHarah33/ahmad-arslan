@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { loadFields } from "@/lib/fields.server";
 import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import TasksBoard from "@/components/tasks/board";
-import type { City, Company, Customer, MachineModel, Profile } from "@/lib/types";
+import type { City, Company, Customer, CustomerMachine, MachineModel, Profile } from "@/lib/types";
 
 export default async function TasksPage({
   searchParams,
@@ -22,6 +22,7 @@ export default async function TasksPage({
     { data: companies },
     { data: cities },
     { data: models },
+    { data: customerMachines },
   ] = await Promise.all([
     supabase
       .from("tasks")
@@ -32,6 +33,12 @@ export default async function TasksPage({
     supabase.from("companies").select("*").order("name"),
     supabase.from("cities").select("*").order("name"),
     supabase.from("machine_models").select("*").order("name"),
+    // Used to autofill a task's city/brand/model once a customer is picked:
+    // one machine autofills outright, several offer a pick.
+    supabase
+      .from("customer_machines")
+      .select("id, customer_id, city_id, company_id, model_id, serial_number")
+      .order("created_at", { ascending: true }),
   ]);
 
   const taskList = normalizeTasks(tasks);
@@ -56,6 +63,7 @@ export default async function TasksPage({
       companies={(companies ?? []) as Company[]}
       cities={(cities ?? []) as City[]}
       models={(models ?? []) as MachineModel[]}
+      customerMachines={(customerMachines ?? []) as Pick<CustomerMachine, "id" | "customer_id" | "city_id" | "company_id" | "model_id" | "serial_number">[]}
       fieldDefs={defs}
       fieldValues={valueMap}
       commentCounts={commentCounts}

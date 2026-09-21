@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { loadFields } from "@/lib/fields.server";
 import { TASK_SELECT, normalizeTask } from "@/lib/tasks.server";
-import { fieldFileUrl } from "@/lib/storage";
 import { formatDate } from "@/lib/dates";
+import { formatAmount } from "@/lib/money";
+import { CURRENCY_SYMBOLS } from "@/lib/types";
 import type { Customer, Task } from "@/lib/types";
 import type { FieldDefinition } from "@/lib/customFields";
 import PrintTrigger from "./print-trigger";
@@ -14,6 +15,8 @@ const DEFAULT_COMPANY = {
   company_address: "",
 };
 
+type PartRow = { id: string; quantity: number; unit_price: number | null; name: string };
+
 export default async function TaskReport({
   params,
 }: {
@@ -22,7 +25,7 @@ export default async function TaskReport({
   const id = params.id;
 
   let task: Task | null;
-  let customer: Pick<Customer, "name" | "location" | "machine" | "serial_number"> | null = null;
+  let customer: Pick<Customer, "name"> | null = null;
   let defs: FieldDefinition[];
   let values: Record<string, unknown>;
   let company = DEFAULT_COMPANY;
@@ -34,28 +37,56 @@ export default async function TaskReport({
   ]);
   task = t ? normalizeTask(t) : null;
   if (settings) company = settings as typeof DEFAULT_COMPANY;
-  if (task?.customer_id) {
-    const { data: c } = await supabase
-      .from("customers")
-      .select("name, location, machine, serial_number")
-      .eq("id", task.customer_id)
-      .single();
-    customer = (c as any) ?? null;
-  }
-  const loaded = await loadFields("task", [id]);
-  defs = loaded.defs;
-  values = loaded.valueMap[id] ?? {};
-
 
   if (!task) {
     return <main className="p-10 text-center">Task not found.</main>;
   }
 
+  const [
+    { data: c },
+    { data: cityRow },
+    { data: brandRow },
+    { data: modelRow },
+    { data: parts },
+    loaded,
+  ] = await Promise.all([
+    task.customer_id
+      ? supabase.from("customers").select("name").eq("id", task.customer_id).single()
+      : Promise.resolve({ data: null }),
+    task.city_id
+      ? supabase.from("cities").select("name").eq("id", task.city_id).single()
+      : Promise.resolve({ data: null }),
+    task.company_id
+      ? supabase.from("companies").select("name").eq("id", task.company_id).single()
+      : Promise.resolve({ data: null }),
+    task.model_id
+      ? supabase.from("machine_models").select("name").eq("id", task.model_id).single()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("task_parts")
+      .select("id, quantity, unit_price, part:spare_part_id(name)")
+      .eq("task_id", id),
+    loadFields("task", [id]),
+  ]);
+  customer = (c as any) ?? null;
+  defs = loaded.defs;
+  values = loaded.valueMap[id] ?? {};
+
+  const partRows: PartRow[] = (parts ?? []).map((r: any) => ({
+    id: r.id,
+    quantity: r.quantity,
+    unit_price: r.unit_price,
+    name: r.part?.name ?? "Part",
+  }));
+  const partsTotal = partRows.reduce((sum, r) => sum + (r.unit_price ?? 0) * r.quantity, 0);
+  const grandTotal = partsTotal + (task.service_charge ?? 0);
+
+  const leadEngineer = task.assignees.find((a) => a.is_lead) ?? task.assignees[0] ?? null;
+
+  // Rapor is a file upload, not something to lay out on a printed page — the
+  // task board already flags a missing one on the card.
   const textFields = defs.filter(
-    (d) => d.field_type === "text" && values[d.id]
-  );
-  const fileFields = defs.filter(
-    (d) => d.field_type === "files" && Array.isArray(values[d.id]) && (values[d.id] as string[]).length
+    (d) => d.field_type === "text" && d.label !== "Rapor" && values[d.id]
   );
 
   return (
@@ -88,14 +119,23 @@ export default async function TaskReport({
           <Row label="Status" value={task.status.replace("_", " ")} />
           <Row label="Priority" value={task.priority} />
           <Row
-            label="Assignees"
-            value={task.assignees.map((a) => a.full_name || a.first_name).join(", ") || "—"}
+            label="Engineer"
+            value={leadEngineer ? leadEngineer.full_name || leadEngineer.first_name : "—"}
           />
+          {task.assignees.length > 1 && (
+            <Row
+              label="Also on this job"
+              value={task.assignees
+                .filter((a) => a.id !== leadEngineer?.id)
+                .map((a) => a.full_name || a.first_name)
+                .join(", ")}
+            />
+          )}
           {task.due_date && <Row label="Due" value={formatDate(task.due_date)} />}
           {customer && <Row label="Customer" value={customer.name} />}
-          {customer?.location && <Row label="City" value={customer.location} />}
-          {customer?.machine && <Row label="Model" value={customer.machine} />}
-          {customer?.serial_number && <Row label="SN" value={customer.serial_number} />}
+          {cityRow && <Row label="City" value={(cityRow as any).name} />}
+          {brandRow && <Row label="Brand" value={(brandRow as any).name} />}
+          {modelRow && <Row label="Model" value={(modelRow as any).name} />}
         </tbody>
       </table>
 
@@ -111,20 +151,75 @@ export default async function TaskReport({
         </Section>
       ))}
 
-      {fileFields.map((f) => (
-        <Section key={f.id} title={f.label}>
-          <div className="flex flex-wrap gap-2">
-            {(values[f.id] as string[]).map((p, i) =>
-              /\.(png|jpe?g|gif|webp)$/i.test(p) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={i} src={fieldFileUrl(p)} alt="" className="h-32 rounded border object-cover" />
-              ) : (
-                <span key={i} className="text-xs">{p.split("/").pop()}</span>
-              )
-            )}
-          </div>
+      {partRows.length > 0 && (
+        <Section title="Spare parts">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-300 text-left text-xs uppercase text-gray-500">
+                <th className="py-1">Part</th>
+                <th className="py-1 text-right">Qty</th>
+                <th className="py-1 text-right">Unit price</th>
+                <th className="py-1 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {partRows.map((r) => (
+                <tr key={r.id} className="border-b border-gray-100">
+                  <td className="py-1">{r.name}</td>
+                  <td className="py-1 text-right">{r.quantity}</td>
+                  <td className="py-1 text-right">
+                    {CURRENCY_SYMBOLS[task.parts_currency]}{formatAmount(r.unit_price)}
+                  </td>
+                  <td className="py-1 text-right">
+                    {CURRENCY_SYMBOLS[task.parts_currency]}
+                    {formatAmount((r.unit_price ?? 0) * r.quantity)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </Section>
-      ))}
+      )}
+
+      <table className="mb-6 w-full text-sm">
+        <tbody>
+          {partsTotal > 0 && (
+            <Row
+              label="Parts total"
+              value={`${CURRENCY_SYMBOLS[task.parts_currency]}${formatAmount(partsTotal)}`}
+              plain
+            />
+          )}
+          {task.service_charge != null && (
+            <Row
+              label="Service charge"
+              value={`${CURRENCY_SYMBOLS[task.service_currency]}${formatAmount(task.service_charge)}`}
+              plain
+            />
+          )}
+          {(partsTotal > 0 || task.service_charge != null) && (
+            <tr>
+              <td className="w-32 py-1.5 pr-4 text-sm font-bold">Grand total</td>
+              <td className="py-1.5 text-sm font-bold">
+                {task.parts_currency === task.service_currency
+                  ? `${CURRENCY_SYMBOLS[task.parts_currency]}${formatAmount(grandTotal)}`
+                  : `${CURRENCY_SYMBOLS[task.parts_currency]}${formatAmount(partsTotal)} + ${CURRENCY_SYMBOLS[task.service_currency]}${formatAmount(task.service_charge ?? 0)}`}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      <div className="mt-14 grid grid-cols-2 gap-8 text-sm">
+        <div>
+          <div className="mb-1 h-10 border-b border-gray-400" />
+          <p className="text-xs text-gray-500">Engineer signature</p>
+        </div>
+        <div>
+          <div className="mb-1 h-10 border-b border-gray-400" />
+          <p className="text-xs text-gray-500">Customer signature</p>
+        </div>
+      </div>
 
       <footer className="mt-10 border-t pt-3 text-xs text-gray-500">
         Generated by {company.company_name} · Mars Technical Support
@@ -133,11 +228,11 @@ export default async function TaskReport({
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, plain = false }: { label: string; value: string; plain?: boolean }) {
   return (
     <tr className="border-b border-gray-100">
       <td className="w-32 py-1.5 pr-4 font-medium text-gray-500">{label}</td>
-      <td className="py-1.5 capitalize">{value}</td>
+      <td className={`py-1.5 ${plain ? "" : "capitalize"}`}>{value}</td>
     </tr>
   );
 }

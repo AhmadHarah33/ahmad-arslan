@@ -17,7 +17,7 @@ export default async function CustomersPage({
 
   let query = supabase
     .from("customers")
-    .select("*, customer_links(*), company:company_id(id, name)")
+    .select("*, customer_links(*), customer_machines(*), company:company_id(id, name)")
     .order("name");
   if (brandFilter === "__none__") query = query.is("company_id", null);
   else if (brandFilter) query = query.eq("company_id", brandFilter);

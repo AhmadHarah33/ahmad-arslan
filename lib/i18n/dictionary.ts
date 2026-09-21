@@ -57,6 +57,7 @@ const en = {
   "common.add": "Add",
   "common.new": "New",
   "common.edit": "Edit",
+  "common.dismiss": "Dismiss",
   "common.optional": "optional",
   "common.total": "total",
   "common.none": "None",
@@ -92,8 +93,6 @@ const en = {
   "task.dueDate": "Due date",
   "task.assignees": "Assignees",
   "task.customer": "Customer",
-  "task.template": "Start from template",
-  "task.blank": "Blank task",
   "task.confirmDelete": "Delete this task?",
   "task.titleRequired": "Title is required",
   "task.onlyOwn": "You can only edit tasks assigned to you.",
@@ -110,6 +109,15 @@ const en = {
   "task.viewList": "List",
   "task.create": "Create Task",
   "task.addToColumn": "Add a task",
+  "task.noCustomer": "No customer",
+  "task.pickMachine": "This customer has more than one machine — pick which one this job is for:",
+  "task.partPrice": "Price",
+  "task.partPriceFailed": "Could not save the price. Try again.",
+  "task.partsCostComputed": "Computed from the parts list above.",
+  "task.leadEngineer": "Lead/responsible engineer",
+  "task.previewReport": "Preview",
+  "task.pdfPreparing": "Preparing…",
+  "task.pdfFailedRetry": "Failed — retry",
 
   // Task statuses / priorities
   "status.todo": "To do",
@@ -137,6 +145,10 @@ const en = {
   "customers.links": "Attachment links",
   "customers.addLink": "+ Add link",
   "customers.noLinks": "No links yet (e.g. paste a Google Drive URL).",
+  "customers.machines": "Machines",
+  "customers.addMachine": "+ Add machine",
+  "customers.removeMachine": "Remove this machine",
+  "customers.machinesAfterSave": "Save the customer first to add machines.",
   "customers.properties": "Properties",
   "customers.qr": "Machine QR",
   "customers.maintenance": "Preventive maintenance",
@@ -293,6 +305,10 @@ const en = {
   "fields.none": "No custom fields yet.",
   "fields.newOption": "New option",
   "fields.namePlaceholder": "Property name (e.g. TEŞHİS)",
+  "fields.open": "Open editor",
+  "fields.read": "Read",
+  "fields.pressEdit": "Press to open the full editor",
+  "fields.pressRead": "Press to read the full value",
   "customers.serviceHistory": "Service history",
   "customers.noTasks": "No tasks for this customer yet.",
   "customers.noMaintenance": "No maintenance scheduled.",
@@ -363,6 +379,7 @@ const tr: Record<StringKey, string> = {
   "common.add": "Ekle",
   "common.new": "Yeni",
   "common.edit": "Düzenle",
+  "common.dismiss": "Kapat",
   "common.optional": "isteğe bağlı",
   "common.total": "toplam",
   "common.none": "Yok",
@@ -396,8 +413,6 @@ const tr: Record<StringKey, string> = {
   "task.dueDate": "Bitiş tarihi",
   "task.assignees": "Atananlar",
   "task.customer": "Müşteri",
-  "task.template": "Şablondan başla",
-  "task.blank": "Boş görev",
   "task.confirmDelete": "Bu görev silinsin mi?",
   "task.titleRequired": "Başlık zorunludur",
   "task.onlyOwn": "Yalnızca size atanan görevleri düzenleyebilirsiniz.",
@@ -410,6 +425,15 @@ const tr: Record<StringKey, string> = {
   "task.saveFirst": "Özellik, kullanılan parça ve yorum eklemek için görevi önce kaydedin.",
   "task.created": "Görev oluşturuldu. Artık özellik, parça ve yorum ekleyebilirsiniz.",
   "task.done": "Bitti",
+  "task.noCustomer": "Müşteri yok",
+  "task.pickMachine": "Bu müşterinin birden fazla makinesi var — bu iş hangisi için, seçin:",
+  "task.partPrice": "Fiyat",
+  "task.partPriceFailed": "Fiyat kaydedilemedi. Tekrar deneyin.",
+  "task.partsCostComputed": "Yukarıdaki parça listesinden hesaplanır.",
+  "task.leadEngineer": "Sorumlu mühendis",
+  "task.previewReport": "Önizleme",
+  "task.pdfPreparing": "Hazırlanıyor…",
+  "task.pdfFailedRetry": "Başarısız — tekrar deneyin",
   "task.viewBoard": "Pano",
   "task.viewList": "Liste",
   "task.create": "Görev Oluştur",
@@ -439,6 +463,10 @@ const tr: Record<StringKey, string> = {
   "customers.links": "Ek bağlantılar",
   "customers.addLink": "+ Bağlantı ekle",
   "customers.noLinks": "Henüz bağlantı yok (örn. bir Google Drive adresi yapıştırın).",
+  "customers.machines": "Makineler",
+  "customers.addMachine": "+ Makine ekle",
+  "customers.removeMachine": "Bu makineyi kaldır",
+  "customers.machinesAfterSave": "Makine eklemek için müşteriyi önce kaydedin.",
   "customers.properties": "Özellikler",
   "customers.qr": "Makine QR kodu",
   "customers.maintenance": "Periyodik bakım",
@@ -590,6 +618,10 @@ const tr: Record<StringKey, string> = {
   "fields.none": "Henüz özel alan yok.",
   "fields.newOption": "Yeni seçenek",
   "fields.namePlaceholder": "Özellik adı (örn. TEŞHİS)",
+  "fields.open": "Düzenleyiciyi aç",
+  "fields.read": "Oku",
+  "fields.pressEdit": "Tam düzenleyiciyi açmak için basın",
+  "fields.pressRead": "Değerin tamamını okumak için basın",
   "customers.serviceHistory": "Servis geçmişi",
   "customers.noTasks": "Bu müşteri için henüz görev yok.",
   "customers.noMaintenance": "Planlanmış bakım yok.",
@@ -616,3 +648,22 @@ export const DICTIONARIES: Record<Language, Record<StringKey, string>> = {
   en,
   tr,
 };
+
+// Custom field labels/options are free text stored once in the DB (see
+// supabase/seed.sql), not app strings — the team wrote them in Turkish. For
+// the English screen only, translate the known preset ones on display; the
+// stored value (and the Turkish screen) is untouched.
+const PRESET_LABEL_EN: Record<string, string> = {
+  "Müdahale şekli": "Intervention type",
+  "TEŞHİS": "Diagnosis",
+  "ÇÖZÜM": "Solution",
+  "Rapor": "Report",
+  "müşteride": "at customer",
+  "uzaktan": "remote",
+  "serviste": "in service",
+};
+
+export function translateFieldLabel(label: string, lang: Language): string {
+  if (lang !== "en") return label;
+  return PRESET_LABEL_EN[label] ?? label;
+}

@@ -28,6 +28,7 @@ import type {
   City,
   Company,
   Customer,
+  CustomerMachine,
   MachineModel,
   Profile,
   Task,
@@ -44,6 +45,10 @@ import { toastErr } from "@/lib/toast";
 
 type Engineer = Profile;
 type CustomerLite = Pick<Customer, "id" | "name">;
+type CustomerMachineLite = Pick<
+  CustomerMachine,
+  "id" | "customer_id" | "city_id" | "company_id" | "model_id" | "serial_number"
+>;
 type ValueMap = Record<string, Record<string, unknown>>;
 type CountMap = Record<string, number>;
 
@@ -119,6 +124,7 @@ export default function TasksBoard({
   companies,
   cities,
   models,
+  customerMachines,
   fieldDefs,
   fieldValues,
   commentCounts,
@@ -132,6 +138,7 @@ export default function TasksBoard({
   companies: Company[];
   cities: City[];
   models: MachineModel[];
+  customerMachines: CustomerMachineLite[];
   fieldDefs: FieldDefinition[];
   fieldValues: ValueMap;
   commentCounts: CountMap;
@@ -497,6 +504,7 @@ export default function TasksBoard({
           companies={companies}
           cities={cities}
           models={models}
+          customerMachines={customerMachines}
           task={modal.task}
           initialStatus={modal.status}
           onClose={() => setModal({ open: false, task: null, status: "todo" })}

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { TaskPriority, TaskStatus } from "@/lib/types";
+import type { TaskCurrency, TaskPriority, TaskStatus } from "@/lib/types";
 import { TASK_SELECT, normalizeTask } from "@/lib/tasks.server";
 
 async function currentUserId() {
@@ -30,9 +30,20 @@ type TaskFields = {
   model_id: string | null;
   parts_cost: number | null;
   service_charge: number | null;
+  parts_currency: TaskCurrency;
+  service_currency: TaskCurrency;
 };
 
-export async function createTask(input: TaskFields & { assignee_ids: string[] }) {
+export async function createTask(
+  input: TaskFields & {
+    assignee_ids: string[];
+    lead_assignee_id?: string | null;
+    // Parts added in the modal before the task existed — attached here in
+    // one go instead of one at a time, since there was no task_id for them
+    // to attach to yet.
+    parts?: { spare_part_id: string; quantity: number; unit_price: number | null }[];
+  }
+) {
 
   const supabase = createClient();
   const uid = await currentUserId();
@@ -52,6 +63,8 @@ export async function createTask(input: TaskFields & { assignee_ids: string[] })
       model_id: input.model_id,
       parts_cost: input.parts_cost,
       service_charge: input.service_charge,
+      parts_currency: input.parts_currency,
+      service_currency: input.service_currency,
       position: Date.now(),
       created_by: uid,
     })
@@ -62,9 +75,20 @@ export async function createTask(input: TaskFields & { assignee_ids: string[] })
 
   if (input.assignee_ids.length > 0) {
     const { error: aErr } = await supabase.from("task_assignees").insert(
-      input.assignee_ids.map((profile_id) => ({ task_id: data.id, profile_id }))
+      input.assignee_ids.map((profile_id) => ({
+        task_id: data.id,
+        profile_id,
+        is_lead: profile_id === input.lead_assignee_id,
+      }))
     );
     if (aErr) return { error: aErr.message };
+  }
+
+  if (input.parts && input.parts.length > 0) {
+    const { error: pErr } = await supabase
+      .from("task_parts")
+      .insert(input.parts.map((p) => ({ task_id: data.id, ...p })));
+    if (pErr) return { error: pErr.message };
   }
 
   const { data: full } = await supabase
@@ -94,6 +118,8 @@ export async function updateTask(id: string, input: TaskFields) {
       model_id: input.model_id,
       parts_cost: input.parts_cost,
       service_charge: input.service_charge,
+      parts_currency: input.parts_currency,
+      service_currency: input.service_currency,
     })
     .eq("id", id)
     .select(TASK_SELECT)
@@ -120,6 +146,21 @@ export async function removeAssignee(taskId: string, profileId: string) {
   const { error } = await supabase
     .from("task_assignees")
     .delete()
+    .eq("task_id", taskId)
+    .eq("profile_id", profileId);
+  if (error) return { error: error.message };
+  revalidate();
+  return { ok: true };
+}
+
+// Marks one assignee as lead/responsible for the task. Setting it true is
+// enough — the task_assignees_single_lead trigger clears the flag on every
+// other row for the same task. Setting it false just un-marks that one.
+export async function setLeadAssignee(taskId: string, profileId: string, lead: boolean) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("task_assignees")
+    .update({ is_lead: lead })
     .eq("task_id", taskId)
     .eq("profile_id", profileId);
   if (error) return { error: error.message };

@@ -40,3 +40,6 @@ yarn-error.log*
 
 # typescript incremental build info
 tsconfig.tsbuildinfo
+
+# database backups (real customer/user data — never commit)
+/backups/

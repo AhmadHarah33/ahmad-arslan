@@ -17,7 +17,9 @@ import type {
   FieldType,
 } from "@/lib/customFields";
 import { toastErr } from "@/lib/toast";
-import { useT } from "@/lib/i18n/provider";
+import { useT, useLanguage } from "@/lib/i18n/provider";
+import { translateFieldLabel } from "@/lib/i18n/dictionary";
+import Modal from "@/components/modal";
 import { SkeletonRows } from "@/components/skeleton";
 import {
   createField,
@@ -160,7 +162,9 @@ function FieldRow({
   onDeleted: () => void;
   onOptionsChanged: (opts: FieldOption[]) => void;
 }) {
+  const { lang } = useLanguage();
   const [menu, setMenu] = useState(false);
+  const label = translateFieldLabel(def.label, lang);
 
   async function remove() {
     if (!confirm(`Delete the field "${def.label}"? Its values will be removed.`))
@@ -183,7 +187,7 @@ function FieldRow({
     <div className="grid grid-cols-1 gap-1 sm:grid-cols-[7.5rem,1fr] sm:items-start sm:gap-3">
       <div className="flex items-center gap-1 sm:pt-1.5">
         <span className="truncate text-xs font-semibold uppercase tracking-wide text-ink-muted">
-          {def.label}
+          {label}
         </span>
         {canManage && (
           <div className="relative">
@@ -216,6 +220,7 @@ function FieldRow({
 
       <FieldInput
         def={def}
+        label={label}
         value={value}
         recordId={recordId}
         canManage={canManage}
@@ -232,6 +237,7 @@ function FieldRow({
 // --------------------------------------------------------------------------- //
 function FieldInput({
   def,
+  label,
   value,
   recordId,
   canManage,
@@ -240,6 +246,7 @@ function FieldInput({
   onOptionsChanged,
 }: {
   def: FieldDefinition;
+  label: string;
   value: unknown;
   recordId: string;
   canManage: boolean;
@@ -250,12 +257,11 @@ function FieldInput({
   switch (def.field_type) {
     case "text":
       return (
-        <textarea
-          className="input min-h-[38px] resize-y py-2"
+        <TextValueInput
+          label={label}
+          value={String(value ?? "")}
           disabled={disabled}
-          defaultValue={String(value ?? "")}
-          onBlur={(e) => onSave(e.target.value)}
-          placeholder="Empty"
+          onSave={onSave}
         />
       );
     case "number":
@@ -342,6 +348,88 @@ function FieldInput({
   }
 }
 
+// A long custom text field is painful to read or edit in a 38px box inside an
+// already-scrolling modal, same problem the task description had — past this
+// much text it collapses to a preview with an "open editor" affordance
+// instead. Mirrors components/tasks/description-field.tsx.
+const LONG_CHARS = 180;
+const LONG_LINES = 4;
+function isLong(text: string) {
+  return text.length > LONG_CHARS || text.split("\n").length > LONG_LINES;
+}
+
+function TextValueInput({
+  label,
+  value,
+  disabled,
+  onSave,
+}: {
+  label: string;
+  value: string;
+  disabled: boolean;
+  onSave: (v: string) => void;
+}) {
+  const t = useT();
+  const [draft, setDraft] = useState(value);
+  const [open, setOpen] = useState(false);
+  useEffect(() => setDraft(value), [value]);
+  const long = isLong(draft);
+
+  return (
+    <div>
+      {(long || draft.length > 0) && (
+        <div className="mb-1 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="text-xs font-medium text-brand-600 hover:underline"
+          >
+            {disabled ? t("fields.read") : t("fields.open")}
+          </button>
+        </div>
+      )}
+
+      {long ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full rounded-xl border border-surface-border bg-surface-soft/60 p-3 text-left transition hover:border-brand-600/40 hover:bg-surface-soft"
+        >
+          <p className="line-clamp-3 whitespace-pre-wrap text-sm text-ink">
+            {draft}
+          </p>
+          <span className="mt-2 block text-xs font-medium text-ink-faint">
+            {disabled ? t("fields.pressRead") : t("fields.pressEdit")}
+          </span>
+        </button>
+      ) : (
+        <textarea
+          className="input min-h-[38px] resize-y py-2"
+          disabled={disabled}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={(e) => onSave(e.target.value)}
+          placeholder="Empty"
+        />
+      )}
+
+      {open && (
+        <Modal title={label} onClose={() => setOpen(false)} wide>
+          <textarea
+            className="input min-h-[55vh] resize-none border-0 bg-transparent px-0 text-[15px] leading-relaxed focus:ring-0"
+            value={draft}
+            disabled={disabled}
+            autoFocus={!disabled}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={(e) => onSave(e.target.value)}
+            placeholder="Empty"
+          />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 function SelectInput({
   def,
   value,
@@ -360,6 +448,7 @@ function SelectInput({
   onOptionsChanged: (opts: FieldOption[]) => void;
 }) {
   const t = useT();
+  const { lang } = useLanguage();
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const selected = multi
@@ -404,7 +493,7 @@ function SelectInput({
               on ? "ring-2 ring-brand-300" : "opacity-60 hover:opacity-100"
             } ${disabled ? "cursor-default" : "cursor-pointer"}`}
           >
-            {o.label}
+            {translateFieldLabel(o.label, lang)}
           </button>
         );
       })}
@@ -482,6 +571,22 @@ function FilesInput({
     return /\.(png|jpe?g|gif|webp|avif)$/i.test(p);
   }
 
+  // Word/Excel/PowerPoint have no native browser renderer — clicking the
+  // storage URL directly always downloads them, whatever the link says.
+  // Routing through Office's web viewer opens them as a page instead. PDFs
+  // and images the browser already renders inline, so they go straight to
+  // the storage URL.
+  function isOffice(p: string) {
+    return /\.(docx?|xlsx?|pptx?)$/i.test(p);
+  }
+
+  function openUrl(p: string) {
+    const url = fieldFileUrl(p);
+    return isOffice(p)
+      ? `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`
+      : url;
+  }
+
   return (
     <div>
       <div className="flex flex-wrap gap-2">
@@ -496,7 +601,7 @@ function FilesInput({
               />
             ) : (
               <a
-                href={fieldFileUrl(p)}
+                href={openUrl(p)}
                 target="_blank"
                 rel="noreferrer"
                 className="flex h-16 w-16 items-center justify-center rounded-lg bg-surface-soft p-1 text-center text-[10px] text-ink-muted"
