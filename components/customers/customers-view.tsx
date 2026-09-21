@@ -11,7 +11,7 @@ import Fab from "@/components/fab";
 import { PageHeader } from "@/components/ui";
 import { useT } from "@/lib/i18n/provider";
 import { toastErr } from "@/lib/toast";
-import { approveCustomer, rejectCustomer } from "@/app/(app)/customers/actions";
+import { approveCustomer, deleteCustomer, rejectCustomer } from "@/app/(app)/customers/actions";
 import PendingBadge from "@/components/pending-badge";
 import CustomerModal from "./customer-modal";
 
@@ -112,6 +112,13 @@ export default function CustomersView({
         : "approval.rejectConfirm";
     if (!confirm(t(key))) return;
     const res = await rejectCustomer(c.id);
+    if (res?.error) return toastErr(res.error);
+    router.refresh();
+  }
+
+  async function remove(id: string) {
+    if (!confirm(t("customers.confirmDelete"))) return;
+    const res = await deleteCustomer(id);
     if (res?.error) return toastErr(res.error);
     router.refresh();
   }
@@ -248,6 +255,16 @@ export default function CustomersView({
                           className="btn-ghost h-7 px-2.5 text-xs"
                         >
                           {t("approval.reject")}
+                        </button>
+                      </div>
+                    ) : manager ? (
+                      <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <span className="text-xs text-ink-faint">{t("common.edit")}</span>
+                        <button
+                          onClick={() => remove(c.id)}
+                          className="text-xs text-red-600 hover:underline"
+                        >
+                          {t("common.delete")}
                         </button>
                       </div>
                     ) : (

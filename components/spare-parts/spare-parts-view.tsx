@@ -6,6 +6,7 @@ import type { Company, Profile, SparePart } from "@/lib/types";
 import { isManager } from "@/lib/permissions";
 import { saveCompany } from "@/app/(app)/spare-parts/actions";
 import { approveSparePart, rejectSparePart } from "@/app/(app)/spare-parts/actions";
+import { deleteBrand } from "@/app/(app)/catalog/actions";
 import Modal from "@/components/modal";
 import ImportExport from "@/components/data/import-export";
 import Fab from "@/components/fab";
@@ -117,11 +118,11 @@ export default function SparePartsView({
   // grouped under a brand heading. This is on top of the sidebar/dropdown
   // filter, not instead of it: filtering to one brand simply leaves one group.
   const groups = useMemo(() => {
-    const byBrand = new Map<string, { name: string; rows: SparePart[] }>();
+    const byBrand = new Map<string, { id: string; name: string; rows: SparePart[] }>();
     for (const p of filtered) {
       const id = p.company_id ?? "__none__";
       if (!byBrand.has(id)) {
-        byBrand.set(id, { name: p.company?.name ?? t("customers.noBrand"), rows: [] });
+        byBrand.set(id, { id, name: p.company?.name ?? t("customers.noBrand"), rows: [] });
       }
       byBrand.get(id)!.rows.push(p);
     }
@@ -137,6 +138,17 @@ export default function SparePartsView({
     const params = new URLSearchParams();
     if (id) params.set("brand", id);
     router.push(`/spare-parts${params.toString() ? `?${params}` : ""}`);
+  }
+
+  const [deletingBrand, setDeletingBrand] = useState(false);
+  async function removeBrand(id: string) {
+    if (!confirm(t("catalog.confirmDeleteBrand"))) return;
+    setDeletingBrand(true);
+    const res = await deleteBrand(id);
+    setDeletingBrand(false);
+    if (res?.error) return toastErr(res.error);
+    selectBrand("");
+    router.refresh();
   }
 
   async function approve(id: string) {
@@ -222,6 +234,15 @@ export default function SparePartsView({
             </option>
           ))}
         </select>
+        {manager && brandFilter && (
+          <button
+            className="btn-ghost shrink-0"
+            onClick={() => removeBrand(brandFilter)}
+            disabled={deletingBrand}
+          >
+            {t("parts.deleteCompany")}
+          </button>
+        )}
       </div>
 
       {companies.length === 0 ? (
@@ -250,14 +271,27 @@ export default function SparePartsView({
             </thead>
             <tbody>
               {groups.map((g) => (
-                <Fragment key={g.name}>
+                <Fragment key={g.id}>
                   <tr>
                     <th
                       colSpan={7}
                       className="bg-surface-soft px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted"
                     >
-                      {g.name}
-                      <span className="ml-2 font-normal text-ink-faint">{g.rows.length}</span>
+                      <div className="flex items-center justify-between">
+                        <span>
+                          {g.name}
+                          <span className="ml-2 font-normal text-ink-faint">{g.rows.length}</span>
+                        </span>
+                        {manager && g.id !== "__none__" && (
+                          <button
+                            onClick={() => removeBrand(g.id)}
+                            disabled={deletingBrand}
+                            className="text-xs font-normal normal-case text-red-600 hover:underline"
+                          >
+                            {t("parts.deleteCompany")}
+                          </button>
+                        )}
+                      </div>
                     </th>
                   </tr>
                   {g.rows.map((p) => (

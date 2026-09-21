@@ -200,20 +200,6 @@ export default function TasksBoard({
     };
   }, [fieldDefs, fieldValues]);
 
-  // Rapor is the one Properties field that does not block completion, so a
-  // finished job missing its report gets flagged on the card instead. Only on
-  // done / pending cards: before that there is nothing to report yet, and a
-  // dot on every To do card would just be noise.
-  const reportMissing = useMemo(() => {
-    const def = fieldDefs.find((d) => d.label === "Rapor");
-    return (task: Task) => {
-      if (!def) return false;
-      if (task.status !== "done" && task.status !== "pending_approval") return false;
-      const v = fieldValues[task.id]?.[def.id];
-      return !Array.isArray(v) || v.length === 0;
-    };
-  }, [fieldDefs, fieldValues]);
-
   const activeTask = tasks.find((t) => t.id === activeId) || null;
 
   function onDragStart(e: DragStartEvent) {
@@ -381,7 +367,6 @@ export default function TasksBoard({
     customerName,
     attachmentCount,
     commentCounts,
-    reportMissing,
     canApprove,
     onApproveTask: approveTask,
     onSendBackTask: sendBackTask,
@@ -531,7 +516,6 @@ type CardExtras = {
   customerName: (id: string | null) => string;
   attachmentCount: (taskId: string) => number;
   commentCounts: CountMap;
-  reportMissing: (task: Task) => boolean;
   canApprove: boolean;
   onApproveTask: (task: Task) => void;
   onSendBackTask: (task: Task) => void;
@@ -736,33 +720,20 @@ function CardBody({
   canApprove,
   onApproveTask,
   onSendBackTask,
-  reportMissing,
   lifted = false,
   onMenu,
 }: {
   task: Task;
   lifted?: boolean;
   onMenu?: () => void;
-} & Pick<
-  CardExtras,
-  "canApprove" | "onApproveTask" | "onSendBackTask" | "reportMissing"
->) {
+} & Pick<CardExtras, "canApprove" | "onApproveTask" | "onSendBackTask">) {
   const t = useT();
   const pending = task.status === "pending_approval";
-  const noReport = reportMissing(task);
 
   return (
     <div className={`task-card relative px-4 py-3.5 ${lifted ? "shadow-pop" : "hover:shadow-card"}`}>
       {/* Mobile only — desktop uses drag-and-drop to change columns, so the
           menu would be a redundant control there. */}
-      {noReport && (
-        <span
-          title={t("task.reportMissing")}
-          aria-label={t("task.reportMissing")}
-          className="absolute right-2 top-2 h-2 w-2 rounded-full"
-          style={{ background: "rgb(var(--tone-stuck))" }}
-        />
-      )}
       {onMenu && (
         <button
           onClick={(e) => {
@@ -770,16 +741,14 @@ function CardBody({
             onMenu();
           }}
           aria-label="Task options"
-          className={`icon-btn absolute top-1.5 h-6 w-6 md:hidden ${
-            noReport ? "right-6" : "right-1.5"
-          }`}
+          className="icon-btn absolute right-1.5 top-1.5 h-6 w-6 md:hidden"
         >
           <DotsIcon className="h-3.5 w-3.5" />
         </button>
       )}
       <p
         className={`line-clamp-2 text-[15px] font-medium leading-snug text-ink ${
-          onMenu ? (noReport ? "pr-12" : "pr-6") : noReport ? "pr-4" : ""
+          onMenu ? "pr-6" : ""
         }`}
       >
         {task.title}

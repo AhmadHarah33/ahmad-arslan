@@ -154,13 +154,29 @@ export async function renameBrand(id: string, name: string) {
   return { ok: true };
 }
 
-// Deleting a brand cascades to its models (machine_models.company_id is
-// ON DELETE CASCADE) and unlinks its customers and spare parts, so this one
-// is confirmed loudly in the UI before it gets here.
+// machine_models.company_id cascades on delete, so an unblocked delete here
+// would silently wipe every model under the brand too. Refuse instead of
+// cascading whenever anything still points at it — spare parts, models,
+// customer machines, or tasks all carry a company_id and would otherwise be
+// orphaned or unlinked without anyone noticing.
 export async function deleteBrand(id: string) {
   const denied = await requireManager();
   if (denied) return { error: denied };
   const supabase = createClient();
+  const [parts, models, machines, tasks] = await Promise.all([
+    supabase.from("spare_parts").select("id", { count: "exact", head: true }).eq("company_id", id),
+    supabase.from("machine_models").select("id", { count: "exact", head: true }).eq("company_id", id),
+    supabase.from("customer_machines").select("id", { count: "exact", head: true }).eq("company_id", id),
+    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("company_id", id),
+  ]);
+  const blockers: string[] = [];
+  if (parts.count) blockers.push(`${parts.count} spare part${parts.count === 1 ? "" : "s"}`);
+  if (models.count) blockers.push(`${models.count} model${models.count === 1 ? "" : "s"}`);
+  if (machines.count) blockers.push(`${machines.count} customer machine${machines.count === 1 ? "" : "s"}`);
+  if (tasks.count) blockers.push(`${tasks.count} task${tasks.count === 1 ? "" : "s"}`);
+  if (blockers.length > 0) {
+    return { error: `Still used by ${blockers.join(", ")} — remove or reassign those first.` };
+  }
   const { error } = await supabase.from("companies").delete().eq("id", id);
   if (error) return { error: error.message };
   refresh();

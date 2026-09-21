@@ -250,11 +250,9 @@ function RowActions({
       </button>
       <button
         onClick={onDelete}
-        aria-label={t("common.delete")}
-        className="rounded-lg px-2 py-1 text-xs font-medium text-ink-faint hover:bg-surface-soft"
-        style={{ color: "rgb(var(--tone-stuck-ink))" }}
+        className="rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-surface-soft hover:underline"
       >
-        ✕
+        {t("common.delete")}
       </button>
     </div>
   );

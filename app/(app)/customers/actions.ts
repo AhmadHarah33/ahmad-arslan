@@ -101,6 +101,20 @@ export async function createCustomer(name: string) {
 
 export async function deleteCustomer(id: string) {
   const supabase = createClient();
+  // tasks.customer_id is ON DELETE SET NULL, so Postgres would let this
+  // through and quietly strip the customer off every task that used to
+  // reference it. Refuse instead whenever any task still points here —
+  // customer_links and customer_machines are the customer's own data and
+  // cascade with it, which is fine.
+  const { count } = await supabase
+    .from("tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("customer_id", id);
+  if (count) {
+    return {
+      error: `Still used by ${count} task${count === 1 ? "" : "s"} — reassign or delete those first.`,
+    };
+  }
   const { error } = await supabase.from("customers").delete().eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/customers");

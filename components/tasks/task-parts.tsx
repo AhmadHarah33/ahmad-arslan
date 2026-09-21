@@ -30,7 +30,8 @@ export function draftPartsTotal(rows: DraftPart[]): number {
   return rows.reduce((sum, r) => sum + (parseAmount(r.priceText) ?? 0) * r.quantity, 0);
 }
 
-type PartOption = { id: string; name: string; price: number | null };
+type PartOption = { id: string; name: string; price: number | null; company_id: string | null };
+type BrandOption = { id: string; name: string };
 type UsedRow = {
   id: string;
   spare_part_id: string;
@@ -55,6 +56,8 @@ export default function TaskParts({
   draft,
   onDraftChange,
   onTotalsChange,
+  companies,
+  defaultBrandId,
 }: {
   // Omit for a task that hasn't been saved yet: rows live in `draft` (owned
   // by the parent) instead of being written straight to task_parts.
@@ -67,12 +70,22 @@ export default function TaskParts({
   // computed parts cost and the "will be sent for approval" notice without
   // re-querying task_parts itself.
   onTotalsChange?: (totals: { count: number; total: number }) => void;
+  // Brands to offer in the "narrow to a brand" filter above the part picker.
+  companies?: BrandOption[];
+  // The task's own brand (city/brand/model), if set — the part list starts
+  // filtered to it, since that's almost always the brand the parts used on
+  // the job come from. Picking "All brands" clears the filter.
+  defaultBrandId?: string;
 }) {
   const t = useT();
   const local = !taskId;
 
   const [used, setUsed] = useState<UsedRow[]>([]);
   const [parts, setParts] = useState<PartOption[]>([]);
+  const [brandFilter, setBrandFilter] = useState(defaultBrandId ?? "");
+  useEffect(() => {
+    if (defaultBrandId) setBrandFilter(defaultBrandId);
+  }, [defaultBrandId]);
 
   useEffect(() => {
     let active = true;
@@ -81,7 +94,7 @@ export default function TaskParts({
       if (local) {
         const { data: sp } = await supabase
           .from("spare_parts")
-          .select("id, name, price")
+          .select("id, name, price, company_id")
           .order("name");
         if (active) setParts((sp ?? []) as PartOption[]);
         return;
@@ -91,7 +104,7 @@ export default function TaskParts({
           .from("task_parts")
           .select("id, spare_part_id, quantity, unit_price, part:spare_part_id(name)")
           .eq("task_id", taskId),
-        supabase.from("spare_parts").select("id, name, price").order("name"),
+        supabase.from("spare_parts").select("id, name, price, company_id").order("name"),
       ]);
       if (!active) return;
       setUsed(
@@ -198,8 +211,12 @@ export default function TaskParts({
   }
 
   // A part already on the task is dropped from the picker rather than adding
-  // a second row for the same part.
-  const available = parts.filter((p) => !rows.some((r) => r.spare_part_id === p.id));
+  // a second row for the same part. The brand filter narrows the rest —
+  // without it, a shop with several brands' catalogs meant scrolling past
+  // every part on every job just to find the handful for this one.
+  const available = parts
+    .filter((p) => !rows.some((r) => r.spare_part_id === p.id))
+    .filter((p) => !brandFilter || p.company_id === brandFilter);
 
   return (
     <div className="space-y-2">
@@ -258,21 +275,41 @@ export default function TaskParts({
       ))}
 
       {editable && (
-        <select
-          className="input"
-          value=""
-          disabled={busy || available.length === 0}
-          onChange={(e) => pick(e.target.value)}
-        >
-          <option value="">
-            {available.length === 0 ? t("task.allPartsAdded") : t("task.addPart")}
-          </option>
-          {available.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
+        <div className="flex gap-2">
+          {companies && companies.length > 0 && (
+            <select
+              className="input w-32 shrink-0"
+              value={brandFilter}
+              onChange={(e) => setBrandFilter(e.target.value)}
+            >
+              <option value="">{t("task.allBrands")}</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <select
+            className="input flex-1"
+            value=""
+            disabled={busy || available.length === 0}
+            onChange={(e) => pick(e.target.value)}
+          >
+            <option value="">
+              {available.length === 0
+                ? brandFilter
+                  ? t("task.noPartsForBrand")
+                  : t("task.allPartsAdded")
+                : t("task.addPart")}
             </option>
-          ))}
-        </select>
+            {available.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
       )}
     </div>
   );

@@ -1,13 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { loadFields } from "@/lib/fields.server";
 import { TASK_SELECT, normalizeTask } from "@/lib/tasks.server";
-import { formatDate } from "@/lib/dates";
 import { formatAmount } from "@/lib/money";
 import { CURRENCY_SYMBOLS } from "@/lib/types";
 import type { Customer, Task } from "@/lib/types";
 import type { FieldDefinition } from "@/lib/customFields";
 import PrintTrigger from "./print-trigger";
-import QrCode, { customerQrValue } from "@/components/qr-code";
+import QrCode from "@/components/qr-code";
+import { customerQrValue } from "@/lib/qr";
 
 const DEFAULT_COMPANY = {
   company_name: "Mars Med Dent",
@@ -39,7 +39,7 @@ export default async function TaskReport({
   if (settings) company = settings as typeof DEFAULT_COMPANY;
 
   if (!task) {
-    return <main className="p-10 text-center">Task not found.</main>;
+    return <main className="p-10 text-center">Görev bulunamadı.</main>;
   }
 
   const [
@@ -76,7 +76,7 @@ export default async function TaskReport({
     id: r.id,
     quantity: r.quantity,
     unit_price: r.unit_price,
-    name: r.part?.name ?? "Part",
+    name: r.part?.name ?? "Parça",
   }));
   const partsTotal = partRows.reduce((sum, r) => sum + (r.unit_price ?? 0) * r.quantity, 0);
   const grandTotal = partsTotal + (task.service_charge ?? 0);
@@ -101,8 +101,8 @@ export default async function TaskReport({
         </div>
         <div className="flex items-start gap-3 text-right text-sm">
           <div>
-            <p className="font-semibold">Service Report</p>
-            <p>{new Date(task.created_at || Date.now()).toLocaleDateString()}</p>
+            <p className="font-semibold">Servis Raporu</p>
+            <p>{new Date(task.created_at || Date.now()).toLocaleDateString("tr-TR")}</p>
           </div>
           {customer && (
             <div className="rounded bg-white p-1">
@@ -116,31 +116,28 @@ export default async function TaskReport({
 
       <table className="mb-5 w-full text-sm">
         <tbody>
-          <Row label="Status" value={task.status.replace("_", " ")} />
-          <Row label="Priority" value={task.priority} />
           <Row
-            label="Engineer"
+            label="Mühendis"
             value={leadEngineer ? leadEngineer.full_name || leadEngineer.first_name : "—"}
           />
           {task.assignees.length > 1 && (
             <Row
-              label="Also on this job"
+              label="Diğer görevliler"
               value={task.assignees
                 .filter((a) => a.id !== leadEngineer?.id)
                 .map((a) => a.full_name || a.first_name)
                 .join(", ")}
             />
           )}
-          {task.due_date && <Row label="Due" value={formatDate(task.due_date)} />}
-          {customer && <Row label="Customer" value={customer.name} />}
-          {cityRow && <Row label="City" value={(cityRow as any).name} />}
-          {brandRow && <Row label="Brand" value={(brandRow as any).name} />}
+          {customer && <Row label="Müşteri" value={customer.name} />}
+          {cityRow && <Row label="Şehir" value={(cityRow as any).name} />}
+          {brandRow && <Row label="Marka" value={(brandRow as any).name} />}
           {modelRow && <Row label="Model" value={(modelRow as any).name} />}
         </tbody>
       </table>
 
       {task.description && (
-        <Section title="Description">
+        <Section title="Açıklama">
           <p className="whitespace-pre-wrap text-sm">{task.description}</p>
         </Section>
       )}
@@ -152,14 +149,14 @@ export default async function TaskReport({
       ))}
 
       {partRows.length > 0 && (
-        <Section title="Spare parts">
+        <Section title="Yedek parçalar">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-300 text-left text-xs uppercase text-gray-500">
-                <th className="py-1">Part</th>
-                <th className="py-1 text-right">Qty</th>
-                <th className="py-1 text-right">Unit price</th>
-                <th className="py-1 text-right">Total</th>
+                <th className="py-1">Parça</th>
+                <th className="py-1 text-right">Adet</th>
+                <th className="py-1 text-right">Birim fiyat</th>
+                <th className="py-1 text-right">Toplam</th>
               </tr>
             </thead>
             <tbody>
@@ -185,21 +182,21 @@ export default async function TaskReport({
         <tbody>
           {partsTotal > 0 && (
             <Row
-              label="Parts total"
+              label="Parça toplamı"
               value={`${CURRENCY_SYMBOLS[task.parts_currency]}${formatAmount(partsTotal)}`}
               plain
             />
           )}
           {task.service_charge != null && (
             <Row
-              label="Service charge"
+              label="Servis ücreti"
               value={`${CURRENCY_SYMBOLS[task.service_currency]}${formatAmount(task.service_charge)}`}
               plain
             />
           )}
           {(partsTotal > 0 || task.service_charge != null) && (
             <tr>
-              <td className="w-32 py-1.5 pr-4 text-sm font-bold">Grand total</td>
+              <td className="w-32 py-1.5 pr-4 text-sm font-bold">Genel toplam</td>
               <td className="py-1.5 text-sm font-bold">
                 {task.parts_currency === task.service_currency
                   ? `${CURRENCY_SYMBOLS[task.parts_currency]}${formatAmount(grandTotal)}`
@@ -213,16 +210,16 @@ export default async function TaskReport({
       <div className="mt-14 grid grid-cols-2 gap-8 text-sm">
         <div>
           <div className="mb-1 h-10 border-b border-gray-400" />
-          <p className="text-xs text-gray-500">Engineer signature</p>
+          <p className="text-xs text-gray-500">Mühendis imzası</p>
         </div>
         <div>
           <div className="mb-1 h-10 border-b border-gray-400" />
-          <p className="text-xs text-gray-500">Customer signature</p>
+          <p className="text-xs text-gray-500">Müşteri imzası</p>
         </div>
       </div>
 
       <footer className="mt-10 border-t pt-3 text-xs text-gray-500">
-        Generated by {company.company_name} · Mars Technical Support
+        {company.company_name} tarafından oluşturuldu · Mars Technical Support
       </footer>
     </main>
   );

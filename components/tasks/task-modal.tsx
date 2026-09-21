@@ -469,6 +469,8 @@ export default function TaskModal({
             draft={draftParts}
             onDraftChange={setDraftParts}
             onTotalsChange={setPartsTotals}
+            companies={companies}
+            defaultBrandId={companyId}
           />
 
           <div className="mt-4 grid grid-cols-2 gap-3">
