@@ -26,6 +26,9 @@ const NAV = [
   { href: "/catalog", key: "nav.catalog", icon: CatalogIcon },
 ] as const;
 
+// Pages that get a slot in the phone's bottom bar.
+const MOBILE_TABS: string[] = ["/", "/tasks", "/agreements", "/customers", "/spare-parts", "/catalog"];
+
 export default function AppShell({
   profile,
   teammates,
@@ -60,6 +63,7 @@ export default function AppShell({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<ThemeMode>(
     (profile.theme_mode as ThemeMode) ?? "light"
@@ -94,6 +98,23 @@ export default function AppShell({
       : []),
   ];
 
+  const tabLink = (href: string) => {
+    const item = nav.find((n) => n.href === href);
+    if (!item) return null;
+    return (
+      <Link
+        key={href}
+        href={href}
+        className={`flex flex-col items-center gap-[3px] py-1.5 text-[10px] ${
+          active(href) ? "font-bold text-ink" : "font-medium text-ink-faint"
+        }`}
+      >
+        <item.icon className="h-[22px] w-[22px]" />
+        {t(item.key)}
+      </Link>
+    );
+  };
+
   function active(href: string) {
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
@@ -122,62 +143,14 @@ export default function AppShell({
 
       <div className="flex min-h-screen gap-3 md:p-3">
         {/* Desktop sidebar: account · pages · settings + sign out */}
-        <aside className="glass-strong sticky top-3 hidden h-[calc(100vh-1.5rem)] w-56 shrink-0 flex-col rounded-3xl border border-surface-border p-3 md:flex">
-          {/* Account — click for the sign-out menu */}
-          <div className="relative" ref={userMenuRef}>
-            <button
-              onClick={() => setUserMenuOpen((v) => !v)}
-              aria-haspopup="menu"
-              aria-expanded={userMenuOpen}
-              className="flex w-full items-center gap-2.5 rounded-2xl p-2 text-left transition hover:bg-surface-soft"
-            >
-              <Avatar
-                id={profile.id}
-                name={profile.full_name || profile.first_name || "User"}
-                size={32}
-              />
-              <span className="min-w-0 flex-1 leading-tight">
-                <span className="block truncate text-[13px] font-semibold text-ink">
-                  {profile.full_name || profile.first_name || "User"}
-                </span>
-                <span className="block truncate text-[11px] text-ink-faint">
-                  {t(roleKey(profile.role))}
-                </span>
-              </span>
-              <ChevronIcon
-                className={`h-4 w-4 shrink-0 text-ink-faint transition-transform ${
-                  userMenuOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {userMenuOpen && (
-              <div
-                role="menu"
-                className="glass glass-strong animate-pop absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-2xl border border-surface-border py-1"
-              >
-                <button
-                  role="menuitem"
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    setSettingsOpen(true);
-                  }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-ink transition hover:bg-surface-soft"
-                >
-                  <GearIcon className="h-4 w-4" />
-                  {t("shell.settings")}
-                </button>
-                <button
-                  role="menuitem"
-                  onClick={signOut}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-600 transition hover:bg-surface-soft"
-                >
-                  <SignOutIcon className="h-4 w-4" />
-                  {t("shell.signOut")}
-                </button>
-              </div>
-            )}
-          </div>
+        <aside className="card sticky top-3 hidden h-[calc(100vh-1.5rem)] w-56 shrink-0 flex-col rounded-[20px] p-3 md:flex">
+          {/* Brand */}
+          <Link href="/" className="flex items-center gap-2.5 px-1.5 pt-1">
+            <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-brand-800 text-[15px] font-bold text-white">
+              M
+            </span>
+            <span className="text-[15px] font-semibold text-ink">Mars Support</span>
+          </Link>
 
           {/* Pages */}
           <nav className="mt-4 flex flex-1 flex-col gap-0.5 overflow-y-auto">
@@ -195,9 +168,9 @@ export default function AppShell({
                     key={item.href}
                     href={item.href}
                     prefetch
-                    className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                       active(item.href)
-                        ? "bg-surface-soft text-ink"
+                        ? "bg-brand-600/10 font-semibold text-ink"
                         : "text-ink-muted hover:bg-surface-soft hover:text-ink"
                     }`}
                   >
@@ -216,7 +189,7 @@ export default function AppShell({
                   <div
                     className={`flex items-center gap-1 rounded-xl pr-1 text-sm font-medium transition ${
                       noBrand
-                        ? "bg-surface-soft text-ink"
+                        ? "bg-brand-600/10 font-semibold text-ink"
                         : "text-ink-muted hover:bg-surface-soft hover:text-ink"
                     }`}
                   >
@@ -304,21 +277,68 @@ export default function AppShell({
               </button>
             </div>
           </div>
+
+          {/* Account — click for the sign-out menu */}
+          <div className="relative mt-2" ref={userMenuRef}>
+            <button
+              onClick={() => setUserMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
+              className="flex w-full items-center gap-2.5 rounded-2xl bg-surface-soft p-2.5 text-left transition hover:opacity-90"
+            >
+              <Avatar
+                id={profile.id}
+                name={profile.full_name || profile.first_name || "User"}
+                size={32}
+              />
+              <span className="min-w-0 flex-1 leading-tight">
+                <span className="block truncate text-[13px] font-semibold text-ink">
+                  {profile.full_name || profile.first_name || "User"}
+                </span>
+                <span className="block truncate text-[11px] text-ink-faint">
+                  {t(roleKey(profile.role))}
+                </span>
+              </span>
+              <ChevronIcon
+                className={`h-4 w-4 shrink-0 text-ink-faint transition-transform ${
+                  userMenuOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {userMenuOpen && (
+              <div
+                role="menu"
+                className="glass glass-strong animate-pop absolute inset-x-0 bottom-full z-30 mb-1 overflow-hidden rounded-2xl border border-surface-border py-1"
+              >
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    setSettingsOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-ink transition hover:bg-surface-soft"
+                >
+                  <GearIcon className="h-4 w-4" />
+                  {t("shell.settings")}
+                </button>
+                <button
+                  role="menuitem"
+                  onClick={signOut}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-600 transition hover:bg-surface-soft"
+                >
+                  <SignOutIcon className="h-4 w-4" />
+                  {t("shell.signOut")}
+                </button>
+              </div>
+            )}
+          </div>
         </aside>
 
         {/* App frame */}
-        <div className="glass-strong flex min-w-0 flex-1 flex-col overflow-hidden md:rounded-3xl md:border md:border-surface-border">
-          {/* Desktop top bar: brand · nav pills · people */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Desktop top bar: people · search */}
           <header className="hidden items-center gap-4 px-5 py-3.5 md:flex">
-            <Link href="/" className="flex shrink-0 items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">
-                M
-              </span>
-              <span className="text-[15px] font-semibold text-ink">
-                Mars Support
-              </span>
-            </Link>
-
             {/* Page nav lives in the sidebar now; this spacer keeps the
                 right-hand controls pinned to the right. */}
             <div className="flex-1" />
@@ -359,42 +379,88 @@ export default function AppShell({
           </header>
 
           {/* Mobile top bar */}
-          <header className="sticky top-0 z-20 flex items-center justify-between border-b border-surface-border bg-surface px-4 py-3 md:hidden">
-            <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
+          <header className="sticky top-0 z-20 flex items-center justify-between bg-[rgb(var(--canvas))] px-4 pb-2 pt-3 md:hidden">
+            <Link href="/" className="flex items-center gap-2.5">
+              <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-brand-800 text-[15px] font-bold text-white">
                 M
               </span>
-              <span className="text-sm font-semibold">Mars Support</span>
-            </div>
-            <div className="flex items-center gap-1">
+              <span className="text-[15px] font-semibold text-ink">Mars Support</span>
+            </Link>
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setSearchOpen(true)}
                 aria-label={t("shell.search")}
-                className="icon-btn h-9 w-9"
+                className="card flex h-11 w-11 items-center justify-center rounded-[14px] text-ink"
               >
                 <SearchIcon className="h-5 w-5" />
               </button>
-              <button
-                onClick={() => pickMode(mode === "dark" ? "light" : "dark")}
-                aria-label={t("misc.toggleDark")}
-                className="icon-btn h-9 w-9"
-              >
-                {mode === "dark" ? (
-                  <SunIcon className="h-5 w-5" />
-                ) : (
-                  <MoonIcon className="h-5 w-5" />
+              <div className="relative">
+                <button
+                  onClick={() => setMoreOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={moreOpen}
+                  aria-label={t("shell.settings")}
+                  className="block rounded-full"
+                >
+                  <Avatar
+                    id={profile.id}
+                    name={profile.full_name || profile.first_name || "User"}
+                    size={44}
+                  />
+                </button>
+                {moreOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setMoreOpen(false)} />
+                    <div
+                      role="menu"
+                      className="card glass-strong animate-pop absolute right-0 top-full z-40 mt-2 w-56 overflow-hidden rounded-2xl py-1"
+                    >
+                      {nav
+                        .filter((n) => !MOBILE_TABS.includes(n.href))
+                        .map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            role="menuitem"
+                            onClick={() => setMoreOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-ink transition hover:bg-surface-soft"
+                          >
+                            <item.icon className="h-4 w-4" />
+                            {t(item.key)}
+                          </Link>
+                        ))}
+                      <div className="my-1 border-t border-surface-border" />
+                      <button
+                        role="menuitem"
+                        onClick={() => pickMode(mode === "dark" ? "light" : "dark")}
+                        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-ink transition hover:bg-surface-soft"
+                      >
+                        {mode === "dark" ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
+                        {t("misc.toggleDark")}
+                      </button>
+                      <button
+                        role="menuitem"
+                        onClick={() => {
+                          setMoreOpen(false);
+                          setSettingsOpen(true);
+                        }}
+                        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-ink transition hover:bg-surface-soft"
+                      >
+                        <GearIcon className="h-4 w-4" />
+                        {t("shell.settings")}
+                      </button>
+                      <button
+                        role="menuitem"
+                        onClick={signOut}
+                        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 transition hover:bg-surface-soft"
+                      >
+                        <SignOutIcon className="h-4 w-4" />
+                        {t("shell.signOut")}
+                      </button>
+                    </div>
+                  </>
                 )}
-              </button>
-              <button
-                onClick={() => setSettingsOpen(true)}
-                aria-label={t("shell.settings")}
-                className="icon-btn h-9 w-9"
-              >
-                <GearIcon className="h-5 w-5" />
-              </button>
-              <button onClick={signOut} aria-label={t("shell.signOut")} className="icon-btn h-9 w-9">
-                <SignOutIcon className="h-5 w-5" />
-              </button>
+              </div>
             </div>
           </header>
 
@@ -409,21 +475,13 @@ export default function AppShell({
         </div>
       </div>
 
-      {/* Mobile bottom tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-surface-border bg-surface md:hidden">
-        {nav.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium ${
-              active(item.href) ? "text-ink" : "text-ink-faint"
-            }`}
-            style={{ paddingBottom: "calc(0.625rem + env(safe-area-inset-bottom))" }}
-          >
-            <item.icon className="h-5 w-5" />
-            {t(item.key)}
-          </Link>
-        ))}
+      {/* Mobile bottom tab bar: every main page. Team (head only) lives in the
+          avatar menu up top. */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 items-center border-t border-surface-border bg-surface/95 px-1 pt-1.5 backdrop-blur md:hidden"
+        style={{ paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom))" }}
+      >
+        {MOBILE_TABS.map((href) => tabLink(href))}
       </nav>
 
       {settingsOpen && (
