@@ -90,12 +90,17 @@ application code a second time. See `CODE_REVIEW.md` §8.
 `status` enum is now `todo|in_progress|done|stuck`) ·
 `task_assignees` (join, multi-assignee) · `field_definitions` + `field_values`
 (custom fields, 8 types) · `task_comments` · `audit_log` (+ generic trigger) ·
-`task_templates` · `maintenance_schedules` (+ `generate_due_maintenance()` RPC) ·
+`task_templates` · `maintenance_schedules` (legacy, empty, superseded by agreements) ·
+`agreements` + `agreement_machines` + `agreement_visits` + `agreement_assignees` (+
+`generate_due_agreement_visits()` RPC, task-done trigger, `agreement_overview` view; see
+"Bakım & Garanti" below) ·
 `task_parts` (+ inventory-sync trigger) · `app_settings` (company header/branding).
-Storage buckets: `spare-part-photos`, `field-files`.
+Storage buckets: `spare-part-photos`, `field-files`, `agreement-contracts` (private, PDF).
 Migrations live in `supabase/migrations/` (init → custom_fields → theme_and_assignees
 → enhancement3 → task_completed_at → maintenance_fn → app_background →
-**task_status_stuck**). Seed in `supabase/seed.sql` (first HEAD account
+task_status_stuck → … → customer_machines → **agreements → machine_warranty_reject →
+agreement_extras** (2026-10-06). Manual rollbacks for those three: `supabase/rollbacks/`).
+Seed in `supabase/seed.sql` (first HEAD account
 `head@marsmeddent.local` / `ChangeMe123!`, starter companies, preset custom
 fields, task templates).
 
@@ -124,7 +129,7 @@ fields, task templates).
    badges, assignee avatars, change-password.
 5. **Analytics** dashboard (stat tiles, per-engineer completion, low-stock).
 6. **Workflow**: task comments, **service report PDF** (`/print/task/[id]`),
-   task templates, parts-used consumption, preventive maintenance.
+   task templates, parts-used consumption, Bakım & Garanti agreements (below).
 7. **Oversight**: CSV import/export, audit trail (head), expiring-warranty banner.
 8. **QR**: per-machine QR (customer modal + report) + camera scanner in ⌘K.
 9. **Head dashboard redesign** (card grid).
@@ -237,7 +242,7 @@ fields, task templates).
 - **Turkish (TR/EN) language toggle** — team works in Turkish.
 - **Machines as first-class records** (a customer owns several machines, each with SN
   / warranty / QR / history) — currently one `machine` text field.
-- Notifications (assigned / due today / low stock), calendar view of tasks+maintenance.
+- Notifications (assigned / due today / low stock), calendar view of the task board itself (the agreements calendar exists).
 - Report upgrades: logo upload (app_settings.logo_url exists, no UI yet), customer
   signature, report status (draft→sent), email/share.
 - Kanban filters/swimlanes, checklists/subtasks, in-app camera capture.
@@ -248,3 +253,29 @@ fields, task templates).
 ## Verify locally / go live
 See `README.md` (Supabase start, env, tunnel, CSV formats, print flow, maintenance
 generator, `scripts/backup.sh`).
+
+## Bakım & Garanti (maintenance agreements + warranty) — added 2026-10
+Plan and decisions: `PLAN_MAINTENANCE_WARRANTY.md`. Sidebar item "Service" (`/agreements`).
+- **Agreement** = one customer, one or more of their machines. Plans: `periodic` (N visits
+  a year), `annual` (ONE visit; another the same year = a new agreement), `warranty`
+  (extension only, no visits). Statuses: draft / active / ended / cancelled; Expiring,
+  Overdue and Unpaid are derived in the `agreement_overview` view, never stored.
+- **Visits** are rows in `agreement_visits`; `generate_due_agreement_visits()` turns each
+  one into a normal task `remind_days` (3/7/14) before it is due. It runs on dashboard,
+  Tasks and Service page loads (no cron). Task → done marks the visit done (after the
+  approval step) and can end the agreement; reopening reverses it.
+- **Warranty**: `customer_machines.warranty_end` (factory) + the agreement's extension
+  (`coverage`, `warranty_months`, `warranty_end`). Effective end = the later of the two.
+  The expiring-warranty banner on Customers reads this (the old "Warranty End" custom
+  field was empty and is no longer used).
+- **Payments** are status-only (amount, currency, due date, paid/unpaid). "Send reminder"
+  creates an internal board task; nothing is sent to the customer.
+- **Pages**: `/agreements` (stat cards, calendar, urgent/payment panel),
+  `/agreements/customers` (table + CSV export), `/agreements/new`, `/agreements/[id]/edit`.
+  A live agreement's plan and visit count are fixed (cancel and open a new one); drafts
+  can change anything. Signed contract PDFs upload from the form.
+- **Code**: `lib/agreements.ts` (dates), `lib/agreements.dashboard.ts` (pure stat/calendar
+  maths), `lib/agreements.server.ts` (loaders), `app/(app)/agreements/`,
+  `components/agreements/`.
+- Old per-customer maintenance schedules were removed from the UI; the table and
+  `generate_due_maintenance()` remain in the DB, unused.

@@ -38,7 +38,7 @@ Docker.
   completion bars, and low-stock alerts.
 - 🧾 **Service report PDF** — print/save any task as a branded report.
 - 💬 **Comments** per task, **task templates**, **parts-used** consumption that
-  decrements inventory, **preventive-maintenance** schedules, **expiring-warranty**
+  decrements inventory, **Bakım & Garanti** service agreements, **expiring-warranty**
   alerts, **CSV import/export**, an **audit trail** (head), and per-machine **QR codes**.
 
 ## Tech stack
@@ -263,9 +263,20 @@ supabase/
 - **Service report** — open a task → **Download report** opens `/print/task/<id>`,
   which auto-launches the browser print dialog (Save as PDF). The company header
   comes from `app_settings` (editable by the head).
-- **Preventive maintenance** — add a schedule on a customer; due schedules create
-  tasks automatically the next time anyone opens the dashboard
-  (`generate_due_maintenance()`).
+- **Maintenance & Warranty (Bakım & Garanti)** — open **Service** in the sidebar.
+  An agreement belongs to one customer and covers one or more of their machines:
+  **Periyodik** (N visits a year), **Yıllık** (one visit; another visit the same
+  year is a new agreement) or **Garanti uzatma** (warranty extension, no visits).
+  Each visit becomes a normal board task a few days before its date (3/7/14, set
+  per agreement); the tasks are created the next time anyone opens the dashboard,
+  Tasks or Service page (`generate_due_agreement_visits()`), and marking the task
+  done marks the visit done. Machine warranty dates live on the customer's
+  machines; an agreement can extend them. Signed contracts (PDF) go to the private
+  `agreement-contracts` bucket. Payments are status-only (paid/unpaid). The old
+  per-customer maintenance schedules were replaced by agreements; the
+  `maintenance_schedules` table and `generate_due_maintenance()` are kept in the
+  database but unused. Manual rollbacks for the agreement migrations are in
+  `supabase/rollbacks/`.
 - **Backups** — run `scripts/backup.sh` (uses `pg_dump` against the local Supabase
   Postgres on port 54322). Schedule it with cron for automated daily backups; see
   the header of the script for the exact crontab line and restore command.
