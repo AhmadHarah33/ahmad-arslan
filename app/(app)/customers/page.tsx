@@ -1,6 +1,6 @@
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { loadFields } from "@/lib/fields.server";
+import { loadExpiringWarranties } from "@/lib/agreements.server";
 import CustomersView from "@/components/customers/customers-view";
 import type { City, Company, Customer, MachineModel } from "@/lib/types";
 
@@ -34,10 +34,7 @@ export default async function CustomersPage({
   const companies = (companiesData ?? []) as Company[];
   const cities = (citiesData ?? []) as City[];
   const models = (modelsData ?? []) as MachineModel[];
-  const { defs, valueMap } = await loadFields(
-    "customer",
-    customers.map((c) => c.id)
-  );
+  const expiringWarranties = await loadExpiringWarranties(supabase);
 
   return (
     <CustomersView
@@ -47,8 +44,7 @@ export default async function CustomersPage({
       cities={cities}
       models={models}
       brandFilter={brandFilter}
-      fieldDefs={defs}
-      fieldValues={valueMap}
+      expiringWarranties={expiringWarranties}
       initialQuery={initialQuery}
     />
   );

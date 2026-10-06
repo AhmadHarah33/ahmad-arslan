@@ -27,7 +27,7 @@ import Modal from "@/components/modal";
 import { useT } from "@/lib/i18n/provider";
 import CustomFields from "@/components/fields/CustomFields";
 import ServiceHistory from "./service-history";
-import Maintenance from "./maintenance";
+import CustomerAgreements from "./customer-agreements";
 import QrCode from "@/components/qr-code";
 import { customerQrValue } from "@/lib/qr";
 import { useAction } from "@/lib/use-action";
@@ -41,6 +41,8 @@ type MachineRow = {
   companyId: string;
   modelId: string;
   serial: string;
+  // Standard (factory) warranty end, "" when unknown.
+  warrantyEnd: string;
   isApproved: boolean;
   pendingAction: CustomerMachine["pending_action"];
 };
@@ -52,17 +54,18 @@ function toMachineRow(m: CustomerMachine): MachineRow {
     companyId: m.company_id ?? "",
     modelId: m.model_id ?? "",
     serial: m.serial_number ?? "",
+    warrantyEnd: m.warranty_end ?? "",
     isApproved: m.is_approved,
     pendingAction: m.pending_action,
   };
 }
 
 function blankMachine(): MachineRow {
-  return { id: null, cityId: "", companyId: "", modelId: "", serial: "", isApproved: true, pendingAction: null };
+  return { id: null, cityId: "", companyId: "", modelId: "", serial: "", warrantyEnd: "", isApproved: true, pendingAction: null };
 }
 
 function machineIsBlank(m: MachineRow) {
-  return !m.cityId && !m.companyId && !m.modelId && !m.serial.trim();
+  return !m.cityId && !m.companyId && !m.modelId && !m.serial.trim() && !m.warrantyEnd;
 }
 
 export default function CustomerModal({
@@ -194,13 +197,15 @@ export default function CustomerModal({
         original.cityId !== m.cityId ||
         original.companyId !== m.companyId ||
         original.modelId !== m.modelId ||
-        original.serial !== m.serial;
+        original.serial !== m.serial ||
+        original.warrantyEnd !== m.warrantyEnd;
       if (!changed) continue;
       const r = await saveCustomerMachine(customerId, m.id, {
         city_id: m.cityId || null,
         company_id: m.companyId || null,
         model_id: m.modelId || null,
         serial_number: m.serial,
+        warranty_end: m.warrantyEnd || null,
       });
       if (r?.error) toastErr(r.error);
     }
@@ -428,6 +433,15 @@ export default function CustomerModal({
                         />
                       </div>
                     </div>
+                    <div className="mt-3">
+                      <label className="label">{t("customers.warrantyEnds")}</label>
+                      <input
+                        type="date"
+                        className="input"
+                        value={m.warrantyEnd}
+                        onChange={(e) => updateMachine(i, { warrantyEnd: e.target.value })}
+                      />
+                    </div>
                     {machines.length > 1 && (
                       <button
                         type="button"
@@ -533,8 +547,8 @@ export default function CustomerModal({
 
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
-            <p className="label">{t("customers.maintenance")}</p>
-            <Maintenance customerId={customer!.id} editable={editable} />
+            <p className="label">{t("customers.agreements")}</p>
+            <CustomerAgreements customerId={customer!.id} />
           </div>
         )}
 

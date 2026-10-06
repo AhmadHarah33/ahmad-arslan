@@ -127,6 +127,8 @@ type MachineInput = {
   company_id: string | null;
   model_id: string | null;
   serial_number: string;
+  // Optional so existing callers keep working; undefined leaves it untouched.
+  warranty_end?: string | null;
 };
 
 // A customer can have several machines; each edit goes through the same
@@ -146,6 +148,9 @@ export async function saveCustomerMachine(
         company_id: input.company_id,
         model_id: input.model_id,
         serial_number: input.serial_number.trim(),
+        ...(input.warranty_end !== undefined
+          ? { warranty_end: input.warranty_end }
+          : {}),
       })
       .eq("id", id);
     if (error) return { error: error.message };
@@ -157,6 +162,7 @@ export async function saveCustomerMachine(
       company_id: input.company_id,
       model_id: input.model_id,
       serial_number: input.serial_number.trim(),
+      warranty_end: input.warranty_end ?? null,
       created_by: uid,
     });
     if (error) return { error: error.message };

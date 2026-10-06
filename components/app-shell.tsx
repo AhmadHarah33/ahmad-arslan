@@ -21,6 +21,7 @@ const NAV = [
   { href: "/", key: "nav.home", icon: HomeIcon },
   { href: "/tasks", key: "nav.tasks", icon: TasksIcon },
   { href: "/customers", key: "nav.customers", icon: CustomersIcon },
+  { href: "/agreements", key: "nav.agreements", icon: AgreementsIcon },
   { href: "/spare-parts", key: "nav.parts", icon: PartsIcon },
   { href: "/catalog", key: "nav.catalog", icon: CatalogIcon },
 ] as const;
@@ -464,6 +465,14 @@ function CustomersIcon(p: React.SVGProps<SVGSVGElement>) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>
       <circle cx="12" cy="8" r="3.5" />
       <path d="M5 20c0-3.3 3.1-6 7-6s7 2.7 7 6" />
+    </svg>
+  );
+}
+function AgreementsIcon(p: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M12 3 4.5 6v5.5c0 4.4 3.1 8.3 7.5 9.5 4.4-1.2 7.5-5.1 7.5-9.5V6z" />
+      <path d="m9 12 2.2 2.2L15.5 10" />
     </svg>
   );
 }

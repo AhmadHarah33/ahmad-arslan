@@ -75,6 +75,8 @@ export interface CustomerMachine {
   company_id: string | null;
   model_id: string | null;
   serial_number: string;
+  // Standard (manufacturer) warranty end; an agreement can extend it.
+  warranty_end: string | null;
   is_approved: boolean;
   pending_action: ApprovalAction | null;
   approved_by: string | null;
@@ -215,3 +217,68 @@ export const CURRENCY_SYMBOLS: Record<TaskCurrency, string> = {
   TRY: "₺",
 };
 export const TASK_CURRENCIES: TaskCurrency[] = ["EUR", "USD", "TRY"];
+
+// ---------------------------------------------------------------------------
+// Bakım & Garanti: service agreements
+// ---------------------------------------------------------------------------
+
+// periodic = N visits per year; annual = ONE visit (another one the same year
+// is a new agreement).
+// warranty = "Garanti uzatma only": extends the machine's warranty, no visits.
+export type AgreementPlan = "periodic" | "annual" | "warranty";
+// draft = saved but not live: no board tasks are created until it's activated.
+export type AgreementStatus = "draft" | "active" | "ended" | "cancelled";
+export type WarrantyCoverage = "parts_labour" | "labour" | "parts";
+export type RemindDays = 3 | 7 | 14;
+export type PaymentStatus = "unpaid" | "paid";
+
+export interface Agreement {
+  id: string;
+  customer_id: string;
+  plan: AgreementPlan;
+  visits_per_year: number;
+  start_date: string;
+  end_date: string;
+  includes_warranty: boolean;
+  warranty_end: string | null;
+  // What the extended warranty covers and for how many months after the
+  // factory warranty; warranty_end is the resulting (overridable) date.
+  coverage: WarrantyCoverage | null;
+  warranty_months: number | null;
+  // Days before a visit's due date that its board task appears.
+  remind_days: RemindDays;
+  // Path in the private agreement-contracts bucket (signed PDF).
+  contract_path: string | null;
+  amount: number | null;
+  currency: TaskCurrency;
+  payment_status: PaymentStatus;
+  payment_due: string | null;
+  paid_at: string | null;
+  status: AgreementStatus;
+  assignee_id: string | null;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface AgreementVisit {
+  id: string;
+  agreement_id: string;
+  seq: number;
+  due_date: string;
+  task_id: string | null;
+  done_at: string | null;
+}
+
+// Row of the agreement_overview view: the agreement plus the derived states
+// the dashboard needs. Expiring / Overdue / Unpaid are computed, never stored.
+export interface AgreementOverview extends Agreement {
+  customer_name: string;
+  next_visit: string | null;
+  visits_done: number;
+  visits_total: number;
+  is_overdue: boolean;
+  is_expiring: boolean;
+  is_unpaid: boolean;
+  payment_overdue: boolean;
+}

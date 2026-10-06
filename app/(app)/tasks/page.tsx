@@ -1,6 +1,7 @@
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { loadFields } from "@/lib/fields.server";
+import { generateDueAgreementVisits } from "@/lib/agreements.server";
 import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import TasksBoard from "@/components/tasks/board";
 import type { City, Company, Customer, CustomerMachine, MachineModel, Profile } from "@/lib/types";
@@ -14,6 +15,8 @@ export default async function TasksPage({
 
 
   const supabase = createClient();
+  // Visit tasks are created lazily; make sure due ones exist before listing.
+  await generateDueAgreementVisits(supabase);
 
   const [
     { data: tasks },

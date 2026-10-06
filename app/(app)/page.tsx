@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { generateDueAgreementVisits } from "@/lib/agreements.server";
 import { getServerT } from "@/lib/i18n/server";
 import { statusKey } from "@/lib/i18n/task-keys";
 import { greetingKey } from "@/lib/i18n/greeting";
@@ -27,12 +28,10 @@ export default async function DashboardPage() {
   let sparePartCount: number;
 
   const supabase = createClient();
-  // Create any due preventive-maintenance tasks (idempotent; safe to call).
-  try {
-    await supabase.rpc("generate_due_maintenance");
-  } catch {
-    /* ignore — generation is best-effort */
-  }
+  // Create the board task for any agreement visit that has come due (Bakım &
+  // Garanti; idempotent). Before the task query below so a visit that just
+  // became due is already on the board in this render.
+  await generateDueAgreementVisits(supabase);
   const [{ data: tasks }, { data: profs }, { data: sp }, customers] =
     await Promise.all([
       supabase.from("tasks").select(TASK_SELECT).order("position"),

@@ -4,9 +4,8 @@ import { useMemo, useState } from "react";
 import type { City, Company, Customer, MachineModel, Profile } from "@/lib/types";
 import { isManager } from "@/lib/permissions";
 import { useRouter } from "next/navigation";
-import type { FieldDefinition } from "@/lib/customFields";
 import ImportExport from "@/components/data/import-export";
-import { dueStatus, formatDate } from "@/lib/dates";
+import { formatDate } from "@/lib/dates";
 import Fab from "@/components/fab";
 import { PageHeader } from "@/components/ui";
 import { useT } from "@/lib/i18n/provider";
@@ -15,8 +14,6 @@ import { approveCustomer, deleteCustomer, rejectCustomer } from "@/app/(app)/cus
 import PendingBadge from "@/components/pending-badge";
 import CustomerModal from "./customer-modal";
 
-type ValueMap = Record<string, Record<string, unknown>>;
-
 export default function CustomersView({
   profile,
   initialCustomers,
@@ -24,8 +21,7 @@ export default function CustomersView({
   cities,
   models,
   brandFilter,
-  fieldDefs,
-  fieldValues,
+  expiringWarranties,
   initialQuery = "",
 }: {
   profile: Profile;
@@ -34,8 +30,8 @@ export default function CustomersView({
   cities: City[];
   models: MachineModel[];
   brandFilter: string;
-  fieldDefs: FieldDefinition[];
-  fieldValues: ValueMap;
+  // Customers with a machine whose warranty ends within 30 days (soonest first).
+  expiringWarranties: { customer_id: string; date: string }[];
   initialQuery?: string;
 }) {
   const t = useT();
@@ -68,28 +64,14 @@ export default function CustomersView({
     brand: c.company?.name ?? "",
   }));
 
-  // Expiring warranties: customers whose "Warranty End" custom field is
-  // within 30 days. Independent of the brand table columns below.
-  const warrantyDef = useMemo(
-    () =>
-      fieldDefs.find(
-        (d) => d.field_type === "date" && d.label.trim().toLowerCase() === "warranty end"
-      ),
-    [fieldDefs]
-  );
+  // Expiring warranties: customers with a machine whose warranty (factory date
+  // or agreement extension) ends within 30 days. Computed on the server.
   const expiring = useMemo(() => {
-    if (!warrantyDef) return [] as { c: Customer; date: string }[];
-    const soon = Date.now() + 30 * 86400000;
-    return initialCustomers
-      .map((c) => ({ c, date: fieldValues[c.id]?.[warrantyDef.id] as string }))
-      .filter(
-        (x) =>
-          x.date &&
-          new Date(`${x.date}T00:00:00`).getTime() <= soon &&
-          dueStatus(x.date) !== "overdue"
-      )
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [initialCustomers, warrantyDef, fieldValues]);
+    const byId = new Map(initialCustomers.map((c) => [c.id, c]));
+    return expiringWarranties
+      .map((w) => ({ c: byId.get(w.customer_id), date: w.date }))
+      .filter((x): x is { c: Customer; date: string } => !!x.c);
+  }, [initialCustomers, expiringWarranties]);
 
   function selectBrand(id: string) {
     const params = new URLSearchParams();
