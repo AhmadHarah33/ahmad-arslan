@@ -6,6 +6,7 @@ import { useLanguage, useT } from "@/lib/i18n/provider";
 import { statusKey } from "@/lib/i18n/task-keys";
 import { formatAmount } from "@/lib/money";
 import { PriorityChip } from "@/components/ui";
+import { Avatar } from "@/components/avatar";
 import type { UrgentItem, PaymentItem } from "@/lib/agreements.dashboard";
 import type { AgreementPlan, TaskPriority, TaskStatus } from "@/lib/types";
 
@@ -53,6 +54,7 @@ export interface HomeData {
     symbols: Record<string, string>;
   };
   lowStock: number;
+  people: { id: string; name: string }[];
 }
 
 const STATUS_DOT: Record<TaskStatus, string> = {
@@ -111,10 +113,40 @@ export default function DashboardHome({ data }: { data: HomeData }) {
             {data.greeting}
           </h1>
         </div>
-        <Link href="/tasks?new=1" className="btn-primary">
+        <div className="flex items-center gap-3">
+          {data.people.length > 0 && (
+            <div className="hidden items-center lg:flex">
+              <div className="flex -space-x-2">
+                {data.people.slice(0, 4).map((p) => (
+                  <span key={p.id} className="rounded-full ring-2 ring-[rgb(var(--canvas))]">
+                    <Avatar id={p.id} name={p.name} size={30} />
+                  </span>
+                ))}
+              </div>
+              {data.people.length > 4 && (
+                <span className="ml-1.5 text-xs font-medium text-ink-muted">
+                  +{data.people.length - 4}
+                </span>
+              )}
+            </div>
+          )}
+          <button
+            onClick={() => window.dispatchEvent(new Event("app:open-search"))}
+            aria-label={t("shell.search")}
+            title="Search (⌘K)"
+            className="card hidden items-center gap-2 rounded-full py-2 pl-3.5 pr-3 text-sm text-ink-faint transition hover:text-ink md:flex"
+          >
+            <SearchGlyph className="h-4 w-4" />
+            <span className="hidden lg:inline">{t("shell.search")}</span>
+            <kbd className="hidden rounded border border-surface-border px-1 py-0.5 text-[10px] font-medium lg:inline">
+              ⌘K
+            </kbd>
+          </button>
+          <Link href="/tasks?new=1" className="btn-primary">
           <PlusGlyph className="h-4 w-4" />
           {t("dash.newTask")}
         </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -639,6 +671,14 @@ const svg = {
   strokeLinejoin: "round" as const,
 };
 
+function SearchGlyph({ className = "h-5 w-5" }: G) {
+  return (
+    <svg {...svg} strokeWidth={2} className={className}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3-3" />
+    </svg>
+  );
+}
 function PlusGlyph({ className = "h-5 w-5" }: G) {
   return (
     <svg {...svg} strokeWidth={2.2} className={className}>

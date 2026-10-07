@@ -34,9 +34,10 @@ export default async function DashboardPage() {
   // Garanti; idempotent). Before the task query below so a visit that just
   // became due is already on the board in this render.
   await generateDueAgreementVisits(supabase);
-  const [{ data: tasks }, { data: sp }, agr] = await Promise.all([
+  const [{ data: tasks }, { data: sp }, { data: profs }, agr] = await Promise.all([
     supabase.from("tasks").select(TASK_SELECT).order("position"),
     supabase.from("spare_parts").select("id, name, quantity, min_quantity"),
+    supabase.from("profiles").select("id, full_name, first_name").order("full_name"),
     loadAgreementsDashboardData(supabase),
   ]);
   const allTasks = normalizeTasks(tasks);
@@ -136,6 +137,9 @@ export default async function DashboardPage() {
       payments,
       symbols: SYMBOLS,
     },
+    people: (profs ?? [])
+      .filter((p) => p.id !== profile.id)
+      .map((p) => ({ id: p.id, name: p.full_name || p.first_name })),
     lowStock: parts.filter((p) => (p.min_quantity ?? 0) > 0 && p.quantity <= (p.min_quantity ?? 0))
       .length,
   };

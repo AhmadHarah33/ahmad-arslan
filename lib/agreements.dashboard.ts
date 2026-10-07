@@ -265,6 +265,7 @@ export interface UrgentItem {
   plan: AgreementPlan | null;
   date: string; // overdue-since, warranty end or agreement end
   days: number; // days late (visit) or days left
+  visit_id?: string; // the late visit, for "mark done"
   red: boolean;
 }
 
@@ -290,6 +291,7 @@ export function urgentItems(
         name: a.customer_name,
         plan: a.plan,
         date: late.due_date,
+        visit_id: late.id,
         days: daysBetween(late.due_date, today),
         red: true,
       });

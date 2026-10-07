@@ -69,6 +69,13 @@ export default function AppShell({
     (profile.theme_mode as ThemeMode) ?? "light"
   );
 
+  // The home page carries its own search button in its header (no top bar).
+  useEffect(() => {
+    const open = () => setSearchOpen(true);
+    window.addEventListener("app:open-search", open);
+    return () => window.removeEventListener("app:open-search", open);
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -338,7 +345,7 @@ export default function AppShell({
         {/* App frame */}
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Desktop top bar: people · search */}
-          <header className="hidden items-center gap-4 px-5 py-3.5 md:flex">
+          <header className={`hidden items-center gap-4 px-5 py-3.5 ${pathname === "/" ? "" : "md:flex"}`}>
             {/* Page nav lives in the sidebar now; this spacer keeps the
                 right-hand controls pinned to the right. */}
             <div className="flex-1" />
@@ -469,7 +476,7 @@ export default function AppShell({
               fit more per row as they widen. The cap and the main's own padding
               are what keep content off the panel's corners on a very wide
               monitor, instead of letting a row stretch edge to edge. */}
-          <main className="flex-1 px-4 pb-24 pt-4 md:px-6 md:pb-8 md:pt-2 xl:px-8">
+          <main className={`flex-1 px-4 pb-24 pt-4 md:px-6 md:pb-8 ${pathname === "/" ? "md:pt-4" : "md:pt-2"} xl:px-8`}>
             <div className="mx-auto w-full max-w-[1720px]">{children}</div>
           </main>
         </div>

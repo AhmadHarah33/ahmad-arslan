@@ -7,7 +7,8 @@ import { useLanguage, useT } from "@/lib/i18n/provider";
 import { toast, toastErr } from "@/lib/toast";
 import { formatDate } from "@/lib/dates";
 import { formatAmount } from "@/lib/money";
-import { sendReminder } from "@/app/(app)/agreements/actions";
+import { sendReminder, setVisitDone } from "@/app/(app)/agreements/actions";
+import RowActions from "@/components/agreements/row-actions";
 import {
   chipsByDate,
   dashStats,
@@ -436,10 +437,10 @@ export default function AgreementsDashboard({
               {visible.map((a) => {
                 const st = displayStatus(a);
                 return (
-                  <li key={a.id}>
+                  <li key={a.id} className="flex items-center gap-1">
                     <Link
                       href={`/agreements/${a.id}/edit`}
-                      className="flex items-center gap-3 py-2.5 hover:opacity-80"
+                      className="flex min-w-0 flex-1 items-center gap-3 py-2.5 hover:opacity-80"
                     >
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-soft text-xs font-semibold text-ink-muted">
                         {initials(a.customer_name)}
@@ -465,6 +466,7 @@ export default function AgreementsDashboard({
                         </span>
                       </span>
                     </Link>
+                    <RowActions id={a.id} />
                   </li>
                 );
               })}
@@ -560,6 +562,24 @@ function UrgentRow({
   onRemind: (id: string, kind: "payment" | "renewal" | "visit") => void;
 }) {
   const t = useT();
+  const router = useRouter();
+  const [marking, setMarking] = useState(false);
+  async function markDone() {
+    if (!item.visit_id || marking) return;
+    setMarking(true);
+    try {
+      const res = await setVisitDone(item.visit_id, true);
+      if (res.error) toastErr(res.error);
+      else {
+        toast(t("ag.visitUpdated"), "success");
+        router.refresh();
+      }
+    } catch (e) {
+      toastErr(e instanceof Error ? e.message : "Something went wrong. Try again.");
+    } finally {
+      setMarking(false);
+    }
+  }
   const sub =
     item.kind === "visit-late"
       ? `${item.plan ? planName(item.plan) : ""} ${t("ag.attn.visitLate")} ${formatDate(item.date)}`
@@ -590,6 +610,15 @@ function UrgentRow({
         >
           {tag}
         </span>
+        {item.kind === "visit-late" && item.visit_id && (
+          <button
+            className="mt-1 block w-full text-right text-xs font-medium text-ink-muted underline-offset-2 hover:text-ink hover:underline disabled:opacity-50"
+            disabled={marking}
+            onClick={markDone}
+          >
+            {marking ? "…" : t("ag.markDone")}
+          </button>
+        )}
         {remindKind && (
           <button
             className="mt-1 text-xs font-medium text-ink-muted underline-offset-2 hover:text-ink hover:underline disabled:opacity-50"

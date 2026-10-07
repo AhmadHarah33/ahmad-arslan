@@ -51,6 +51,11 @@ export type AgreementUpdate = Omit<
   // Reschedule visits that are not done yet (a visit already on the board
   // moves its task's due date too).
   visit_dates?: { id: string; due_date: string }[];
+  // Changing the plan or visit count: visits already done are kept, every open
+  // one is replaced by these dates (one per visit still to do).
+  plan?: AgreementPlan;
+  visits_per_year?: number;
+  new_visit_dates?: string[];
 };
 
 const CURRENCIES = ["EUR", "USD", "TRY"];
@@ -297,7 +302,7 @@ export async function updateAgreement(id: string, input: AgreementUpdate) {
 
   const { data: current, error: cErr } = await supabase
     .from("agreements")
-    .select("customer_id, status, plan")
+    .select("customer_id, status, plan, visits_per_year")
     .eq("id", id)
     .single();
   if (cErr) return { error: cErr.message };
@@ -306,7 +311,14 @@ export async function updateAgreement(id: string, input: AgreementUpdate) {
   if (current.status === "draft")
     return { error: "A draft is edited by saving it again." };
 
-  const bad = validate({ ...input, plan: current.plan }, false);
+  // The plan can change on a live agreement (done visits are kept).
+  const plan = input.plan ?? (current.plan as AgreementPlan);
+  if (!["periodic", "annual", "warranty"].includes(plan))
+    return { error: "Pick an agreement type." };
+  const perYear = visitsForPlan(plan, input.visits_per_year ?? current.visits_per_year);
+  const restructure = plan !== current.plan || perYear !== current.visits_per_year;
+
+  const bad = validate({ ...input, plan }, false);
   if (bad) return { error: bad };
   const badMachines = await machinesBelongTo(current.customer_id, input.machine_ids);
   if (badMachines) return { error: badMachines };
@@ -315,10 +327,28 @@ export async function updateAgreement(id: string, input: AgreementUpdate) {
   if (!moves.every((v) => isIsoDate(v.due_date)))
     return { error: "A visit date is invalid." };
 
-  const extension = input.includes_warranty || current.plan === "warranty";
+  const extension = input.includes_warranty || plan === "warranty";
+
+  // Visits already done stay; the rest are rebuilt from the new dates.
+  let keepSeq = 0;
+  if (restructure) {
+    const { data: done, error: dErr } = await supabase
+      .from("agreement_visits")
+      .select("seq")
+      .eq("agreement_id", id)
+      .not("done_at", "is", null);
+    if (dErr) return { error: dErr.message };
+    keepSeq = Math.max(0, ...(done ?? []).map((v) => v.seq as number));
+    const need = Math.max(0, perYear - (done ?? []).length);
+    const fresh = input.new_visit_dates ?? [];
+    if (fresh.length !== need || !fresh.every(isIsoDate))
+      return { error: `Give exactly ${need} valid visit date(s).` };
+  }
+
   const { error } = await supabase
     .from("agreements")
     .update({
+      ...(restructure ? { plan, visits_per_year: perYear } : {}),
       start_date: input.start_date,
       end_date: input.end_date,
       includes_warranty: extension,
@@ -358,7 +388,22 @@ export async function updateAgreement(id: string, input: AgreementUpdate) {
     }
   }
 
-  await supabase.rpc("generate_due_agreement_visits");
+  if (restructure) {
+    const { error: rErr } = await supabase
+      .from("agreement_visits")
+      .delete()
+      .eq("agreement_id", id)
+      .is("done_at", null);
+    if (rErr) return { error: rErr.message };
+    const fresh = [...(input.new_visit_dates ?? [])].sort();
+    if (fresh.length > 0) {
+      const { error: iErr } = await supabase.from("agreement_visits").insert(
+        fresh.map((due_date, i) => ({ agreement_id: id, seq: keepSeq + i + 1, due_date }))
+      );
+      if (iErr) return { error: iErr.message };
+    }
+  }
+
   refresh();
   return { ok: true };
 }
@@ -397,6 +442,68 @@ export async function cancelAgreement(id: string) {
     .is("task_id", null);
   if (vErr) return { error: vErr.message };
 
+  refresh();
+  return { ok: true };
+}
+
+// Permanent delete: the agreement with its visits, covered machines and
+// technicians (all cascade), plus the signed contract file.
+export async function deleteAgreement(id: string) {
+  const supabase = createClient();
+  const { data: a, error: rErr } = await supabase
+    .from("agreements")
+    .select("contract_path")
+    .eq("id", id)
+    .maybeSingle();
+  if (rErr) return { error: rErr.message };
+  if (!a) return { ok: true };
+
+  const { error } = await supabase.from("agreements").delete().eq("id", id);
+  if (error) return { error: error.message };
+  if (a.contract_path) {
+    await supabase.storage.from("agreement-contracts").remove([a.contract_path]);
+  }
+  refresh();
+  return { ok: true };
+}
+
+// Mark a visit done (or undo it) from the Service screen. Visits no longer have
+// a board task, so this is the only way they are completed. When the last visit
+// of a finished agreement is done it becomes 'ended'; undoing reopens it.
+export async function setVisitDone(visitId: string, done: boolean) {
+  const supabase = createClient();
+  const { data: visit, error } = await supabase
+    .from("agreement_visits")
+    .update({ done_at: done ? today() : null })
+    .eq("id", visitId)
+    .select("agreement_id")
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!visit) return { error: "Visit not found." };
+
+  if (done) {
+    const { data: a } = await supabase
+      .from("agreements")
+      .select("status, end_date")
+      .eq("id", visit.agreement_id)
+      .single();
+    if (a?.status === "active" && a.end_date < today()) {
+      const { count } = await supabase
+        .from("agreement_visits")
+        .select("id", { count: "exact", head: true })
+        .eq("agreement_id", visit.agreement_id)
+        .is("done_at", null);
+      if (count === 0) {
+        await supabase.from("agreements").update({ status: "ended" }).eq("id", visit.agreement_id);
+      }
+    }
+  } else {
+    await supabase
+      .from("agreements")
+      .update({ status: "active" })
+      .eq("id", visit.agreement_id)
+      .eq("status", "ended");
+  }
   refresh();
   return { ok: true };
 }

@@ -6,6 +6,7 @@ import { useT } from "@/lib/i18n/provider";
 import { formatDate } from "@/lib/dates";
 import { formatAmount } from "@/lib/money";
 import { toCsv } from "@/lib/csv";
+import RowActions from "@/components/agreements/row-actions";
 import {
   daysBetween,
   displayStatus,
@@ -290,6 +291,7 @@ export default function AgreementsTable({
                       {t(`ag.col.${c}` as const)}
                     </th>
                   ))}
+                  <th className="w-20 px-2 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border">
@@ -366,6 +368,9 @@ export default function AgreementsTable({
                           {t(`ag.status.${st}` as const)}
                         </span>
                       </td>
+                      <td className="px-2 py-3">
+                        <RowActions id={a.id} />
+                      </td>
                     </tr>
                   );
                 })}
@@ -380,8 +385,8 @@ export default function AgreementsTable({
               const nx = nextCell(a);
               const pay = payCell(a);
               return (
-                <li key={a.id}>
-                  <Link href={`/agreements/${a.id}/edit`} className="card block p-4">
+                <li key={a.id} className="card">
+                  <Link href={`/agreements/${a.id}/edit`} className="block p-4 pb-2">
                     <span className="flex items-start gap-3">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-soft text-xs font-semibold text-ink-muted">
                         {initials(a.customer_name)}
@@ -426,6 +431,9 @@ export default function AgreementsTable({
                       />
                     </span>
                   </Link>
+                  <div className="flex justify-end border-t border-surface-border px-2 py-1">
+                    <RowActions id={a.id} />
+                  </div>
                 </li>
               );
             })}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/i18n/provider";
+import DownloadAgreementPdf from "@/components/agreements/download-pdf";
 import { toast, toastErr } from "@/lib/toast";
 import { formatDate } from "@/lib/dates";
 import { formatAmount, parseAmount, sanitizeAmount } from "@/lib/money";
@@ -20,6 +21,7 @@ import {
   removeContract,
   saveAgreement,
   setMachineWarranty,
+  setVisitDone,
   updateAgreement,
 } from "@/app/(app)/agreements/actions";
 import type {
@@ -95,9 +97,18 @@ export default function AgreementForm({
 }) {
   const t = useT();
   const router = useRouter();
+  async function toggleVisit(visitId: string, done: boolean) {
+    const res = await setVisitDone(visitId, done);
+    if (res.error) toastErr(res.error);
+    else {
+      toast(t("ag.visitUpdated"), "success");
+      router.refresh();
+    }
+  }
 
   // new: nothing saved yet · draft: saved but not live (rebuilt on save) ·
-  // live: active/ended (plan and visit count are fixed, dates can move).
+  // live: active/ended (the plan and visit count can change: visits already done
+  // are kept, the rest are rebuilt; otherwise dates of open visits can move).
   const mode: "new" | "draft" | "live" = !initial
     ? "new"
     : initial.status === "draft"
@@ -146,6 +157,18 @@ export default function AgreementForm({
   const [dates, setDates] = useState<string[]>(
     initial && mode === "draft" ? initial.visits.map((v) => v.due_date) : []
   );
+  // Live agreement whose plan / visit count was changed: done visits stay, the
+  // remaining ones are re-spread over what is left of the period.
+  const doneVisits = (initial?.visits ?? []).filter((v) => !!v.done_at);
+  const restructured =
+    live && !!initial && (plan !== initial.plan || count !== initial.visits.length);
+  const remaining = Math.max(0, count - doneVisits.length);
+  const [newDates, setNewDates] = useState<string[]>([]);
+  useEffect(() => {
+    if (!restructured) return;
+    const from = start > todayIso() ? start : todayIso();
+    setNewDates(spreadVisitDates(from <= end ? from : end, end, remaining));
+  }, [restructured, start, end, remaining]);
   const [liveDates, setLiveDates] = useState<Record<string, string>>(
     Object.fromEntries((initial?.visits ?? []).map((v) => [v.id, v.due_date]))
   );
@@ -266,6 +289,9 @@ export default function AgreementForm({
       if (live) {
         const res = await updateAgreement(initial!.id, {
           ...common,
+          ...(restructured
+            ? { plan, visits_per_year: count, new_visit_dates: newDates }
+            : {}),
           visit_dates: initial!.visits
             .filter((v) => !v.done_at && liveDates[v.id] && liveDates[v.id] !== v.due_date)
             .map((v) => ({ id: v.id, due_date: liveDates[v.id] })),
@@ -344,14 +370,21 @@ export default function AgreementForm({
           </h1>
           <p className="mt-1 text-sm text-ink-muted">{t("ag.newSubtitle")}</p>
         </div>
-        <Actions
-          mode={mode}
-          busy={busy}
-          onDraft={() => submit(true)}
-          onSave={() => submit(false)}
-          className="hidden md:flex"
-        />
+        <div className="hidden items-center gap-2 md:flex">
+          {initial && <DownloadAgreementPdf id={initial.id} />}
+          <Actions
+            mode={mode}
+            busy={busy}
+            onDraft={() => submit(true)}
+            onSave={() => submit(false)}
+          />
+        </div>
       </div>
+      {initial && (
+        <div className="-mt-2 mb-4 md:hidden">
+          <DownloadAgreementPdf id={initial.id} />
+        </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-5">
@@ -450,13 +483,12 @@ export default function AgreementForm({
                 <button
                   key={p}
                   type="button"
-                  disabled={live}
                   onClick={() => pickPlan(p)}
-                  className={`rounded-xl border px-3.5 py-3 text-left transition disabled:cursor-not-allowed ${
+                  className={`rounded-xl border px-3.5 py-3 text-left transition ${
                     plan === p
                       ? "border-brand-400 bg-surface-soft ring-2 ring-brand-100"
                       : "border-surface-border bg-surface hover:bg-surface-soft"
-                  } ${live && plan !== p ? "opacity-50" : ""}`}
+                  }`}
                 >
                   <span className="block text-sm font-semibold text-ink">{planLabel(p)}</span>
                   <span className="mt-0.5 block text-xs text-ink-muted">
@@ -474,7 +506,7 @@ export default function AgreementForm({
                     <button
                       type="button"
                       className="icon-btn h-10 w-10 text-lg disabled:opacity-40"
-                      disabled={live || perYear <= 1}
+                      disabled={perYear <= 1}
                       onClick={() => setPerYear((n) => Math.max(1, n - 1))}
                       aria-label="−"
                     >
@@ -486,7 +518,7 @@ export default function AgreementForm({
                     <button
                       type="button"
                       className="icon-btn h-10 w-10 text-lg disabled:opacity-40"
-                      disabled={live || perYear >= 12}
+                      disabled={perYear >= 12}
                       onClick={() => setPerYear((n) => Math.min(12, n + 1))}
                       aria-label="+"
                     >
@@ -669,7 +701,32 @@ export default function AgreementForm({
               <div className="mt-5">
                 <label className="label">{t("ag.visitDates")}</label>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {live
+                  {restructured ? (
+                    <>
+                      {doneVisits.map((v, i) => (
+                        <VisitDate
+                          key={v.id}
+                          n={i + 1}
+                          label={t("ag.visit")}
+                          value={v.due_date}
+                          done
+                          onToggleDone={() => toggleVisit(v.id, false)}
+                          onChange={() => {}}
+                        />
+                      ))}
+                      {newDates.map((d, i) => (
+                        <VisitDate
+                          key={i}
+                          n={doneVisits.length + i + 1}
+                          label={t("ag.visit")}
+                          value={d}
+                          onChange={(val) =>
+                            setNewDates((cur) => cur.map((x, j) => (j === i ? val : x)))
+                          }
+                        />
+                      ))}
+                    </>
+                  ) : live
                     ? initial!.visits.map((v, i) => (
                         <VisitDate
                           key={v.id}
@@ -677,6 +734,7 @@ export default function AgreementForm({
                           label={t("ag.visit")}
                           value={liveDates[v.id] ?? v.due_date}
                           done={!!v.done_at}
+                          onToggleDone={() => toggleVisit(v.id, !v.done_at)}
                           onChange={(d) => setLiveDates((cur) => ({ ...cur, [v.id]: d }))}
                         />
                       ))
@@ -803,12 +861,14 @@ export default function AgreementForm({
             {!isWarranty && (
               <div className="mt-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-                  {t("ag.plannedVisits")} ({live ? initial!.visits.length : dates.length})
+                  {t("ag.plannedVisits")} ({restructured ? doneVisits.length + newDates.length : live ? initial!.visits.length : dates.length})
                 </p>
                 <ul className="mt-2 space-y-1">
-                  {(live
-                    ? initial!.visits.map((v) => liveDates[v.id] ?? v.due_date)
-                    : dates
+                  {(restructured
+                    ? [...doneVisits.map((v) => v.due_date), ...newDates]
+                    : live
+                      ? initial!.visits.map((v) => liveDates[v.id] ?? v.due_date)
+                      : dates
                   ).map((d, i) => (
                     <li key={i} className="flex justify-between text-sm">
                       <span className="text-ink-muted">
@@ -889,16 +949,19 @@ function VisitDate({
   label,
   value,
   done,
+  onToggleDone,
   onChange,
 }: {
   n: number;
   label: string;
   value: string;
   done?: boolean;
+  onToggleDone?: () => void;
   onChange: (v: string) => void;
 }) {
+  const t = useT();
   return (
-    <label className="flex items-center gap-3 rounded-xl border border-surface-border bg-surface px-3 py-2">
+    <div className="flex items-center gap-3 rounded-xl border border-surface-border bg-surface px-3 py-2">
       <span className="w-20 shrink-0 text-sm text-ink-muted">
         {label} {n}
       </span>
@@ -910,7 +973,16 @@ function VisitDate({
         onChange={(e) => onChange(e.target.value)}
       />
       {done && <span className="tone-done rounded-full px-2 text-[10px] font-semibold">✓</span>}
-    </label>
+      {onToggleDone && (
+        <button
+          type="button"
+          onClick={onToggleDone}
+          className="ml-auto shrink-0 text-xs font-medium text-ink-muted underline-offset-2 hover:text-ink hover:underline"
+        >
+          {done ? t("ag.markUndone") : t("ag.markDone")}
+        </button>
+      )}
+    </div>
   );
 }
 
