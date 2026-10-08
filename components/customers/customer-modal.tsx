@@ -60,6 +60,12 @@ function toMachineRow(m: CustomerMachine): MachineRow {
   };
 }
 
+function initialsOf(name: string) {
+  const p = name.trim().split(/\s+/).filter(Boolean);
+  if (p.length === 0) return "?";
+  return (p[0][0] + (p[1] ? p[1][0] : "")).toUpperCase();
+}
+
 function blankMachine(): MachineRow {
   return { id: null, cityId: "", companyId: "", modelId: "", serial: "", warrantyEnd: "", isApproved: true, pendingAction: null };
 }
@@ -76,6 +82,7 @@ export default function CustomerModal({
   customer,
   onClose,
   onSaved,
+  onChanged,
 }: {
   profile: Profile;
   companies: Company[];
@@ -84,9 +91,16 @@ export default function CustomerModal({
   customer: Customer | null;
   onClose: () => void;
   onSaved: () => void;
+  // Called when the list behind should refresh but the modal stays open
+  // ("Save & add machines").
+  onChanged?: () => void;
 }) {
   const t = useT();
-  const isNew = !customer;
+  // "Save & add machines" turns a just-created customer into an edit session
+  // in place, so machines can be added without closing and reopening.
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const cid = customer?.id ?? createdId;
+  const isNew = !cid;
   // Everyone can create/edit; a non-manager's write just lands pending
   // review (see the customers_gate_upsert trigger). The form itself never
   // needs to be read-only.
@@ -160,13 +174,13 @@ export default function CustomerModal({
   // must fix first.
   const shownError = validationError ?? saveError ?? deleteError;
 
-  async function save() {
+  async function save(andMachines = false) {
     if (!name.trim()) {
       setValidationError(t("customers.nameRequired"));
       return;
     }
     setValidationError(null);
-    const res = await doSave(customer?.id ?? null, {
+    const res = await doSave(cid, {
       name,
       contact_person: contactPerson,
       contact_info: contactInfo,
@@ -174,12 +188,20 @@ export default function CustomerModal({
       links,
     });
     if (!res) return;
-    const customerId = customer?.id;
+    const customerId = cid ?? (res as { id?: string }).id;
     if (!customerId) {
-      // A brand-new customer has no machines yet to reconcile — this is a
-      // name-only insert; machines get added once the customer is reopened,
-      // same as parts/custom fields need a saved task first.
       onSaved();
+      return;
+    }
+    if (!cid) {
+      // A brand-new customer has no machines yet to reconcile. Either close,
+      // or stay and switch into edit mode so machines can be added now.
+      if (andMachines) {
+        setCreatedId(customerId);
+        onChanged?.();
+      } else {
+        onSaved();
+      }
       return;
     }
 
@@ -214,10 +236,10 @@ export default function CustomerModal({
   }
 
   function remove() {
-    if (!customer) return;
+    if (!cid) return;
     if (!confirm(t("customers.confirmDelete"))) return;
     setValidationError(null);
-    doDelete(customer.id);
+    doDelete(cid);
   }
 
   function reject() {
@@ -245,34 +267,54 @@ export default function CustomerModal({
     onSaved();
   }
 
+  const btn = "h-12 rounded-[14px] px-[18px] text-sm font-semibold transition disabled:opacity-50";
   const footer = (
-    <div className="flex items-center justify-between gap-2">
+    <div className="flex flex-wrap items-center justify-between gap-2">
       {!isNew ? (
-        <button className="btn-danger" onClick={remove} disabled={saving}>
+        <button
+          className={`${btn} border-[1.5px] hover:bg-surface-soft`}
+          style={{
+            borderColor: "rgb(var(--tone-stuck) / var(--tone-ring))",
+            color: "rgb(var(--tone-stuck-ink))",
+          }}
+          onClick={remove}
+          disabled={saving}
+        >
           {t("common.delete")}
         </button>
       ) : (
-        <span />
+        <span className="hidden text-xs text-ink-muted sm:block">
+          <span style={{ color: "rgb(var(--tone-stuck-ink))" }}>*</span> {t("customers.required")}
+        </span>
       )}
-      <div className="flex gap-2">
-        {!isNew && !customer!.is_approved && manager && (
+      <div className="ml-auto flex flex-wrap justify-end gap-2">
+        {customer && !customer.is_approved && manager && (
           <>
-            <button className="btn-ghost" onClick={reject} disabled={saving}>
+            <button className={`${btn} bg-surface-soft text-ink`} onClick={reject} disabled={saving}>
               {t("approval.reject")}
             </button>
             <button
-              className="btn-primary"
-              onClick={() => doApprove(customer!.id)}
+              className={`${btn} bg-brand-800 text-white`}
+              onClick={() => doApprove(customer.id)}
               disabled={saving}
             >
               {t("approval.approve")}
             </button>
           </>
         )}
-        <button className="btn-ghost" onClick={onClose} disabled={saving}>
+        <button className={`${btn} bg-surface-soft text-ink`} onClick={onClose} disabled={saving}>
           {t("common.cancel")}
         </button>
-        <button className="btn-primary" onClick={save} disabled={saving}>
+        {isNew && (
+          <button
+            className={`${btn} border-[1.5px] border-brand-600 bg-surface text-brand-600`}
+            onClick={() => save(true)}
+            disabled={saving}
+          >
+            {t("customers.saveAndMachines")}
+          </button>
+        )}
+        <button className={`${btn} bg-ink px-6 text-surface hover:opacity-90`} onClick={() => save()} disabled={saving}>
           {saving ? t("common.saving") : t("common.save")}
         </button>
       </div>
@@ -284,64 +326,149 @@ export default function CustomerModal({
       title={isNew ? t("customers.new") : t("customers.edit")}
       onClose={onClose}
       footer={footer}
+      wide
     >
       <div className="space-y-4">
-        {!isNew && !customer!.is_approved && (
+        {customer && !customer.is_approved && (
           <div className="flex items-center gap-2 rounded-xl border border-dashed border-surface-border px-3 py-2.5">
-            <PendingBadge action={customer!.pending_action} />
+            <PendingBadge action={customer.pending_action} />
             <p className="text-xs text-ink-faint">
               {t("approval.pendingExplain")}
             </p>
           </div>
         )}
 
+        {/* Phone: live preview, with the active/inactive switch on it */}
+        <section
+          aria-label="Preview"
+          className="flex items-center gap-3 rounded-[20px] bg-brand-800 p-3.5 text-white md:hidden"
+        >
+          <span
+            aria-hidden="true"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-emerald-500 text-[15px] font-semibold"
+          >
+            {name.trim() ? initialsOf(name) : "+"}
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className={`truncate text-[15px] font-semibold ${name.trim() ? "" : "text-white/45"}`}>
+              {name.trim() || t("customers.new")}
+            </span>
+            <span className="truncate text-[11px] text-brand-200">
+              {contactInfo.trim() || t("customers.noPhoneYet")}
+            </span>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <span className="text-[10px] font-medium uppercase tracking-wider text-brand-200">
+              {t("customers.colWarranty")}
+            </span>
+            <div role="radiogroup" aria-label={t("customers.colWarranty")} className="flex rounded-full bg-white/[0.14] p-[3px]">
+              {(["active", "inactive"] as const).map((v) => {
+                const on = status === v;
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => setStatus(v)}
+                    className={`h-8 min-w-[52px] rounded-full px-3 text-xs font-semibold transition ${
+                      on ? "bg-white text-brand-800" : "text-white/80"
+                    }`}
+                  >
+                    {t(v === "active" ? "customers.warrantyIn" : "customers.warrantyOut")}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
         <div>
-          <label className="label">{t("customers.name")}</label>
+          <label className="label" htmlFor="cust-name">
+            {t("customers.name")} <span style={{ color: "rgb(var(--tone-stuck-ink))" }}>*</span>
+          </label>
           <input
-            className="input"
+            id="cust-name"
+            className="input !h-[50px] !rounded-[14px] !px-4 !text-[15px]"
             value={name}
             disabled={!editable}
+            placeholder={t("customers.namePlaceholder")}
             onChange={(e) => setName(e.target.value)}
           />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">{t("task.status")}</label>
-            <select
-              className="input"
-              value={status}
-              disabled={!editable}
-              onChange={(e) => setStatus(e.target.value as CustomerStatus)}
-            >
-              <option value="active">{t("customers.active")}</option>
-              <option value="inactive">{t("customers.inactive")}</option>
-            </select>
+
+        <div className="hidden md:block">
+          <label className="label">{t("customers.colWarranty")}</label>
+          <div role="radiogroup" aria-label={t("customers.colWarranty")} className="grid grid-cols-2 gap-2">
+            {(["active", "inactive"] as const).map((v) => {
+              const on = status === v;
+              const tone = v === "active" ? "--tone-done" : "--tone-neutral";
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  disabled={!editable}
+                  onClick={() => setStatus(v)}
+                  className="flex h-12 items-center justify-center gap-2 rounded-[14px] border-[1.5px] text-sm font-semibold transition"
+                  style={
+                    on
+                      ? {
+                          borderColor: `rgb(var(${tone}-ink))`,
+                          background: `rgb(var(${tone}) / 0.14)`,
+                          color: `rgb(var(${tone}-ink))`,
+                        }
+                      : { borderColor: "rgb(var(--surface-border))", color: "rgb(var(--ink-muted))" }
+                  }
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ background: `rgb(var(${tone}-ink))` }} />
+                  {t(v === "active" ? "customers.warrantyIn" : "customers.warrantyOut")}
+                </button>
+              );
+            })}
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="label">{t("customers.contactPerson")}</label>
+            <label className="label" htmlFor="cust-person">{t("customers.contactPerson")}</label>
             <input
-              className="input"
+              id="cust-person"
+              className="input !h-[50px] !rounded-[14px] !px-4 !text-[15px]"
               value={contactPerson}
               disabled={!editable}
               onChange={(e) => setContactPerson(e.target.value)}
             />
           </div>
-        </div>
-        <div>
-          <label className="label">{t("customers.contactInfo")}</label>
-          <input
-            className="input"
-            value={contactInfo}
-            disabled={!editable}
-            placeholder="+90 5xx xxx xx xx"
-            onChange={(e) => setContactInfo(e.target.value)}
-          />
+          <div>
+            <label className="label" htmlFor="cust-phone">{t("customers.contactInfo")}</label>
+            <input
+              id="cust-phone"
+              type="tel"
+              inputMode="tel"
+              className="input !h-[50px] !rounded-[14px] !px-4 !text-[15px]"
+              value={contactInfo}
+              disabled={!editable}
+              placeholder="+90 5xx xxx xx xx"
+              onChange={(e) => setContactInfo(e.target.value)}
+            />
+          </div>
         </div>
 
         {isNew ? (
-          <p className="rounded-lg border border-dashed border-surface-border px-3 py-2.5 text-xs text-ink-faint">
-            {t("customers.machinesAfterSave")}
-          </p>
+          <div className="flex items-center gap-3.5 rounded-[18px] border-[1.5px] border-dashed border-surface-border bg-surface-soft px-4 py-3.5">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-ink-muted">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
+                <rect x="5" y="11" width="14" height="10" rx="2" />
+                <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+              </svg>
+            </span>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-ink">{t("customers.machines")}</span>
+              <span className="text-xs text-ink-muted">{t("customers.machinesAfterSave")}</span>
+            </div>
+          </div>
         ) : (
           <div>
             <div className="mb-1.5 flex items-center justify-between">
@@ -360,7 +487,7 @@ export default function CustomerModal({
               {machines.map((m, i) => {
                 const brandModels = models.filter((mm) => mm.company_id === m.companyId);
                 return (
-                  <div key={m.id ?? `new-${i}`} className="rounded-xl border border-surface-border p-3">
+                  <div key={m.id ?? `new-${i}`} className="rounded-2xl bg-surface-soft p-3.5">
                     {m.id && !m.isApproved && (
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <PendingBadge action={m.pendingAction} />
@@ -523,7 +650,8 @@ export default function CustomerModal({
             <p className="label">{t("customers.properties")}</p>
             <CustomFields
               entity="customer"
-              recordId={customer!.id}
+              hideNames={["Brand", "Warranty"]}
+              recordId={cid!}
               canManage={editable}
               canEditValues={editable}
             />
@@ -548,14 +676,14 @@ export default function CustomerModal({
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
             <p className="label">{t("customers.agreements")}</p>
-            <CustomerAgreements customerId={customer!.id} />
+            <CustomerAgreements customerId={cid!} />
           </div>
         )}
 
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
             <p className="label">{t("customers.serviceHistory")}</p>
-            <ServiceHistory customerId={customer!.id} />
+            <ServiceHistory customerId={cid!} />
           </div>
         )}
 

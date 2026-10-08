@@ -22,12 +22,20 @@ export default async function CustomersPage({
   if (brandFilter === "__none__") query = query.is("company_id", null);
   else if (brandFilter) query = query.eq("company_id", brandFilter);
 
-  const [{ data }, { data: companiesData }, { data: citiesData }, { data: modelsData }] =
+  const [
+    { data },
+    { data: companiesData },
+    { data: citiesData },
+    { data: modelsData },
+    { data: brandRows },
+  ] =
     await Promise.all([
       query,
       supabase.from("companies").select("*").order("name"),
       supabase.from("cities").select("*").order("name"),
       supabase.from("machine_models").select("*").order("name"),
+      // Unfiltered, so the brand tabs can show a count for every brand.
+      supabase.from("customers").select("company_id"),
     ]);
 
   const customers = (data ?? []) as Customer[];
@@ -35,6 +43,11 @@ export default async function CustomersPage({
   const cities = (citiesData ?? []) as City[];
   const models = (modelsData ?? []) as MachineModel[];
   const expiringWarranties = await loadExpiringWarranties(supabase);
+  const brandCounts: Record<string, number> = {};
+  for (const r of (brandRows ?? []) as { company_id: string | null }[]) {
+    const k = r.company_id ?? "__none__";
+    brandCounts[k] = (brandCounts[k] ?? 0) + 1;
+  }
 
   return (
     <CustomersView
@@ -45,6 +58,7 @@ export default async function CustomersPage({
       models={models}
       brandFilter={brandFilter}
       expiringWarranties={expiringWarranties}
+      brandCounts={brandCounts}
       initialQuery={initialQuery}
     />
   );

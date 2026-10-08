@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import PageTools from "@/components/page-tools";
 import { useT } from "@/lib/i18n/provider";
 import { formatDate } from "@/lib/dates";
 import { formatAmount } from "@/lib/money";
@@ -226,6 +227,7 @@ export default function AgreementsTable({
           <p className="mt-1 text-sm text-ink-muted">{summary}</p>
         </div>
         <div className="flex items-center gap-2">
+          <PageTools />
           <button className="btn-ghost" onClick={exportCsv} disabled={rows.length === 0}>
             {t("ag.export")}
           </button>

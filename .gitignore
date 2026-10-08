@@ -43,3 +43,7 @@ tsconfig.tsbuildinfo
 
 # database backups (real customer/user data — never commit)
 /backups/
+
+# dev server build output (kept apart from the production .next)
+/.next-dev/
+/.next-build/

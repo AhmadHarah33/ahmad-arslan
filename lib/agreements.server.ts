@@ -214,3 +214,4 @@ export async function loadExpiringWarranties(
     .map(([customer_id, date]) => ({ customer_id, date }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
+

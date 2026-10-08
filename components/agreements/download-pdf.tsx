@@ -41,13 +41,29 @@ export function useAgreementPdf(id: string) {
   return { busy, download };
 }
 
-// Text button for the agreement form header.
+// Preview + download, like the task report: Preview opens the printable page
+// in a new tab, Download saves it as a PDF.
 export default function DownloadAgreementPdf({ id }: { id: string }) {
   const t = useT();
   const { busy, download } = useAgreementPdf(id);
   return (
-    <button type="button" onClick={download} disabled={busy} className="btn-ghost">
-      {busy ? t("task.pdfPreparing") : `⭳ ${t("ag.downloadPdf")}`}
-    </button>
+    <div className="flex items-center gap-3">
+      <a
+        href={`/print/agreement/${id}`}
+        target="_blank"
+        rel="noreferrer"
+        className="text-sm font-medium text-ink-faint underline-offset-2 hover:underline"
+      >
+        {t("task.previewReport")}
+      </a>
+      <button
+        type="button"
+        onClick={download}
+        disabled={busy}
+        className="text-sm font-medium text-brand-600 disabled:opacity-60"
+      >
+        {busy ? t("task.pdfPreparing") : `⭳ ${t("ag.downloadPdf")}`}
+      </button>
+    </div>
   );
 }

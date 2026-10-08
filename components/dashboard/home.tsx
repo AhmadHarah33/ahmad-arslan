@@ -114,22 +114,6 @@ export default function DashboardHome({ data }: { data: HomeData }) {
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          {data.people.length > 0 && (
-            <div className="hidden items-center lg:flex">
-              <div className="flex -space-x-2">
-                {data.people.slice(0, 4).map((p) => (
-                  <span key={p.id} className="rounded-full ring-2 ring-[rgb(var(--canvas))]">
-                    <Avatar id={p.id} name={p.name} size={30} />
-                  </span>
-                ))}
-              </div>
-              {data.people.length > 4 && (
-                <span className="ml-1.5 text-xs font-medium text-ink-muted">
-                  +{data.people.length - 4}
-                </span>
-              )}
-            </div>
-          )}
           <button
             onClick={() => window.dispatchEvent(new Event("app:open-search"))}
             aria-label={t("shell.search")}

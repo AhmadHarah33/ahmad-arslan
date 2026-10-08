@@ -34,6 +34,11 @@ export default function ComboSelect({
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  // Rows added from here. The list comes from the page and may not include them
+  // yet — a pending customer is hidden from non-managers, and the refresh takes
+  // a moment — so remember them, or the new pick would show as "none".
+  const [created, setCreated] = useState<Option[]>([]);
+  const all = [...options, ...created.filter((c) => !options.some((o) => o.id === c.id))];
 
   async function create() {
     const name = draft.trim();
@@ -42,7 +47,10 @@ export default function ComboSelect({
     const res = await onCreate(name);
     setBusy(false);
     if (res.error) return toastErr(res.error);
-    if (res.id) onChange(res.id);
+    if (res.id) {
+      setCreated((prev) => [...prev, { id: res.id!, name }]);
+      onChange(res.id);
+    }
     setDraft("");
     setAdding(false);
   }
@@ -113,7 +121,7 @@ export default function ComboSelect({
       }}
     >
       <option value="">{emptyLabel}</option>
-      {options.map((o) => (
+      {all.map((o) => (
         <option key={o.id} value={o.id}>
           {o.name}
         </option>

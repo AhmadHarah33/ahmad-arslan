@@ -14,6 +14,8 @@ export default function Modal({
   children,
   footer,
   wide = false,
+  xl = false,
+  lg = false,
 }: {
   title: string;
   onClose: () => void;
@@ -21,6 +23,10 @@ export default function Modal({
   footer?: React.ReactNode;
   /** Roomier surface for writing-focused dialogs (long descriptions). */
   wide?: boolean;
+  /** Full-width two-column dialog (task form). Body padding is the caller's. */
+  xl?: boolean;
+  /** 860px two-column dialog, same flush body (part form). */
+  lg?: boolean;
 }) {
   const [closing, setClosing] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -100,7 +106,7 @@ export default function Modal({
       />
       <div
         className={`glass glass-strong relative z-10 flex max-h-[92vh] w-full flex-col rounded-t-3xl sm:rounded-3xl ${
-          wide ? "max-w-3xl" : "max-w-lg"
+          xl ? "max-w-[1060px]" : lg ? "max-w-[860px]" : wide ? "max-w-3xl" : "max-w-lg"
         } ${closing ? "animate-window-out" : "animate-window"}`}
         style={{
           transform: drag ? `translateY(${drag}px)` : undefined,
@@ -119,7 +125,7 @@ export default function Modal({
         </div>
 
         <div className="flex shrink-0 items-center justify-between border-b border-surface-border px-5 py-3">
-          <h2 className="text-base font-semibold text-ink">{title}</h2>
+          <h2 className={xl || lg ? "text-xl font-bold text-ink" : "text-base font-semibold text-ink"}>{title}</h2>
           <button
             onClick={requestClose}
             className="rounded-lg p-1 text-ink-faint hover:bg-surface-soft hover:text-ink"
@@ -131,7 +137,7 @@ export default function Modal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        <div className={`flex-1 overflow-y-auto ${xl || lg ? "" : "px-5 py-4"}`}>{children}</div>
 
         {footer && (
           <div

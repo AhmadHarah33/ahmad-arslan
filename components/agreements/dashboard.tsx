@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import PageTools from "@/components/page-tools";
 import { useRouter } from "next/navigation";
 import { useLanguage, useT } from "@/lib/i18n/provider";
 import { toast, toastErr } from "@/lib/toast";
@@ -158,9 +159,12 @@ export default function AgreementsDashboard({
           </h1>
           <p className="mt-1 text-sm text-ink-muted">{t("ag.subtitle")}</p>
         </div>
-        <Link href="/agreements/new" className="btn-primary">
-          + {t("ag.new")}
-        </Link>
+        <div className="flex items-center gap-3">
+          <PageTools />
+          <Link href="/agreements/new" className="btn-primary">
+            + {t("ag.new")}
+          </Link>
+        </div>
       </div>
 
       <div className="seg mb-5 max-w-full overflow-x-auto" role="tablist">

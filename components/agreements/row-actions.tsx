@@ -35,6 +35,19 @@ export default function RowActions({ id }: { id: string }) {
 
   return (
     <span className="flex shrink-0 items-center gap-0.5">
+      <a
+        href={`/print/agreement/${id}`}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={t("task.previewReport")}
+        title={t("task.previewReport")}
+        className="icon-btn h-8 w-8"
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </a>
       <button
         type="button"
         onClick={pdf.download}

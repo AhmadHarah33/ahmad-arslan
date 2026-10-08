@@ -19,10 +19,9 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { PriorityChip, STATUS_TONE } from "@/components/ui";
 import { STATUS_VAR, TASK_STATUSES } from "@/lib/types";
 import { useT } from "@/lib/i18n/provider";
-import { statusKey } from "@/lib/i18n/task-keys";
+import { priorityKey, statusKey } from "@/lib/i18n/task-keys";
 import type {
   AssigneeLite,
   City,
@@ -37,9 +36,10 @@ import type {
 import { canEditTask, isManager } from "@/lib/permissions";
 import { moveTask } from "@/app/(app)/tasks/actions";
 import type { FieldDefinition } from "@/lib/customFields";
-import FieldValue from "@/components/fields/FieldValue";
-import { Avatar, AvatarGroup } from "@/components/avatar";
-import { dueStatus, formatDateShort } from "@/lib/dates";
+import { Avatar } from "@/components/avatar";
+import PageTools from "@/components/page-tools";
+import StatCard from "@/components/stat-card";
+import Fab from "@/components/fab";
 import TaskModal from "./task-modal";
 import { toastErr } from "@/lib/toast";
 
@@ -90,30 +90,7 @@ function useIsDesktop() {
   return desktop;
 }
 
-// Render up to `max` tag-style custom fields (select/multi-select) as chips.
-function TaskTags({
-  taskId,
-  defs,
-  values,
-  max = 3,
-}: {
-  taskId: string;
-  defs: FieldDefinition[];
-  values: ValueMap;
-  max?: number;
-}) {
-  const recVals = values[taskId];
-  if (!recVals) return null;
-  const tagDefs = defs.filter(
-    (d) => d.field_type === "select" || d.field_type === "multi_select"
-  );
-  const chips = tagDefs
-    .filter((d) => recVals[d.id] != null && recVals[d.id] !== "")
-    .slice(0, max)
-    .map((d) => <FieldValue key={d.id} def={d} value={recVals[d.id]} />);
-  if (chips.length === 0) return null;
-  return <div className="mt-2 flex flex-wrap gap-1">{chips}</div>;
-}
+type TaskFilter = "all" | "mine" | "high";
 
 export default function TasksBoard({
   openNewOnMount = false,
@@ -125,9 +102,6 @@ export default function TasksBoard({
   cities,
   models,
   customerMachines,
-  fieldDefs,
-  fieldValues,
-  commentCounts,
 }: {
   // Dashboard "New task" quick action links to /tasks?new=1.
   openNewOnMount?: boolean;
@@ -148,6 +122,10 @@ export default function TasksBoard({
   useEffect(() => setMounted(true), []);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [view, setView] = useState<"board" | "list">("board");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<TaskFilter>("all");
+  // Columns the user has expanded past COLUMN_LIMIT (Done is the long one).
+  const [expanded, setExpanded] = useState<Set<TaskStatus>>(() => new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
   const isDesktop = useIsDesktop();
   const [modal, setModal] = useState<{
@@ -169,6 +147,26 @@ export default function TasksBoard({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
 
+  // Customer name, only used to make search match "customer / issue" titles.
+  const customerName = useMemo(() => {
+    const m = new Map(customers.map((c) => [c.id, c.name]));
+    return (id: string | null) => (id ? m.get(id) ?? "" : "");
+  }, [customers]);
+
+  const hasFilter = query.trim() !== "" || filter !== "all";
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return tasks.filter((tk) => {
+      if (filter === "mine" && !tk.assignees.some((a) => a.id === profile.id)) return false;
+      if (filter === "high" && tk.priority !== "high") return false;
+      if (q) {
+        const hay = `${tk.title} ${customerName(tk.customer_id)}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [tasks, query, filter, profile.id, customerName]);
+
   const byStatus = useMemo(() => {
     const map: Record<TaskStatus, Task[]> = {
       todo: [],
@@ -177,28 +175,9 @@ export default function TasksBoard({
       done: [],
       stuck: [],
     };
-    for (const t of tasks) map[t.status].push(t);
+    for (const tk of visible) map[tk.status].push(tk);
     return map;
-  }, [tasks]);
-
-  // Customer name shown as the card's subtitle.
-  const customerName = useMemo(() => {
-    const m = new Map(customers.map((c) => [c.id, c.name]));
-    return (id: string | null) => (id ? m.get(id) ?? "" : "");
-  }, [customers]);
-
-  // Attachments live in `files`-type custom fields, already loaded with the page.
-  const attachmentCount = useMemo(() => {
-    const fileDefs = fieldDefs.filter((d) => d.field_type === "files");
-    return (taskId: string) => {
-      const vals = fieldValues[taskId];
-      if (!vals) return 0;
-      return fileDefs.reduce((n, d) => {
-        const v = vals[d.id];
-        return n + (Array.isArray(v) ? v.length : 0);
-      }, 0);
-    };
-  }, [fieldDefs, fieldValues]);
+  }, [visible]);
 
   const activeTask = tasks.find((t) => t.id === activeId) || null;
 
@@ -267,6 +246,7 @@ export default function TasksBoard({
 
     const originalTask = before.find((t) => t.id === id);
     const task = tasks.find((t) => t.id === id);
+    if (task) setExpanded((prev) => new Set(prev).add(task.status));
     if (!originalTask || !task || !canEditTask(profile, task)) {
       setTasks(before);
       return;
@@ -364,36 +344,106 @@ export default function TasksBoard({
   }
 
   const cardProps = {
-    customerName,
-    attachmentCount,
-    commentCounts,
     canApprove,
     onApproveTask: approveTask,
     onSendBackTask: sendBackTask,
   };
 
+  // Whole-team figures for the summary band + list rail. Always computed from
+  // every task, not the filtered view, so the progress number doesn't jump
+  // around while someone is searching.
+  const total = tasks.length;
+  const counts = useMemo(() => {
+    const c: Record<TaskStatus, number> = {
+      todo: 0,
+      in_progress: 0,
+      pending_approval: 0,
+      done: 0,
+      stuck: 0,
+    };
+    for (const tk of tasks) c[tk.status]++;
+    return c;
+  }, [tasks]);
+  const pct = total > 0 ? Math.round((counts.done / total) * 100) : 0;
+
+  const mineTasks = useMemo(
+    () => tasks.filter((tk) => tk.assignees.some((a) => a.id === profile.id)),
+    [tasks, profile.id]
+  );
+  const mineOpen = mineTasks.filter((tk) => tk.status !== "done").length;
+  const mineHigh = mineTasks.filter((tk) => tk.status !== "done" && tk.priority === "high").length;
+  const stuckSub = counts.stuck > 0 ? tasks.find((tk) => tk.status === "stuck")?.title ?? "" : "";
+  const highCount = tasks.filter((tk) => tk.priority === "high").length;
+
+  const openByPerson = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const tk of tasks) {
+      if (tk.status === "done") continue;
+      for (const a of tk.assignees) m.set(a.id, (m.get(a.id) ?? 0) + 1);
+    }
+    return engineers
+      .map((e) => ({ person: e, n: m.get(e.id) ?? 0 }))
+      .filter((x) => x.n > 0)
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 6);
+  }, [tasks, engineers]);
+
+  const filterChips: { id: TaskFilter; label: string }[] = [
+    { id: "all", label: t("tasks.filterAll") },
+    { id: "mine", label: t("tasks.filterMine") },
+    { id: "high", label: t("tasks.filterHigh") },
+  ];
+
+  const empty = visible.length === 0;
+
   return (
-    <div>
-      {/* Toolbar: view switcher + primary action */}
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="seg">
-          <button
-            onClick={() => setView("board")}
-            className={`seg-btn ${view === "board" ? "seg-btn-on" : ""}`}
-          >
-            <BoardIcon className="h-4 w-4" />
-            {t("task.viewBoard")}
-          </button>
-          <button
-            onClick={() => setView("list")}
-            className={`seg-btn ${view === "list" ? "seg-btn-on" : ""}`}
-          >
-            <ListIcon className="h-4 w-4" />
-            {t("task.viewList")}
-          </button>
+    <div className="flex flex-col gap-4">
+      {/* Header: title · view tabs · search · create */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <h1 className="text-[28px] font-bold leading-tight tracking-tight text-ink">
+            {t("nav.tasks")}
+          </h1>
+          <span className="text-[13px] text-ink-muted">
+            {total} {t("tasks.subtitle")}
+          </span>
         </div>
+
+        <div role="tablist" className="flex gap-[3px] rounded-xl bg-surface p-1">
+          {(["board", "list"] as const).map((v) => (
+            <button
+              key={v}
+              role="tab"
+              aria-selected={view === v}
+              onClick={() => setView(v)}
+              className={`flex h-9 items-center gap-1.5 rounded-[9px] px-3.5 text-[13px] transition ${
+                view === v
+                  ? "bg-brand-800 font-semibold text-white"
+                  : "font-medium text-ink-muted hover:text-ink"
+              }`}
+            >
+              {v === "board" ? <BoardIcon className="h-4 w-4" /> : <ListIcon className="h-4 w-4" />}
+              {t(v === "board" ? "task.viewBoard" : "task.viewList")}
+            </button>
+          ))}
+        </div>
+
+        <label className="flex h-11 items-center gap-2 rounded-xl bg-surface px-3.5 text-[13px] text-ink-faint">
+          <SearchIcon className="h-4 w-4 shrink-0" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("tasks.search")}
+            aria-label={t("tasks.search")}
+            className="w-32 bg-transparent text-ink outline-none placeholder:text-ink-faint sm:w-44"
+          />
+        </label>
+
+        <PageTools />
+
         <button
-          className="btn-primary hidden md:inline-flex"
+          className="hidden h-11 items-center gap-2 rounded-xl bg-ink px-[18px] text-sm font-semibold text-surface transition hover:opacity-90 md:inline-flex"
           onClick={() => openNew()}
         >
           <PlusIcon className="h-4 w-4" />
@@ -401,63 +451,161 @@ export default function TasksBoard({
         </button>
       </div>
 
-      {view === "board" ? (
-        <DndContext
-          // Explicit id: without one dnd-kit derives its a11y ids from a
-          // render counter that differs between the server and the client,
-          // and the resulting hydration mismatch makes React discard and
-          // re-render the whole board on load.
-          id="task-board"
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
-          onDragStart={onDragStart}
-          onDragOver={onDragOver}
-          onDragEnd={onDragEnd}
-          onDragCancel={onDragCancel}
-        >
-          {/* Columns scroll sideways until there's room for all five. */}
-          <div className="no-scrollbar snap-x flex items-start gap-3 overflow-x-auto pb-2 xl:grid xl:grid-cols-5 xl:gap-4 xl:overflow-visible xl:pb-0">
-            {TASK_STATUSES.map((col) => (
-              <div
-                key={col.key}
-                className="w-[82vw] max-w-xs shrink-0 snap-start sm:w-72 xl:w-auto xl:max-w-none xl:shrink"
-              >
-                <Column
-                  status={col.key}
-                  label={t(statusKey(col.key))}
-                  tasks={byStatus[col.key]}
-                  profile={profile}
-                  draggableDesktop={isDesktop}
-                  onOpen={(task) => setModal({ open: true, task, status: col.key })}
-                  onNew={() => openNew(col.key)}
-                  onMenu={(task) => setActionSheet({ task, mode: "menu" })}
-                  {...cardProps}
-                />
-              </div>
-            ))}
+      <Fab onClick={() => openNew()} label={t("task.create")} />
+
+      {/* Stat cards */}
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="card col-span-2 flex flex-col p-4 md:col-span-1">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="text-2xl font-bold tabular-nums text-ink">{pct}%</div>
+              <div className="mt-0.5 text-sm font-medium text-ink">{t("tasks.done")}</div>
+            </div>
+            <div className="flex items-center pt-0.5">
+              {engineers.slice(0, 4).map((p, i) => (
+                <span key={p.id} className={`rounded-full ring-2 ring-surface ${i > 0 ? "-ml-1.5" : ""}`}>
+                  <Avatar id={p.id} name={p.full_name || p.first_name} size={24} />
+                </span>
+              ))}
+            </div>
           </div>
-          {/* Portalled to <body> on purpose. DragOverlay is position:fixed,
-              and the app shell wraps page content in a `.glass-strong` panel
-              whose backdrop-filter makes it the containing block for fixed
-              descendants — so the dragged card was positioned relative to that
-              panel and floated away from the cursor by the sidebar width and
-              header height. Same root cause as the modal fix. */}
-          {mounted &&
-            createPortal(
-              <DragOverlay dropAnimation={dropAnimation}>
-                {activeTask ? <CardBody task={activeTask} lifted {...cardProps} /> : null}
-              </DragOverlay>,
-              document.body
+          <div className="mt-1 text-xs text-ink-muted">
+            {counts.done} {t("tasks.ofTasks")} {total} {t("tasks.tasksWord")}
+          </div>
+          <div className="mt-2.5 flex h-1.5 gap-[2px] overflow-hidden rounded-full bg-surface-soft">
+            {TASK_STATUSES.map((s2) =>
+              counts[s2.key] > 0 ? (
+                <span
+                  key={s2.key}
+                  style={{
+                    width: `${(counts[s2.key] / Math.max(total, 1)) * 100}%`,
+                    background: `rgb(var(${STATUS_VAR[s2.key]}))`,
+                  }}
+                />
+              ) : null
             )}
-        </DndContext>
+          </div>
+        </div>
+        <StatCard
+          value={counts.todo + counts.in_progress}
+          label={t("tasks.openTasks")}
+          sub={[
+            `${counts.todo} ${t(statusKey("todo")).toLowerCase()}`,
+            `${counts.in_progress} ${t(statusKey("in_progress")).toLowerCase()}`,
+            counts.pending_approval > 0 ? `${counts.pending_approval} ${t(statusKey("pending_approval")).toLowerCase()}` : "",
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        />
+        <StatCard
+          value={counts.stuck}
+          label={t(statusKey("stuck"))}
+          tone="--tone-stuck"
+          sub={stuckSub}
+        />
+        <StatCard
+          value={mineOpen}
+          label={t("tasks.mineOpen")}
+          sub={mineHigh > 0 ? `${mineHigh} ${t("tasks.highSub")}` : ""}
+          active={filter === "mine"}
+          onClick={() => setFilter(filter === "mine" ? "all" : "mine")}
+          className="col-span-2 md:col-span-1"
+        />
+      </section>
+
+      {/* Filters */}
+      <div role="tablist" className="seg max-w-full self-start overflow-x-auto">
+        {filterChips.map((f) => {
+          const n = f.id === "all" ? total : f.id === "mine" ? mineTasks.length : highCount;
+          return (
+            <button
+              key={f.id}
+              role="tab"
+              aria-selected={filter === f.id}
+              onClick={() => setFilter(f.id)}
+              className={`seg-btn whitespace-nowrap ${filter === f.id ? "seg-btn-on" : ""}`}
+            >
+              {f.label}
+              <span className="text-xs font-normal text-ink-faint">{n}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {view === "board" ? (
+        <>
+          {/* One board at every size: five columns on desktop (draggable),
+              swipeable snap-scrolling columns on phones (cards move via the
+              ⋯ menu instead). */}
+          <div>
+            <DndContext
+              // Explicit id: without one dnd-kit derives its a11y ids from a
+              // render counter that differs between the server and the client,
+              // and the resulting hydration mismatch makes React discard and
+              // re-render the whole board on load.
+              id="task-board"
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+              onDragStart={onDragStart}
+              onDragOver={onDragOver}
+              onDragEnd={onDragEnd}
+              onDragCancel={onDragCancel}
+            >
+              <div className="no-scrollbar -mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+                <div className="snap-x flex items-start gap-3 md:grid md:min-w-[1180px] md:grid-cols-5">
+                  {TASK_STATUSES.map((col) => (
+                    <div
+                      key={col.key}
+                      className="w-[82vw] max-w-xs shrink-0 snap-start md:w-auto md:max-w-none"
+                    >
+                    <Column
+                      status={col.key}
+                      label={t(statusKey(col.key))}
+                      tasks={byStatus[col.key]}
+                      profile={profile}
+                      draggableDesktop={isDesktop}
+                      activeId={activeId}
+                      expanded={expanded.has(col.key) || hasFilter}
+                      onExpand={() =>
+                        setExpanded((prev) => new Set(prev).add(col.key))
+                      }
+                      onOpen={(task) => setModal({ open: true, task, status: col.key })}
+                      onNew={() => openNew(col.key)}
+                      onMenu={(task) => setActionSheet({ task, mode: "menu" })}
+                      {...cardProps}
+                    />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Portalled to <body> on purpose. DragOverlay is position:fixed,
+                  and the app shell wraps page content in a `.glass-strong` panel
+                  whose backdrop-filter makes it the containing block for fixed
+                  descendants — so the dragged card was positioned relative to that
+                  panel and floated away from the cursor by the sidebar width and
+                  header height. Same root cause as the modal fix. */}
+              {mounted &&
+                createPortal(
+                  <DragOverlay dropAnimation={dropAnimation}>
+                    {activeTask ? <CardBody task={activeTask} lifted {...cardProps} /> : null}
+                  </DragOverlay>,
+                  document.body
+                )}
+            </DndContext>
+          </div>
+
+        </>
       ) : (
         <ListView
-          tasks={tasks}
-          fieldDefs={fieldDefs}
-          fieldValues={fieldValues}
+          byStatus={byStatus}
+          counts={counts}
+          total={total}
+          pct={pct}
+          empty={empty}
+          openByPerson={openByPerson}
           onOpen={(task) => setModal({ open: true, task, status: task.status })}
-          {...cardProps}
+          labelFor={(s) => t(statusKey(s))}
         />
       )}
 
@@ -511,23 +659,32 @@ export default function TasksBoard({
   );
 }
 
-// Shared card-rendering helpers passed down from the board.
 type CardExtras = {
-  customerName: (id: string | null) => string;
-  attachmentCount: (taskId: string) => number;
-  commentCounts: CountMap;
   canApprove: boolean;
   onApproveTask: (task: Task) => void;
   onSendBackTask: (task: Task) => void;
 };
 
-// Status dot used in the column header and the list view.
-function StatusDot({ status, className = "" }: { status: TaskStatus; className?: string }) {
+// How many cards a column shows before "Show more". Done grows without bound,
+// so an unlimited column would push every other column's cards off screen.
+const COLUMN_LIMIT = 8;
+
+const PRIORITY_VAR: Record<Task["priority"], string> = {
+  low: "--tone-done",
+  medium: "--tone-warn",
+  high: "--tone-stuck",
+};
+
+// Soft tinted pill. Built from the --tone tokens so it follows dark mode.
+function PriorityPill({ priority }: { priority: Task["priority"] }) {
+  const t = useT();
   return (
     <span
-      className={`inline-block h-2 w-2 shrink-0 rounded-full ${className}`}
-      style={{ background: `rgb(var(${STATUS_VAR[status]}))` }}
-    />
+      className="shrink-0 text-xs font-semibold"
+      style={{ color: `rgb(var(${PRIORITY_VAR[priority]}-ink))` }}
+    >
+      {t(priorityKey(priority))}
+    </span>
   );
 }
 
@@ -537,6 +694,9 @@ function Column({
   tasks,
   profile,
   draggableDesktop,
+  activeId,
+  expanded,
+  onExpand,
   onOpen,
   onNew,
   onMenu,
@@ -547,6 +707,9 @@ function Column({
   tasks: Task[];
   profile: Profile;
   draggableDesktop: boolean;
+  activeId: string | null;
+  expanded: boolean;
+  onExpand: () => void;
   onOpen: (t: Task) => void;
   onNew: () => void;
   onMenu: (t: Task) => void;
@@ -556,102 +719,78 @@ function Column({
   const canCreateHere = status !== "pending_approval";
   const t = useT();
   const { setNodeRef, isOver } = useDroppable({ id: status });
-  const [menu, setMenu] = useState(false);
   const tint = STATUS_VAR[status];
-  const taskIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
+  // The dragged card stays rendered even when it sits past the limit, or it
+  // would vanish mid-drag the moment it crossed into a long column.
+  const shown = expanded
+    ? tasks
+    : tasks.filter((c, i) => i < COLUMN_LIMIT || c.id === activeId);
+  const hidden = tasks.length - shown.length;
+  const taskIds = useMemo(() => shown.map((c) => c.id), [shown]);
 
   return (
-    <div className="w-full">
-      {/* z-20 lifts the header (and its menu) above the cards below. */}
-      <div className="relative z-20 mb-2 flex items-center gap-2 px-1">
-        <span className={`chip ${STATUS_TONE[status]}`}>
-          <StatusDot status={status} />
-          {label}
+    <section
+      aria-label={label}
+      ref={setNodeRef}
+      style={{
+        background: isOver ? `rgb(var(${tint}) / 0.1)` : "transparent",
+        borderColor: isOver ? `rgb(var(${tint}) / 0.45)` : "rgb(var(--ink) / 0.12)",
+      }}
+      // Only background transitions — never `transform` — so it can't fight the
+      // drag transform dnd-kit applies to the cards inside.
+      className="flex min-h-[160px] flex-col gap-2 rounded-[20px] border-[1.5px] p-2.5 transition-[background-color,border-color] duration-150"
+    >
+      <div className="flex items-center gap-2 px-1.5 pb-1.5 pt-1">
+        <span
+          className="h-[9px] w-[9px] rounded-full"
+          style={{ background: `rgb(var(${tint}))` }}
+        />
+        <span className="flex-1 truncate text-[13px] font-semibold text-ink">{label}</span>
+        <span className="rounded-full bg-surface px-2 py-px text-xs font-semibold text-ink-muted">
+          {tasks.length}
         </span>
-        <span className="text-xs font-medium text-ink-faint">{tasks.length}</span>
-
-        {canCreateHere && (
-          <button
-            onClick={() => setMenu((v) => !v)}
-            aria-label={`${label} options`}
-            className="icon-btn ml-auto h-7 w-7"
-          >
-            <DotsIcon className="h-4 w-4" />
-          </button>
-        )}
         {canCreateHere && (
           <button
             onClick={onNew}
             aria-label={`New task in ${label}`}
-            className="icon-btn h-7 w-7"
+            className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] text-ink-muted transition hover:bg-surface hover:text-ink"
           >
-            <PlusIcon className="h-4 w-4" />
-          </button>
-        )}
-
-        {menu && canCreateHere && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setMenu(false)}
-              aria-hidden="true"
-            />
-            <div className="card animate-pop absolute right-0 top-9 z-20 w-44 p-1">
-              <button
-                onClick={() => {
-                  setMenu(false);
-                  onNew();
-                }}
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-ink hover:bg-surface-soft"
-              >
-                <PlusIcon className="h-4 w-4" />
-                New task here
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Neutral lane at rest: the column's hue lives in its header chip, and
-          five tinted lanes side by side made the board read as colored blocks
-          before it read as cards. The hue still flashes in while a card is
-          dragged over, which is the one moment the target needs to be obvious.
-          Only background/ring transition — never `transform` — so it can't
-          fight the drag transform dnd-kit applies to the cards inside. */}
-      <div
-        ref={setNodeRef}
-        style={{
-          background: isOver
-            ? `rgb(var(${tint}) / 0.12)`
-            : "rgb(var(--tone-neutral) / 0.07)",
-        }}
-        className={`min-h-[140px] space-y-2.5 rounded-2xl p-2.5 transition-[background-color,box-shadow] duration-150 ${
-          isOver ? "ring-1" : "ring-0"
-        }`}
-      >
-        <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-          {tasks.map((card) => (
-            <SortableCard
-              key={card.id}
-              task={card}
-              draggable={draggableDesktop && canEditTask(profile, card)}
-              onOpen={onOpen}
-              onMenu={onMenu}
-              {...extras}
-            />
-          ))}
-        </SortableContext>
-        {tasks.length === 0 && (
-          <button
-            onClick={onNew}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-surface-border py-6 text-xs font-medium text-ink-faint transition hover:border-ink-faint hover:text-ink-muted"
-          >
-            <PlusIcon className="h-3.5 w-3.5" />
-            {t("task.addToColumn")}
+            <PlusIcon className="h-[15px] w-[15px]" />
           </button>
         )}
       </div>
-    </div>
+
+      <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+        {shown.map((card) => (
+          <SortableCard
+            key={card.id}
+            task={card}
+            draggable={draggableDesktop && canEditTask(profile, card)}
+            onOpen={onOpen}
+            onMenu={onMenu}
+            {...extras}
+          />
+        ))}
+      </SortableContext>
+
+      {tasks.length === 0 && (
+        <button
+          onClick={canCreateHere ? onNew : undefined}
+          className="rounded-[14px] border-[1.5px] border-dashed border-surface-border px-5 py-5 text-center text-xs text-ink-muted transition hover:border-ink-faint"
+        >
+          {canCreateHere ? t("task.addToColumn") : t("tasks.emptyColumn")}
+        </button>
+      )}
+
+      {hidden > 0 && (
+        <button
+          onClick={onExpand}
+          className="py-2 text-center text-xs font-semibold text-brand-600"
+        >
+          {t("tasks.showMore")} ({hidden})
+        </button>
+      )}
+    </section>
   );
 }
 
@@ -688,84 +827,94 @@ function SortableCard({
   );
 }
 
-// Assignees as avatar + first name, the way the reference board reads them —
-// a bare initials circle makes you hover every card to find out whose it is.
-// Past two people the names stop fitting a column, so it falls back to the
-// overlapping stack.
-function Assignees({ people }: { people: AssigneeLite[] }) {
+// Overlapping avatar stack + first names, as in the design. Past three people
+// the names stop fitting a column, so only the stack shows.
+function Assignees({ people, size = 26 }: { people: AssigneeLite[]; size?: number }) {
   const t = useT();
   if (people.length === 0)
     return <span className="text-xs text-ink-faint">{t("task.unassigned")}</span>;
-  if (people.length > 2) return <AvatarGroup people={people} size={20} max={4} />;
+  const names = people.map((p) => p.first_name || p.full_name).join(", ");
   return (
-    <div className="flex min-w-0 items-center gap-2">
-      {people.map((p) => (
-        <span key={p.id} className="flex min-w-0 items-center gap-1">
-          <Avatar id={p.id} name={p.full_name || p.first_name} size={20} />
-          <span className="truncate text-xs text-ink-muted">
-            {p.first_name || p.full_name}
+    <span className="flex min-w-0 items-center gap-1.5">
+      <span className="flex shrink-0 items-center pr-[4px]">
+        {people.slice(0, 3).map((p) => (
+          <span key={p.id} className="-mr-[4px] rounded-full ring-2 ring-surface">
+            <Avatar id={p.id} name={p.full_name || p.first_name} size={size} />
           </span>
-        </span>
-      ))}
-    </div>
+        ))}
+      </span>
+      {people.length <= 3 && (
+        <span className="truncate text-xs text-ink-muted">{names}</span>
+      )}
+    </span>
   );
 }
 
-// Deliberately minimal: title, who it's on, and priority. Everything else
-// about a task — customer, due date, tags, attachments, comments — lives one
-// click away in the modal, so a column stays scannable at a glance instead of
-// being a wall of badges.
+// Title, who it's on, and priority — everything else about a task lives one
+// click away in the modal, so a column stays scannable at a glance.
 function CardBody({
   task,
   canApprove,
   onApproveTask,
   onSendBackTask,
   lifted = false,
+  roomy = false,
   onMenu,
 }: {
   task: Task;
   lifted?: boolean;
+  roomy?: boolean;
   onMenu?: () => void;
 } & Pick<CardExtras, "canApprove" | "onApproveTask" | "onSendBackTask">) {
   const t = useT();
   const pending = task.status === "pending_approval";
+  const isDone = task.status === "done";
 
   return (
-    <div className={`task-card relative px-4 py-3.5 ${lifted ? "shadow-pop" : "hover:shadow-card"}`}>
-      {/* Mobile only — desktop uses drag-and-drop to change columns, so the
-          menu would be a redundant control there. */}
-      {onMenu && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onMenu();
-          }}
-          aria-label="Task options"
-          className="icon-btn absolute right-1.5 top-1.5 h-6 w-6 md:hidden"
+    <article
+      className={`relative flex flex-col gap-3 border border-[rgb(var(--ink)/0.07)] bg-surface shadow-card transition-shadow ${
+        roomy ? "rounded-[20px] p-4" : "rounded-[16px] p-3.5"
+      } ${lifted ? "shadow-pop" : "hover:shadow-pop"} ${isDone && !lifted ? "opacity-80" : ""}`}
+    >
+      <div className="flex items-start gap-2">
+        <p
+          className={`line-clamp-2 flex-1 font-semibold leading-snug text-ink ${
+            roomy ? "text-[15px]" : "text-sm"
+          }`}
         >
-          <DotsIcon className="h-3.5 w-3.5" />
-        </button>
-      )}
-      <p
-        className={`line-clamp-2 text-[15px] font-medium leading-snug text-ink ${
-          onMenu ? "pr-6" : ""
-        }`}
-      >
-        {task.title}
-      </p>
-
-      {/* Assignees and priority sit on their own lines rather than sharing a
-          row: at column width the two together would wrap unevenly, and the
-          stack gives the card its landscape proportion. */}
-      <div className="mt-2.5">
-        <Assignees people={task.assignees} />
+          {task.title}
+        </p>
+        {isDone && (
+          <span
+            className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full"
+            style={{ background: "rgb(var(--tone-done) / 0.16)", color: "rgb(var(--tone-done-ink))" }}
+          >
+            <CheckIcon className="h-3 w-3" />
+          </span>
+        )}
+        {/* Mobile only — desktop uses drag-and-drop to change columns, so the
+            menu would be a redundant control there. */}
+        {onMenu && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onMenu();
+            }}
+            aria-label="Task options"
+            className="icon-btn -mr-1 -mt-1 h-7 w-7 shrink-0 md:hidden"
+          >
+            <DotsIcon className="h-4 w-4" />
+          </button>
+        )}
       </div>
-      <div className="mt-2">
-        <PriorityChip priority={task.priority} />
+
+      <div className="flex items-center justify-between gap-2">
+        <Assignees people={task.assignees} size={roomy ? 28 : 26} />
+        <PriorityPill priority={task.priority} />
       </div>
 
       {pending && (
-        <div className="mt-3 border-t border-surface-border pt-2.5">
+        <div className="border-t border-surface-border pt-2.5">
           <p className="text-[11px] leading-snug text-ink-faint">
             {t("task.pendingApprovalBanner")}
           </p>
@@ -793,102 +942,171 @@ function CardBody({
           )}
         </div>
       )}
-    </div>
+    </article>
   );
 }
 
-// Compact due date. Plain text normally; tinted only when it needs attention.
-function DueBadge({ due }: { due: string }) {
-  const st = dueStatus(due);
-  const label = formatDateShort(due);
-  if (st === "none") {
-    return (
-      <span className="flex items-center gap-1" title={`Due ${label}`}>
-        <CalendarIcon className="h-3.5 w-3.5" />
-        {label}
-      </span>
-    );
-  }
-  return (
-    <span
-      className={`chip px-2 py-0.5 ${st === "overdue" ? "tone-stuck" : "tone-warn"}`}
-      title={st === "overdue" ? `Overdue — was due ${label}` : `Due soon — ${label}`}
-    >
-      <CalendarIcon className="h-3 w-3" />
-      {label}
-    </span>
-  );
-}
+// Group order in the list: what needs attention first, finished work last.
+const LIST_ORDER: TaskStatus[] = ["stuck", "in_progress", "todo", "pending_approval", "done"];
 
 function ListView({
-  tasks,
-  fieldDefs,
-  fieldValues,
+  byStatus,
+  counts,
+  total,
+  pct,
+  empty,
+  openByPerson,
   onOpen,
-  customerName,
-  attachmentCount,
-  commentCounts,
+  labelFor,
 }: {
-  tasks: Task[];
-  fieldDefs: FieldDefinition[];
-  fieldValues: ValueMap;
+  byStatus: Record<TaskStatus, Task[]>;
+  counts: Record<TaskStatus, number>;
+  total: number;
+  pct: number;
+  empty: boolean;
+  openByPerson: { person: Engineer; n: number }[];
   onOpen: (t: Task) => void;
-} & CardExtras) {
-  if (tasks.length === 0) {
-    return (
-      <div className="card px-5 py-10 text-center text-sm text-ink-faint">
-        No tasks yet.
-      </div>
-    );
-  }
+  labelFor: (s: TaskStatus) => string;
+}) {
+  const t = useT();
+  // Finished work starts folded away — it is the long tail.
+  const [closed, setClosed] = useState<Set<TaskStatus>>(() => new Set(["done"]));
+  const toggle = (s: TaskStatus) =>
+    setClosed((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s);
+      else next.add(s);
+      return next;
+    });
+  const maxOpen = Math.max(1, ...openByPerson.map((x) => x.n));
+
   return (
-    <div className="card divide-y divide-surface-border overflow-hidden">
-      {tasks.map((t) => {
-        const files = attachmentCount(t.id);
-        const comments = commentCounts[t.id] ?? 0;
-        return (
-          <button
-            key={t.id}
-            onClick={() => onOpen(t)}
-            className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-surface-soft"
-          >
-            <StatusDot status={t.status} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-ink">{t.title}</p>
-              <p className="truncate text-xs text-ink-muted">
-                {customerName(t.customer_id) || "No customer"}
-              </p>
-            </div>
-            <div className="hidden sm:block">
-              <TaskTags taskId={t.id} defs={fieldDefs} values={fieldValues} max={2} />
-            </div>
-            {(files > 0 || comments > 0) && (
-              <div className="hidden shrink-0 items-center gap-2 text-xs text-ink-faint sm:flex">
-                {files > 0 && (
-                  <span className="flex items-center gap-1">
-                    <ClipIcon className="h-3.5 w-3.5" />
-                    {files}
+    <div className="flex flex-wrap items-start gap-4">
+      <section
+        aria-label="Task list"
+        className="min-w-0 flex-[999_1_600px] overflow-hidden rounded-[22px] bg-surface"
+      >
+        {/* Desktop column header */}
+        <div className="hidden grid-cols-[minmax(0,1fr)_190px_100px] gap-3.5 border-b border-surface-border px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-ink-muted md:grid">
+          <span>{t("tasks.colTask")}</span>
+          <span>{t("tasks.colAssigned")}</span>
+          <span>{t("tasks.colPriority")}</span>
+        </div>
+
+        {empty && (
+          <div className="px-5 py-10 text-center text-sm text-ink-muted">{t("tasks.noMatch")}</div>
+        )}
+
+        {!empty &&
+          LIST_ORDER.map((s) => {
+            const rows = byStatus[s];
+            const open = !closed.has(s);
+            const tint = STATUS_VAR[s];
+            return (
+              <div key={s} className="border-b border-surface-border last:border-b-0">
+                <button
+                  aria-expanded={open}
+                  onClick={() => toggle(s)}
+                  className="flex h-[52px] w-full items-center gap-2.5 bg-surface-soft/60 px-4 text-left md:h-[46px] md:px-5"
+                >
+                  <ChevronRightIcon
+                    className={`h-3.5 w-3.5 text-ink-muted transition-transform ${open ? "rotate-90" : ""}`}
+                  />
+                  <span
+                    className="flex items-center gap-1.5 rounded-full px-2.5 py-[3px] text-xs font-semibold"
+                    style={{
+                      background: `rgb(var(${tint}) / 0.14)`,
+                      color: `rgb(var(${tint}-ink))`,
+                    }}
+                  >
+                    <span className="h-[7px] w-[7px] rounded-full" style={{ background: `rgb(var(${tint}))` }} />
+                    {labelFor(s)}
                   </span>
+                  <span className="text-xs text-ink-muted">{rows.length}</span>
+                </button>
+
+                {open && rows.length === 0 && (
+                  <div className="px-5 py-4 text-[13px] text-ink-muted md:pl-11">
+                    {t("tasks.emptyColumn")}
+                  </div>
                 )}
-                {comments > 0 && (
-                  <span className="flex items-center gap-1">
-                    <CommentIcon className="h-3.5 w-3.5" />
-                    {comments}
-                  </span>
-                )}
+
+                {open &&
+                  rows.map((task) => (
+                    <button
+                      key={task.id}
+                      onClick={() => onOpen(task)}
+                      className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3.5 gap-y-1.5 border-t border-surface-border px-4 py-3 text-left transition hover:bg-surface-soft md:grid-cols-[minmax(0,1fr)_190px_100px] md:py-2.5 md:pl-11 md:pr-5"
+                    >
+                      <span
+                        className={`truncate text-sm font-medium ${
+                          s === "done" ? "text-ink-muted" : "text-ink"
+                        }`}
+                      >
+                        {task.title}
+                      </span>
+                      <span className="col-start-1 row-start-2 min-w-0 md:col-start-auto md:row-start-auto">
+                        <Assignees people={task.assignees} size={26} />
+                      </span>
+                      <span className="col-start-2 row-span-2 row-start-1 justify-self-end md:col-start-auto md:row-span-1 md:row-start-auto md:justify-self-start">
+                        <PriorityPill priority={task.priority} />
+                      </span>
+                    </button>
+                  ))}
               </div>
-            )}
-            {t.due_date && (
-              <span className="hidden shrink-0 text-xs text-ink-faint md:block">
-                <DueBadge due={t.due_date} />
+            );
+          })}
+      </section>
+
+      {/* Right rail (desktop) */}
+      <aside className="hidden min-w-0 max-w-[340px] flex-[1_1_280px] flex-col gap-3.5 lg:flex">
+        <section className="flex flex-col gap-3.5 rounded-[22px] bg-brand-800 p-5 text-white">
+          <span className="text-[13px] font-semibold text-brand-200">{t("tasks.teamProgress")}</span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-5xl font-bold leading-[0.9] tracking-tight">{counts.done}</span>
+            <span className="flex flex-col">
+              <span className="text-sm font-semibold">{t("tasks.done")}</span>
+              <span className="text-xs text-brand-200">
+                {t("tasks.ofTasks")} {total} {t("tasks.tasksWord")} · {pct}%
               </span>
-            )}
-            <AvatarGroup people={t.assignees} size={20} max={3} />
-            <PriorityChip priority={t.priority} />
-          </button>
-        );
-      })}
+            </span>
+          </div>
+          <div className="h-2 rounded bg-white/15">
+            <div className="h-2 rounded bg-brand-300" style={{ width: `${pct}%` }} />
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-3.5 rounded-[22px] bg-surface p-[18px]">
+          <span className="text-sm font-semibold text-ink">{t("tasks.openByPerson")}</span>
+          {openByPerson.map(({ person, n }) => (
+            <div key={person.id} className="flex items-center gap-2.5">
+              <Avatar id={person.id} name={person.full_name || person.first_name} size={30} />
+              <div className="flex flex-1 flex-col gap-1">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium text-ink">{person.first_name || person.full_name}</span>
+                  <span className="font-semibold text-ink">{n}</span>
+                </div>
+                <div className="h-1.5 rounded-[3px] bg-surface-soft">
+                  <div
+                    className="h-1.5 rounded-[3px] bg-brand-800"
+                    style={{ width: `${Math.round((n / maxOpen) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
+      </aside>
     </div>
+  );
+}
+// Status dot used in the mobile action sheet.
+function StatusDot({ status }: { status: TaskStatus }) {
+  return (
+    <span
+      className="inline-block h-2 w-2 shrink-0 rounded-full"
+      style={{ background: `rgb(var(${STATUS_VAR[status]}))` }}
+    />
   );
 }
 
@@ -995,25 +1213,25 @@ function DotsIcon(p: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-function CalendarIcon(p: React.SVGProps<SVGSVGElement>) {
+function SearchIcon(p: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" {...p}>
-      <rect x="3" y="5" width="18" height="16" rx="2.5" />
-      <path d="M3 10h18M8 3v4M16 3v4" />
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-4-4" />
     </svg>
   );
 }
-function ClipIcon(p: React.SVGProps<SVGSVGElement>) {
+function CheckIcon(p: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M20 11.5 12.5 19a4.5 4.5 0 0 1-6.4-6.4l7.6-7.6a3 3 0 1 1 4.3 4.3l-7.6 7.6a1.5 1.5 0 0 1-2.1-2.1l7-7" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="m5 12 5 5 9-10" />
     </svg>
   );
 }
-function CommentIcon(p: React.SVGProps<SVGSVGElement>) {
+function ChevronRightIcon(p: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-6.5A8 8 0 0 1 11 4h2a8 8 0 0 1 8 8z" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="m9 6 6 6-6 6" />
     </svg>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useT } from "@/lib/i18n/provider";
+import PageTools from "@/components/page-tools";
 import { priorityKey, statusKey } from "@/lib/i18n/task-keys";
 import type { TaskPriority, TaskStatus } from "@/lib/types";
 
@@ -21,7 +22,10 @@ export function PageHeader({
         </h1>
         {subtitle && <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>}
       </div>
-      {action}
+      <div className="flex items-center gap-3">
+        <PageTools />
+        {action}
+      </div>
     </div>
   );
 }

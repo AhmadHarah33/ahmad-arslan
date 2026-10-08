@@ -52,6 +52,14 @@ export default function SettingsModal({
     applyBackground(bgStyle, v);
   }
 
+  // Closing without saving puts back what was applied when the dialog opened —
+  // the live preview above would otherwise stick until the next reload.
+  function discard() {
+    applyTheme(initialAccent || "sky", initialMode || "light");
+    applyBackground(initialBgStyle, initialBgBlur);
+    onClose();
+  }
+
   async function save() {
     setSaving(true);
     applyTheme(accent, mode);
@@ -75,7 +83,7 @@ export default function SettingsModal({
   }
 
   return (
-    <Modal title={t("settings.title")} onClose={onClose}>
+    <Modal title={t("settings.title")} onClose={discard}>
       <div className="space-y-5">
         <div>
           <p className="label">{t("shell.language")}</p>
@@ -167,7 +175,7 @@ export default function SettingsModal({
         )}
 
         <div className="flex justify-end gap-2 pt-1">
-          <button className="btn-ghost" onClick={onClose} disabled={saving}>
+          <button className="btn-ghost" onClick={discard} disabled={saving}>
             Cancel
           </button>
           <button className="btn-primary" onClick={save} disabled={saving}>

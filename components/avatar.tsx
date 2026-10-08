@@ -28,14 +28,22 @@ export function Avatar({
   name,
   id,
   size = 24,
+  solid = false,
 }: {
   name: string;
   id: string;
   size?: number;
+  // Outlined (stroke + coloured initials) is the default everywhere; `solid`
+  // is for the rare spot on a dark background where that wouldn't read.
+  solid?: boolean;
 }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${COLORS[hashIndex(id)]}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold ${
+        solid
+          ? `text-white ${COLORS[hashIndex(id)]}`
+          : `av-o av-${hashIndex(id)}`
+      }`}
       style={{ width: size, height: size, fontSize: size * 0.42 }}
       title={name}
     >

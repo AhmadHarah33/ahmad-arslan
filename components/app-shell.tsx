@@ -344,47 +344,6 @@ export default function AppShell({
 
         {/* App frame */}
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Desktop top bar: people · search */}
-          <header className={`hidden items-center gap-4 px-5 py-3.5 ${pathname === "/" ? "" : "md:flex"}`}>
-            {/* Page nav lives in the sidebar now; this spacer keeps the
-                right-hand controls pinned to the right. */}
-            <div className="flex-1" />
-
-            <div className="flex shrink-0 items-center gap-3">
-              {others.length > 0 && (
-                <div className="hidden items-center lg:flex">
-                  <div className="flex -space-x-2">
-                    {others.slice(0, 4).map((p) => (
-                      <span key={p.id} className="rounded-full ring-2 ring-surface">
-                        <Avatar id={p.id} name={p.full_name || p.first_name} size={28} />
-                      </span>
-                    ))}
-                  </div>
-                  {others.length > 4 && (
-                    <span className="ml-1.5 text-xs font-medium text-ink-muted">
-                      +{others.length - 4}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* The only search entry point on desktop. The sidebar used to
-                  carry a second one, which was redundant with this. */}
-              <button
-                onClick={() => setSearchOpen(true)}
-                aria-label={t("shell.search")}
-                title="Search (⌘K)"
-                className="flex items-center gap-2 rounded-full border border-surface-border py-1.5 pl-3 pr-2.5 text-sm text-ink-faint transition hover:bg-surface-soft hover:text-ink"
-              >
-                <SearchIcon className="h-4 w-4" />
-                <span className="hidden lg:inline">{t("shell.search")}</span>
-                <kbd className="hidden rounded border border-surface-border px-1 py-0.5 text-[10px] font-medium lg:inline">
-                  ⌘K
-                </kbd>
-              </button>
-            </div>
-          </header>
-
           {/* Mobile top bar */}
           <header className="sticky top-0 z-20 flex items-center justify-between bg-[rgb(var(--canvas))] px-4 pb-2 pt-3 md:hidden">
             <Link href="/" className="flex items-center gap-2.5">
@@ -476,7 +435,7 @@ export default function AppShell({
               fit more per row as they widen. The cap and the main's own padding
               are what keep content off the panel's corners on a very wide
               monitor, instead of letting a row stretch edge to edge. */}
-          <main className={`flex-1 px-4 pb-24 pt-4 md:px-6 md:pb-8 ${pathname === "/" ? "md:pt-4" : "md:pt-2"} xl:px-8`}>
+          <main className="flex-1 px-4 pb-24 pt-4 md:px-6 md:pb-8 md:pt-5 xl:px-8">
             <div className="mx-auto w-full max-w-[1720px]">{children}</div>
           </main>
         </div>

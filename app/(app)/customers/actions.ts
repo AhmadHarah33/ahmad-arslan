@@ -75,7 +75,7 @@ export async function saveCustomer(id: string | null, input: CustomerInput) {
 
   revalidatePath("/customers");
   revalidatePath("/");
-  return { ok: true };
+  return { ok: true, id: customerId as string };
 }
 
 // Name-only quick add, for the customer picker on the task modal — the same

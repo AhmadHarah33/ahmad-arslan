@@ -10,13 +10,13 @@
    =========================================================================== */
 :root {
   /* neutral — light */
-  --canvas: 234 235 237;
+  --canvas: 244 245 248;
   --surface: 255 255 255;
   --surface-soft: 245 246 248;
   --surface-border: 232 234 238;
   --ink: 24 27 35;
   --ink-muted: 96 105 119;
-  --ink-faint: 142 150 165;
+  --ink-faint: 108 117 133;
 
   /* Semantic tones — one hue per Kanban column plus a warning tone. `-ink` is
      the text color used on that tone's tinted fill. Deliberately fixed hues
@@ -43,17 +43,17 @@
   --tone-orange: 249 115 22;
   --tone-orange-ink: 194 65 12;
 
-  /* accent — sky (default) */
-  --brand-50: 240 249 255;
-  --brand-100: 224 242 254;
-  --brand-200: 186 230 253;
-  --brand-300: 125 211 252;
-  --brand-400: 56 189 248;
-  --brand-500: 14 165 233;
-  --brand-600: 2 132 199;
-  --brand-700: 3 105 161;
-  --brand-800: 7 89 133;
-  --brand-900: 12 74 110;
+  /* accent — navy (default; the Mars brand navy is --brand-800) */
+  --brand-50: 238 241 251;
+  --brand-100: 224 230 247;
+  --brand-200: 199 210 253;
+  --brand-300: 125 162 255;
+  --brand-400: 84 117 224;
+  --brand-500: 52 78 190;
+  --brand-600: 36 62 160;
+  --brand-700: 30 50 130;
+  --brand-800: 27 43 101;
+  --brand-900: 18 29 72;
 
   color-scheme: light;
 }
@@ -93,19 +93,25 @@
   color-scheme: dark;
 }
 :root[data-mode="light"] {
-  --canvas: 234 235 237;
+  --canvas: 244 245 248;
   --surface: 255 255 255;
   --surface-soft: 245 246 248;
   --surface-border: 232 234 238;
   --ink: 24 27 35;
   --ink-muted: 96 105 119;
-  --ink-faint: 142 150 165;
+  --ink-faint: 108 117 133;
   color-scheme: light;
 }
 
 /* ===========================================================================
    Accent presets — override the --brand-* ramp.
    =========================================================================== */
+:root[data-accent="lightblue"] {
+  --brand-50: 240 249 255;  --brand-100: 224 242 254; --brand-200: 186 230 253;
+  --brand-300: 125 211 252; --brand-400: 56 189 248;  --brand-500: 14 165 233;
+  --brand-600: 2 132 199;   --brand-700: 3 105 161;   --brand-800: 7 89 133;
+  --brand-900: 12 74 110;
+}
 :root[data-accent="blue"] {
   --brand-50: 239 246 255;  --brand-100: 219 234 254; --brand-200: 191 219 254;
   --brand-300: 147 197 253; --brand-400: 96 165 250;  --brand-500: 59 130 246;
@@ -284,13 +290,13 @@ body {
   }
 
   .input {
-    @apply w-full rounded-xl border border-surface-border bg-surface px-3.5 py-2.5
+    @apply w-full rounded-[13px] border-[1.5px] border-surface-border bg-surface px-3.5 py-3
       text-sm text-ink placeholder:text-ink-faint outline-none
-      focus:border-brand-400 focus:ring-2 focus:ring-brand-100;
+      focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
   }
 
   .label {
-    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-muted;
+    @apply mb-1.5 block text-[13px] font-semibold text-ink;
   }
 
   /* Native date/time inputs default to a light-scheme calendar icon and text
@@ -535,3 +541,27 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Outlined avatars: stroke + initials in the person's hue. Dark mode lifts
+   both (the 500/600 shades are too dim on a near-black surface). */
+.av-o {
+  border: 1.5px solid rgb(var(--av));
+  color: rgb(var(--av-ink));
+  background: rgb(var(--surface));
+}
+.av-0 { --av: 239 68 68; --av-ink: 220 38 38; }
+:root[data-mode="dark"] .av-0 { --av: 248 113 113; --av-ink: 252 165 165; }
+.av-1 { --av: 245 158 11; --av-ink: 217 119 6; }
+:root[data-mode="dark"] .av-1 { --av: 251 191 36; --av-ink: 252 211 77; }
+.av-2 { --av: 16 185 129; --av-ink: 5 150 105; }
+:root[data-mode="dark"] .av-2 { --av: 52 211 153; --av-ink: 110 231 183; }
+.av-3 { --av: 59 130 246; --av-ink: 37 99 235; }
+:root[data-mode="dark"] .av-3 { --av: 96 165 250; --av-ink: 147 197 253; }
+.av-4 { --av: 139 92 246; --av-ink: 124 58 237; }
+:root[data-mode="dark"] .av-4 { --av: 167 139 250; --av-ink: 196 181 253; }
+.av-5 { --av: 244 63 94; --av-ink: 225 29 72; }
+:root[data-mode="dark"] .av-5 { --av: 251 113 133; --av-ink: 253 164 175; }
+.av-6 { --av: 8 145 178; --av-ink: 14 116 144; }
+:root[data-mode="dark"] .av-6 { --av: 34 211 238; --av-ink: 103 232 249; }
+.av-7 { --av: 100 116 139; --av-ink: 71 85 105; }
+:root[data-mode="dark"] .av-7 { --av: 148 163 184; --av-ink: 203 213 225; }

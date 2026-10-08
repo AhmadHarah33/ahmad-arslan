@@ -16,6 +16,10 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // `next dev` must never share a build folder with the production server
+  // (`next start` on port 3000): dev overwrites .next, and the live site then
+  // loses its JavaScript. Keep dev output in its own folder.
+  distDir: process.env.NEXT_DIST_DIR || (process.env.NODE_ENV === "development" ? ".next-dev" : ".next"),
   // playwright-core has optional requires (chromium-bidi, kerberos, …) for
   // protocols/drivers this app never uses; bundling it for the PDF route
   // handler makes webpack try to resolve those and fail the build. Keeping

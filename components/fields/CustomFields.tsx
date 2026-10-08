@@ -36,11 +36,15 @@ export default function CustomFields({
   recordId,
   canManage,
   canEditValues,
+  hideNames,
 }: {
   entity: FieldEntity;
   recordId: string;
   canManage: boolean;
   canEditValues: boolean;
+  // Property names (case-insensitive) not to show here, e.g. ones the form
+  // already covers with a real field. The definitions and values stay intact.
+  hideNames?: string[];
 }) {
   const t = useT();
   const [defs, setDefs] = useState<FieldDefinition[]>([]);
@@ -103,7 +107,14 @@ export default function CustomFields({
 
   return (
     <div className="space-y-3">
-      {defs.map((def) => (
+      {defs
+        .filter((d) => !hideNames?.some((h) => {
+            const hn = h.toLowerCase();
+            const ln = d.label.trim().toLowerCase();
+            // "intervention*" hides every property that starts with it.
+            return hn.endsWith("*") ? ln.startsWith(hn.slice(0, -1)) : ln === hn;
+          }))
+        .map((def) => (
         <FieldRow
           key={def.id}
           def={def}
