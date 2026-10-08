@@ -594,6 +594,7 @@ const en = {
   "ag.showing": "Showing",
   "ag.of": "of",
   "ag.sortedByNext": "Sorted by next visit",
+  "ag.groupedByBrand": "Grouped by brand, soonest visit first",
   "ag.allStatuses": "All",
 
   // Customer form
@@ -1172,6 +1173,7 @@ const tr: Record<StringKey, string> = {
   "ag.showing": "Gösterilen",
   "ag.of": "/",
   "ag.sortedByNext": "Sonraki ziyarete göre sıralı",
+  "ag.groupedByBrand": "Markaya göre gruplu, en yakın ziyaret önce",
   "ag.allStatuses": "Tümü",
 
   // Müşteri formu

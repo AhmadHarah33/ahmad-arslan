@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import PageTools from "@/components/page-tools";
 import { useRouter } from "next/navigation";
@@ -91,7 +91,12 @@ export default function AgreementsDashboard({
   const payments = useMemo(() => paymentItems(agreements, today), [agreements, today]);
   const grid = useMemo(() => monthGrid(month), [month]);
 
-  const visible = agreements.filter((a) => filter === "all" || a.plan === filter);
+  // Split by brand (first machine's brand, no brand last); a stable sort keeps
+  // the existing order inside each brand.
+  const brandOf = (a: (typeof agreements)[number]) => a.brands[0] ?? "";
+  const visible = agreements
+    .filter((a) => filter === "all" || a.plan === filter)
+    .sort((a, b) => (brandOf(a) || "￿").localeCompare(brandOf(b) || "￿"));
   const counts: Record<PlanFilter, number> = {
     all: agreements.filter((a) => a.status === "active").length,
     periodic: stats.byPlan.periodic,
@@ -438,10 +443,20 @@ export default function AgreementsDashboard({
             <p className="py-3 text-sm text-ink-muted">{t("ag.noAgreementsFilter")}</p>
           ) : (
             <ul className="divide-y divide-surface-border">
-              {visible.map((a) => {
+              {visible.map((a, i) => {
                 const st = displayStatus(a);
+                const newGroup = i === 0 || brandOf(visible[i - 1]) !== brandOf(a);
                 return (
-                  <li key={a.id} className="flex items-center gap-1">
+                  <Fragment key={a.id}>
+                  {newGroup && (
+                    <li className="border-none pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-ink-muted first:pt-0">
+                      {brandOf(a) || t("customers.noBrand")}
+                      <span className="ml-2 font-normal">
+                        {visible.filter((x) => brandOf(x) === brandOf(a)).length}
+                      </span>
+                    </li>
+                  )}
+                  <li className="flex items-center gap-1">
                     <Link
                       href={`/agreements/${a.id}/edit`}
                       className="flex min-w-0 flex-1 items-center gap-3 py-2.5 hover:opacity-80"
@@ -472,6 +487,7 @@ export default function AgreementsDashboard({
                     </Link>
                     <RowActions id={a.id} />
                   </li>
+                  </Fragment>
                 );
               })}
             </ul>

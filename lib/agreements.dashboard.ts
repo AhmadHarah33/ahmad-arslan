@@ -10,6 +10,8 @@ export type PlanFilter = "all" | AgreementPlan;
 
 export interface DashAgreement extends AgreementOverview {
   machine_labels: string[];
+  // Brands of the covered machines (unique), for grouping the customers table.
+  brands: string[];
   // Cities of the covered machines (for the customers table).
   cities: string[];
   technician_names: string[];

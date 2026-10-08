@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import PageTools from "@/components/page-tools";
 import { useT } from "@/lib/i18n/provider";
@@ -64,6 +64,11 @@ function elapsed(a: DashAgreement, today: string) {
   );
 }
 
+// The brand an agreement is filed under: its first machine's brand.
+function brandOf(a: DashAgreement) {
+  return a.brands[0] ?? "";
+}
+
 function initials(name: string) {
   const p = name.trim().split(/\s+/);
   return ((p[0]?.[0] ?? "") + (p[1]?.[0] ?? "")).toUpperCase();
@@ -113,8 +118,12 @@ export default function AgreementsTable({
             .toLowerCase()
             .includes(q)
       )
-      // Soonest next visit first; agreements with none (warranty-only, ended) last.
+      // Grouped by brand (no brand last), then soonest next visit first;
+      // agreements with none (warranty-only, ended) last.
       .sort((a, b) => {
+        const ab = brandOf(a) || "￿";
+        const bb = brandOf(b) || "￿";
+        if (ab !== bb) return ab.localeCompare(bb);
         if (!a.next_visit !== !b.next_visit) return a.next_visit ? -1 : 1;
         return (
           (a.next_visit ?? "").localeCompare(b.next_visit ?? "") ||
@@ -122,6 +131,15 @@ export default function AgreementsTable({
         );
       });
   }, [byTab, status, query]);
+
+  // A heading is dropped in wherever the brand changes.
+  const brandCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const a of rows) m.set(brandOf(a), (m.get(brandOf(a)) ?? 0) + 1);
+    return m;
+  }, [rows]);
+  const heading = (a: DashAgreement) => brandOf(a) || t("customers.noBrand");
+  const startsGroup = (i: number) => i === 0 || brandOf(rows[i - 1]) !== brandOf(rows[i]);
 
   const live = agreements.filter((a) => a.status !== "draft");
   const count = (p: AgreementPlan) => live.filter((a) => a.plan === p).length;
@@ -297,12 +315,25 @@ export default function AgreementsTable({
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border">
-                {rows.map((a) => {
+                {rows.map((a, i) => {
                   const st = displayStatus(a);
                   const nx = nextCell(a);
                   const pay = payCell(a);
                   return (
-                    <tr key={a.id} className="hover:bg-surface-soft">
+                    <Fragment key={a.id}>
+                    {startsGroup(i) && (
+                      <tr>
+                        <td colSpan={COLUMNS.length + 1} className="bg-surface-soft/60 px-4 py-2">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                            {heading(a)}
+                          </span>
+                          <span className="ml-2 rounded-full bg-surface px-2 py-px text-[11px] font-semibold text-ink-muted">
+                            {brandCounts.get(brandOf(a))}
+                          </span>
+                        </td>
+                      </tr>
+                    )}
+                    <tr className="hover:bg-surface-soft">
                       <td className="px-4 py-3">
                         <Link href={`/agreements/${a.id}/edit`} className="flex items-center gap-3">
                           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-soft text-xs font-semibold text-ink-muted">
@@ -374,6 +405,7 @@ export default function AgreementsTable({
                         <RowActions id={a.id} />
                       </td>
                     </tr>
+                    </Fragment>
                   );
                 })}
               </tbody>
@@ -382,12 +414,18 @@ export default function AgreementsTable({
 
           {/* Phones: one card per agreement */}
           <ul className="space-y-3 lg:hidden">
-            {rows.map((a) => {
+            {rows.map((a, i) => {
               const st = displayStatus(a);
               const nx = nextCell(a);
               const pay = payCell(a);
               return (
-                <li key={a.id} className="card">
+                <Fragment key={a.id}>
+                {startsGroup(i) && (
+                  <li className="list-none px-1.5 pt-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                    {heading(a)} · {brandCounts.get(brandOf(a))}
+                  </li>
+                )}
+                <li className="card">
                   <Link href={`/agreements/${a.id}/edit`} className="block p-4 pb-2">
                     <span className="flex items-start gap-3">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-soft text-xs font-semibold text-ink-muted">
@@ -437,6 +475,7 @@ export default function AgreementsTable({
                     <RowActions id={a.id} />
                   </div>
                 </li>
+                </Fragment>
               );
             })}
           </ul>
@@ -445,7 +484,7 @@ export default function AgreementsTable({
             <span>
               {t("ag.showing")} {rows.length} {t("ag.of")} {agreements.length}
             </span>
-            <span>{t("ag.sortedByNext")}</span>
+            <span>{t("ag.groupedByBrand")}</span>
           </p>
         </>
       )}

@@ -115,6 +115,7 @@ export async function loadAgreementsDashboardData(supabase: SupabaseClient): Pro
   };
   const labels = new Map<string, string[]>();
   const cities = new Map<string, string[]>();
+  const brands = new Map<string, string[]>();
   const covered: CoveredMachine[] = [];
   for (const row of (cov ?? []) as unknown as {
     agreement_id: string;
@@ -125,6 +126,10 @@ export async function loadAgreementsDashboardData(supabase: SupabaseClient): Pro
     if (!m || !a) continue;
     const label = [nameOf(m.company), nameOf(m.model)].filter(Boolean).join(" ") || "—";
     labels.set(row.agreement_id, [...(labels.get(row.agreement_id) ?? []), label]);
+    const brand = nameOf(m.company);
+    if (brand) {
+      brands.set(row.agreement_id, [...new Set([...(brands.get(row.agreement_id) ?? []), brand])]);
+    }
     const city = nameOf(m.city);
     if (city) {
       cities.set(row.agreement_id, [...new Set([...(cities.get(row.agreement_id) ?? []), city])]);
@@ -154,6 +159,7 @@ export async function loadAgreementsDashboardData(supabase: SupabaseClient): Pro
     // numeric(12,2) can arrive as a string depending on the driver path.
     amount: a.amount != null ? Number(a.amount) : null,
     machine_labels: labels.get(a.id) ?? [],
+    brands: brands.get(a.id) ?? [],
     cities: cities.get(a.id) ?? [],
     technician_names: people.get(a.id) ?? [],
   }));
