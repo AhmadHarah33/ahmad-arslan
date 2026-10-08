@@ -18,16 +18,23 @@ export const DUE_STYLES: Record<Exclude<DueStatus, "none">, string> = {
   soon: "tone-warn",
 };
 
+// Dates are shown as dd.mm.yyyy, built straight from the stored YYYY-MM-DD.
+// Not toLocaleDateString(): it uses the machine's locale, and the server and the
+// browser disagree ("08/01/2027" vs "08.01.2027"), which made React report a
+// hydration mismatch on every page that shows a date.
 export function formatDate(d: string | null | undefined): string {
   if (!d) return "";
-  return new Date(`${d}T00:00:00`).toLocaleDateString();
+  const [y, m, day] = d.slice(0, 10).split("-");
+  if (!y || !m || !day) return d;
+  return `${day}.${m}.${y}`;
 }
 
-// Compact form for dense cards — e.g. "Sep 3".
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Compact form for dense cards — e.g. "3 Sep". Fixed for the same reason.
 export function formatDateShort(d: string | null | undefined): string {
   if (!d) return "";
-  return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
+  const [, m, day] = d.slice(0, 10).split("-");
+  const month = MONTHS[Number(m) - 1];
+  return month ? `${Number(day)} ${month}` : d;
 }
