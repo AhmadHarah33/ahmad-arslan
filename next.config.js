@@ -24,16 +24,12 @@ const nextConfig = {
   // protocols/drivers this app never uses; bundling it for the PDF route
   // handler makes webpack try to resolve those and fail the build. Keeping
   // it external makes Node `require` it directly at runtime instead.
-  experimental: {
-    serverComponentsExternalPackages: ["playwright-core"],
-  },
+  serverExternalPackages: ["playwright-core"],
+  // The app never uses next/image, so switch the image optimizer off (it has
+  // had its own remote-code-execution advisory) and allow no remote hosts.
   images: {
-    // Allow Supabase Storage-served images (local + tunnel domain).
-    remotePatterns: [
-      { protocol: "http", hostname: "localhost" },
-      { protocol: "http", hostname: "127.0.0.1" },
-      { protocol: "https", hostname: "**" },
-    ],
+    unoptimized: true,
+    remotePatterns: [],
   },
 };
 
