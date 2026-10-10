@@ -15,6 +15,7 @@ import {
   type DisplayStatus,
 } from "@/lib/agreements.dashboard";
 import type { AgreementPlan } from "@/lib/types";
+import { compareNames } from "@/lib/sort";
 
 type Tab = "all" | "periodic" | "annual" | "ext";
 
@@ -123,11 +124,11 @@ export default function AgreementsTable({
       .sort((a, b) => {
         const ab = brandOf(a) || "￿";
         const bb = brandOf(b) || "￿";
-        if (ab !== bb) return ab.localeCompare(bb);
+        if (ab !== bb) return compareNames(ab, bb);
         if (!a.next_visit !== !b.next_visit) return a.next_visit ? -1 : 1;
         return (
           (a.next_visit ?? "").localeCompare(b.next_visit ?? "") ||
-          a.customer_name.localeCompare(b.customer_name)
+          compareNames(a.customer_name, b.customer_name)
         );
       });
   }, [byTab, status, query]);

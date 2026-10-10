@@ -28,6 +28,7 @@ import {
   type WarrantyEvent,
 } from "@/lib/agreements.dashboard";
 import type { AgreementPlan } from "@/lib/types";
+import { compareNames } from "@/lib/sort";
 
 const SYMBOL: Record<string, string> = { TRY: "₺", EUR: "€", USD: "$" };
 const money = (n: number, currency: string) =>
@@ -96,7 +97,7 @@ export default function AgreementsDashboard({
   const brandOf = (a: (typeof agreements)[number]) => a.brands[0] ?? "";
   const visible = agreements
     .filter((a) => filter === "all" || a.plan === filter)
-    .sort((a, b) => (brandOf(a) || "￿").localeCompare(brandOf(b) || "￿"));
+    .sort((a, b) => compareNames(brandOf(a) || "￿", brandOf(b) || "￿"));
   const counts: Record<PlanFilter, number> = {
     all: agreements.filter((a) => a.status === "active").length,
     periodic: stats.byPlan.periodic,

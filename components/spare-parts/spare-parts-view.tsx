@@ -20,6 +20,7 @@ import { formatAmount } from "@/lib/money";
 import PhotoLightbox from "./photo-lightbox";
 import PartModal from "./part-modal";
 import { useAction } from "@/lib/use-action";
+import { compareNames } from "@/lib/sort";
 
 type Stock = "ok" | "low" | "neg";
 type Sort = "company" | "qty" | "price" | "name";
@@ -152,7 +153,7 @@ export default function SparePartsView({
       const rows = filtered.slice().sort((a, b) => {
         if (sort === "qty") return a.quantity - b.quantity;
         if (sort === "price") return (b.price ?? 0) - (a.price ?? 0);
-        return a.name.localeCompare(b.name);
+        return compareNames(a.name, b.name);
       });
       return rows.length ? [{ id: "__flat__", name: "", rows }] : [];
     }
@@ -164,7 +165,7 @@ export default function SparePartsView({
       }
       byBrand.get(id)!.rows.push(p);
     }
-    return [...byBrand.values()].sort((a, b) => a.name.localeCompare(b.name));
+    return [...byBrand.values()].sort((a, b) => compareNames(a.name, b.name));
   }, [filtered, sort, t]);
 
   const lowNames = useMemo(

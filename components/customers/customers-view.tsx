@@ -14,6 +14,7 @@ import { approveCustomer, rejectCustomer } from "@/app/(app)/customers/actions";
 import PendingBadge from "@/components/pending-badge";
 import CustomerModal from "./customer-modal";
 import { formatDate } from "@/lib/dates";
+import { compareNames } from "@/lib/sort";
 
 const PAGE_SIZE = 25;
 
@@ -93,7 +94,7 @@ export default function CustomersView({
       filtered.slice().sort((a, b) => {
         const an = a.company?.name ?? "\uffff";
         const bn = b.company?.name ?? "\uffff";
-        return an.localeCompare(bn) || a.name.localeCompare(b.name);
+        return compareNames(an, bn) || compareNames(a.name, b.name);
       }),
     [filtered]
   );

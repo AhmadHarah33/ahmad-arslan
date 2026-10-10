@@ -435,7 +435,7 @@ export default function AppShell({
               fit more per row as they widen. The cap and the main's own padding
               are what keep content off the panel's corners on a very wide
               monitor, instead of letting a row stretch edge to edge. */}
-          <main className="flex-1 px-4 pb-24 pt-4 md:px-6 md:pb-8 md:pt-5 xl:px-8">
+          <main className="flex-1 px-4 pb-36 pt-4 md:px-6 md:pb-8 md:pt-5 xl:px-8">
             <div className="mx-auto w-full max-w-[1720px]">{children}</div>
           </main>
         </div>
