@@ -48,3 +48,4 @@ tsconfig.tsbuildinfo
 /.next-dev/
 /.next-build/
 /.next-backup/
+/.playwright/

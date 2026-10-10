@@ -31,9 +31,12 @@ function Stop-Live {
 }
 
 function Start-Live {
-  Start-Process -FilePath "cmd.exe" `
-    -ArgumentList '/c', "`"$node`" `"$next`" start >> `"$serverLog`" 2>&1" `
-    -WorkingDirectory $repo -WindowStyle Hidden
+  # Start the server the same way it normally starts: through the watchdog
+  # scheduled task. That keeps the environment identical to production (e.g. the
+  # Chromium path for PDF export) no matter where this script is run from, and it
+  # cannot race the watchdog's own 2-minute check (it only starts the server when
+  # nothing is listening).
+  Start-ScheduledTask -TaskName "MarsApp-Watchdog"
 }
 
 function Test-Live {
