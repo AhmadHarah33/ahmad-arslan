@@ -277,9 +277,13 @@ supabase/
   `maintenance_schedules` table and `generate_due_maintenance()` are kept in the
   database but unused. Manual rollbacks for the agreement migrations are in
   `supabase/rollbacks/`.
-- **Backups** — run `scripts/backup.sh` (uses `pg_dump` against the local Supabase
-  Postgres on port 54322). Schedule it with cron for automated daily backups; see
-  the header of the script for the exact crontab line and restore command.
+- **Backups** — `scripts/backup.sh` dumps the database, archives the uploaded files,
+  copies both (plus the source code) to the off-PC folder in
+  `backups/offsite-dir.txt`, and runs nightly at 02:00 as the Windows task
+  `MarsDbBackup`. How to check a backup and how to restore: see
+  [`docs/RESTORE.md`](docs/RESTORE.md).
+- **Deploying** — `powershell -File scripts\deploy.ps1` (typecheck, return-point tag,
+  build, restart through the watchdog, health check, automatic rollback).
 
 ## Security notes
 
