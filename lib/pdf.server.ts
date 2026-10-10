@@ -31,10 +31,17 @@ async function getBrowser(): Promise<Browser> {
 // Renders `url` (a page in this app) to a PDF buffer. `cookieHeader` forwards
 // the caller's session cookies, since the headless browser has none of its
 // own and the print route requires being signed in.
-export async function renderPdf(url: string, cookieHeader: string | undefined): Promise<Buffer> {
+export async function renderPdf(
+  url: string,
+  cookieHeader: string | undefined,
+  opts: { landscape?: boolean } = {}
+): Promise<Buffer> {
+  const landscape = opts.landscape ?? false;
   const browser = await getBrowser();
   const context = await browser.newContext({
-    viewport: { width: PAGE_WIDTH, height: PAGE_HEIGHT },
+    viewport: landscape
+      ? { width: PAGE_HEIGHT, height: PAGE_WIDTH }
+      : { width: PAGE_WIDTH, height: PAGE_HEIGHT },
     deviceScaleFactor: 2,
   });
   try {
@@ -61,6 +68,7 @@ export async function renderPdf(url: string, cookieHeader: string | undefined): 
 
     return await page.pdf({
       printBackground: true,
+      landscape,
       margin: { top: "16mm", bottom: "16mm", left: "14mm", right: "14mm" },
       displayHeaderFooter: true,
       headerTemplate: "<span></span>",

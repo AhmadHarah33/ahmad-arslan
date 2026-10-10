@@ -421,6 +421,8 @@ const en = {
   "fields.pressRead": "Press to read the full value",
   "customers.serviceHistory": "Service history",
   "customers.noTasks": "No tasks for this customer yet.",
+  "customers.historyFile": "History file (PDF)",
+  "customers.historyFileLang": "PDF language",
   "customers.interval": "Interval (months)",
   "customers.linkLabel": "Label",
 
@@ -1003,6 +1005,8 @@ const tr: Record<StringKey, string> = {
   "fields.pressRead": "Değerin tamamını okumak için basın",
   "customers.serviceHistory": "Servis geçmişi",
   "customers.noTasks": "Bu müşteri için henüz görev yok.",
+  "customers.historyFile": "Geçmiş dosyası (PDF)",
+  "customers.historyFileLang": "PDF dili",
   "customers.interval": "Aralık (ay)",
   "customers.linkLabel": "Etiket",
 

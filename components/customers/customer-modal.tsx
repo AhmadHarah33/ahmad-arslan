@@ -27,6 +27,7 @@ import Modal from "@/components/modal";
 import { useT } from "@/lib/i18n/provider";
 import CustomFields from "@/components/fields/CustomFields";
 import ServiceHistory from "./service-history";
+import HistoryFileButton from "./history-file-button";
 import CustomerAgreements from "./customer-agreements";
 import QrCode from "@/components/qr-code";
 import { customerQrValue } from "@/lib/qr";
@@ -683,6 +684,7 @@ export default function CustomerModal({
         {!isNew && (
           <div className="border-t border-surface-border pt-4">
             <p className="label">{t("customers.serviceHistory")}</p>
+            <HistoryFileButton customerId={cid!} />
             <ServiceHistory customerId={cid!} />
           </div>
         )}
