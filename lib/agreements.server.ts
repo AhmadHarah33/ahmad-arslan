@@ -13,11 +13,34 @@ import type { AgreementOverview } from "./types";
 // (generate_due_agreement_visits). Idempotent, so it's safe to call on every
 // page load. Best-effort: a failure here must never stop the page rendering,
 // but it is logged because a silently dead generator means visits never appear.
-export async function generateDueAgreementVisits(supabase: SupabaseClient) {
+// Visits only come due on a scale of days, so running this on every single page
+// load (it writes to the database) is wasted work. Throttle it to once per
+// interval per server process; `force` bypasses it after a change that could
+// make a visit due right now (agreement saved/changed). Kept on globalThis
+// because Next bundles pages and server actions separately — a module-level
+// variable would be one copy per bundle.
+const GENERATE_EVERY_MS = 10 * 60 * 1000;
+declare global {
+  // eslint-disable-next-line no-var
+  var __lastVisitGeneration: number | undefined;
+}
+
+export async function generateDueAgreementVisits(
+  supabase: SupabaseClient,
+  opts: { force?: boolean } = {}
+) {
+  const now = Date.now();
+  const last = globalThis.__lastVisitGeneration ?? 0;
+  if (!opts.force && now - last < GENERATE_EVERY_MS) return;
+  globalThis.__lastVisitGeneration = now;
   try {
     const { error } = await supabase.rpc("generate_due_agreement_visits");
-    if (error) console.error("generate_due_agreement_visits failed:", error.message);
+    if (error) {
+      globalThis.__lastVisitGeneration = 0; // failed — try again on the next load
+      console.error("generate_due_agreement_visits failed:", error.message);
+    }
   } catch (e) {
+    globalThis.__lastVisitGeneration = 0;
     console.error("generate_due_agreement_visits threw:", e);
   }
 }

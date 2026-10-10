@@ -6,10 +6,12 @@ import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import TasksBoard from "@/components/tasks/board";
 import type { City, Company, Customer, CustomerMachine, MachineModel, Profile } from "@/lib/types";
 
+const DONE_WINDOW_DAYS = 60;
+
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams?: { new?: string };
+  searchParams?: { new?: string; all?: string };
 }) {
   const profile = await requireProfile();
 
@@ -18,8 +20,15 @@ export default async function TasksPage({
   // Visit tasks are created lazily; make sure due ones exist before listing.
   await generateDueAgreementVisits(supabase);
 
+  // Done tasks pile up forever; shipping every one to the browser on each visit
+  // gets slower as history grows. Show open work plus recently finished tasks,
+  // and let ?all=1 load the full archive.
+  const showAll = searchParams?.all === "1";
+  const cutoff = new Date(Date.now() - DONE_WINDOW_DAYS * 86400000).toISOString();
+
   const [
     { data: tasks },
+    { count: olderDone },
     { data: engineers },
     { data: customers },
     { data: companies },
@@ -27,10 +36,20 @@ export default async function TasksPage({
     { data: models },
     { data: customerMachines },
   ] = await Promise.all([
-    supabase
-      .from("tasks")
-      .select(TASK_SELECT)
-      .order("position", { ascending: true }),
+    (showAll
+      ? supabase.from("tasks").select(TASK_SELECT)
+      : supabase
+          .from("tasks")
+          .select(TASK_SELECT)
+          .or(`status.neq.done,completed_at.gte.${cutoff},completed_at.is.null`)
+    ).order("position", { ascending: true }),
+    showAll
+      ? Promise.resolve({ count: 0 })
+      : supabase
+          .from("tasks")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "done")
+          .lt("completed_at", cutoff),
     supabase.from("profiles").select("*").order("full_name"),
     supabase.from("customers").select("id, name").order("name"),
     supabase.from("companies").select("*").order("name"),
@@ -70,6 +89,8 @@ export default async function TasksPage({
       fieldDefs={defs}
       fieldValues={valueMap}
       commentCounts={commentCounts}
+      olderDoneHidden={olderDone ?? 0}
+      doneWindowDays={DONE_WINDOW_DAYS}
     />
   );
 }

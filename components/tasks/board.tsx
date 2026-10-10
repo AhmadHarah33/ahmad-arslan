@@ -102,6 +102,8 @@ export default function TasksBoard({
   cities,
   models,
   customerMachines,
+  olderDoneHidden = 0,
+  doneWindowDays = 60,
 }: {
   // Dashboard "New task" quick action links to /tasks?new=1.
   openNewOnMount?: boolean;
@@ -116,6 +118,9 @@ export default function TasksBoard({
   fieldDefs: FieldDefinition[];
   fieldValues: ValueMap;
   commentCounts: CountMap;
+  // Finished tasks older than the window the page loaded (0 = nothing hidden).
+  olderDoneHidden?: number;
+  doneWindowDays?: number;
 }) {
   const t = useT();
   const [mounted, setMounted] = useState(false);
@@ -398,6 +403,15 @@ export default function TasksBoard({
 
   return (
     <div className="flex flex-col gap-4">
+      {olderDoneHidden > 0 && (
+        <p className="text-xs text-ink-muted">
+          {t("tasks.olderHidden").replace("{n}", String(olderDoneHidden)).replace("{d}", String(doneWindowDays))}{" "}
+          <a href="/tasks?all=1" className="font-semibold text-brand-600">
+            {t("tasks.showAllDone")}
+          </a>
+        </p>
+      )}
+
       {/* Header: title · view tabs · search · create */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex min-w-0 flex-1 flex-col">
