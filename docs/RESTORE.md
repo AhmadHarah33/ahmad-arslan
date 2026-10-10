@@ -76,10 +76,10 @@ Do not extract over the live storage volume.
 ## C. The PC is gone: rebuild on a new machine
 
 **This path has not been rehearsed end to end.** The pieces in A were tested; the
-steps below are the intended plan. Do a rehearsal on a spare machine before you ever
+steps below are the intended plan. Do the rehearsal in `docs/REHEARSAL-PLAN.md` on a spare machine before you ever
 depend on it, and expect to adjust.
 
-1. Install Git, Node 20, Docker Desktop and the Supabase CLI.
+1. Install Git, Node (same major version as the office PC, currently 24.x), Docker Desktop and the Supabase CLI (the stack was created with `npx supabase@2.120.0`).
 2. Get the code: clone GitHub, or use `code/latest/` from the Drive folder, or
    `git clone mars-code.bundle C:\TaskApp`.
 3. Put `.env.local` back (from the password manager) and run `npm install`.
