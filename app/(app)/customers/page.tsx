@@ -5,15 +5,16 @@ import CustomersView from "@/components/customers/customers-view";
 import type { City, Company, Customer, MachineModel } from "@/lib/types";
 
 export default async function CustomersPage({
-  searchParams,
+  searchParams: searchPromise,
 }: {
-  searchParams: { q?: string; brand?: string };
+  searchParams: Promise<{ q?: string; brand?: string }>;
 }) {
+  const searchParams = await searchPromise;
   const profile = await requireProfile();
   const initialQuery = searchParams.q ?? "";
   const brandFilter = searchParams.brand ?? "";
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   let query = supabase
     .from("customers")

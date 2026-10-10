@@ -6,12 +6,13 @@ import AgreementForm, { type FormInitial } from "@/components/agreements/agreeme
 import type { Agreement } from "@/lib/types";
 
 export default async function EditAgreementPage({
-  params,
+  params: paramsP,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const params = await paramsP;
   await requireProfile();
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const [{ data: a }, { data: ms }, { data: ts }, { data: vs }, form] = await Promise.all([
     supabase.from("agreements").select("*").eq("id", params.id).maybeSingle(),

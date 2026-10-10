@@ -48,7 +48,7 @@ export async function updateProfile(
     return { error: "Unknown role" };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const update: Record<string, unknown> = {};
   if (patch.role !== undefined) update.role = patch.role;
   if (patch.can_edit !== undefined) update.can_edit = patch.can_edit;

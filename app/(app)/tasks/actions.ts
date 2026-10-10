@@ -6,7 +6,7 @@ import type { TaskCurrency, TaskPriority, TaskStatus } from "@/lib/types";
 import { TASK_SELECT, normalizeTask } from "@/lib/tasks.server";
 
 async function currentUserId() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -45,7 +45,7 @@ export async function createTask(
   }
 ) {
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const uid = await currentUserId();
   if (!uid) return { error: "Not signed in" };
 
@@ -103,7 +103,7 @@ export async function createTask(
 
 export async function updateTask(id: string, input: TaskFields) {
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("tasks")
     .update({
@@ -132,7 +132,7 @@ export async function updateTask(id: string, input: TaskFields) {
 
 // Assignment (RLS enforces: head assigns anyone; engineers self-claim unassigned).
 export async function addAssignee(taskId: string, profileId: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("task_assignees")
     .insert({ task_id: taskId, profile_id: profileId });
@@ -142,7 +142,7 @@ export async function addAssignee(taskId: string, profileId: string) {
 }
 
 export async function removeAssignee(taskId: string, profileId: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("task_assignees")
     .delete()
@@ -157,7 +157,7 @@ export async function removeAssignee(taskId: string, profileId: string) {
 // enough — the task_assignees_single_lead trigger clears the flag on every
 // other row for the same task. Setting it false just un-marks that one.
 export async function setLeadAssignee(taskId: string, profileId: string, lead: boolean) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("task_assignees")
     .update({ is_lead: lead })
@@ -177,7 +177,7 @@ export async function setLeadAssignee(taskId: string, profileId: string, lead: b
 // optimistic client state needs to be corrected to match what actually
 // landed, not what was requested.
 export async function moveTask(id: string, status: TaskStatus, position: number) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("tasks")
     .update({ status, position })
@@ -191,7 +191,7 @@ export async function moveTask(id: string, status: TaskStatus, position: number)
 }
 
 export async function deleteTask(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.from("tasks").delete().eq("id", id);
   if (error) return { error: error.message };
   revalidate();

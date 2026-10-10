@@ -64,7 +64,7 @@ const COVERAGES = ["parts_labour", "labour", "parts"];
 const REMIND = [3, 7, 14];
 
 async function currentUserId() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -138,7 +138,7 @@ function validate(
 // Every machine must belong to the agreement's customer.
 async function machinesBelongTo(customerId: string, machineIds: string[]) {
   if (machineIds.length === 0) return null;
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("customer_machines")
     .select("id")
@@ -152,7 +152,7 @@ async function machinesBelongTo(customerId: string, machineIds: string[]) {
 
 // Replace an agreement's covered machines and technicians with the given sets.
 async function syncLinks(id: string, machineIds: string[], technicianIds: string[]) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const wantM = [...new Set(machineIds)];
   const wantT = [...new Set(technicianIds)];
 
@@ -227,7 +227,7 @@ export async function saveAgreement(
   input: AgreementInput,
   draft: boolean
 ) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const uid = await currentUserId();
 
   if (!["periodic", "annual", "warranty"].includes(input.plan))
@@ -302,7 +302,7 @@ export async function saveAgreement(
 
 // Edit a LIVE (active or ended) agreement. Plan and visit count stay as they are.
 export async function updateAgreement(id: string, input: AgreementUpdate) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: current, error: cErr } = await supabase
     .from("agreements")
@@ -416,7 +416,7 @@ export async function updateAgreement(id: string, input: AgreementUpdate) {
 // (or done) stay so the history and their tasks aren't orphaned. A draft is
 // simply deleted.
 export async function cancelAgreement(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: current, error: cErr } = await supabase
     .from("agreements")
     .select("status")
@@ -453,7 +453,7 @@ export async function cancelAgreement(id: string) {
 // Permanent delete: the agreement with its visits, covered machines and
 // technicians (all cascade), plus the signed contract file.
 export async function deleteAgreement(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: a, error: rErr } = await supabase
     .from("agreements")
     .select("contract_path")
@@ -475,7 +475,7 @@ export async function deleteAgreement(id: string) {
 // a board task, so this is the only way they are completed. When the last visit
 // of a finished agreement is done it becomes 'ended'; undoing reopens it.
 export async function setVisitDone(visitId: string, done: boolean) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: visit, error } = await supabase
     .from("agreement_visits")
     .update({ done_at: done ? today() : null })
@@ -513,7 +513,7 @@ export async function setVisitDone(visitId: string, done: boolean) {
 }
 
 export async function setPaymentStatus(id: string, paid: boolean) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("agreements")
     .update({
@@ -532,7 +532,7 @@ export async function setPaymentStatus(id: string, paid: boolean) {
 export async function attachContract(id: string, path: string) {
   if (!path.startsWith(`${id}/`) || !path.toLowerCase().endsWith(".pdf"))
     return { error: "Unexpected contract file." };
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: prev } = await supabase
     .from("agreements")
     .select("contract_path")
@@ -551,7 +551,7 @@ export async function attachContract(id: string, path: string) {
 }
 
 export async function removeContract(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: prev } = await supabase
     .from("agreements")
     .select("contract_path")
@@ -571,7 +571,7 @@ export async function removeContract(id: string) {
 
 // Short-lived link to open the private contract.
 export async function getContractUrl(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: a, error } = await supabase
     .from("agreements")
     .select("contract_path")
@@ -592,7 +592,7 @@ export async function sendReminder(
   id: string,
   kind: "payment" | "renewal" | "visit"
 ) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const uid = await currentUserId();
 
   const { data: a, error } = await supabase
@@ -659,7 +659,7 @@ export async function sendReminder(
 // Creates board tasks for visits that have come within their lead time. The
 // pages call this on load (replaces generate_due_maintenance).
 export async function generateAgreementVisits() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase.rpc("generate_due_agreement_visits");
   if (error) return { error: error.message };
   if (typeof data === "number" && data > 0) {
@@ -677,7 +677,7 @@ export async function setMachineWarranty(
 ) {
   if (warrantyEnd !== null && !isIsoDate(warrantyEnd))
     return { error: "Warranty date is invalid." };
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("customer_machines")
     .update({ warranty_end: warrantyEnd })

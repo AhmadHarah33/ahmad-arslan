@@ -11,7 +11,7 @@ import type { Profile } from "./types";
 // `profiles` SELECTs. cache() is request-scoped, so there is no cross-user
 // or cross-navigation staleness.
 export const getProfile = cache(async (): Promise<Profile | null> => {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

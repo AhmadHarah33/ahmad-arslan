@@ -9,14 +9,15 @@ import type { City, Company, Customer, CustomerMachine, MachineModel, Profile } 
 const DONE_WINDOW_DAYS = 60;
 
 export default async function TasksPage({
-  searchParams,
+  searchParams: searchPromise,
 }: {
-  searchParams?: { new?: string; all?: string };
+  searchParams?: Promise<{ new?: string; all?: string }>;
 }) {
+  const searchParams = await searchPromise;
   const profile = await requireProfile();
 
 
-  const supabase = createClient();
+  const supabase = await createClient();
   // Visit tasks are created lazily; make sure due ones exist before listing.
   await generateDueAgreementVisits(supabase);
 

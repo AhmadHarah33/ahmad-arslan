@@ -48,14 +48,16 @@ type MachineRow = {
 };
 
 export default async function CustomerHistory({
-  params,
-  searchParams,
+  params: paramsP,
+  searchParams: searchPromise,
 }: {
-  params: { id: string };
-  searchParams: { lang?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
+  const params = await paramsP;
+  const searchParams = await searchPromise;
   const L = TEXT[searchParams.lang === "en" ? "en" : "tr"];
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const [{ data: c }, { data: settings }, { data: machines }, { data: rawTasks }] =
     await Promise.all([

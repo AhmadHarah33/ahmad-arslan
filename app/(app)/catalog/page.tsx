@@ -5,7 +5,7 @@ import type { City, Company, MachineModel } from "@/lib/types";
 
 export default async function CatalogPage() {
   const profile = await requireProfile();
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const [{ data: companies }, { data: models }, { data: cities }] = await Promise.all([
     supabase.from("companies").select("*").order("name"),

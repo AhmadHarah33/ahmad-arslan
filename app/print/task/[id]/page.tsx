@@ -19,10 +19,11 @@ const DEFAULT_COMPANY = {
 type PartRow = { id: string; quantity: number; unit_price: number | null; name: string };
 
 export default async function TaskReport({
-  params,
+  params: paramsP,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const params = await paramsP;
   const id = params.id;
 
   let task: Task | null;
@@ -31,7 +32,7 @@ export default async function TaskReport({
   let values: Record<string, unknown>;
   let company = DEFAULT_COMPANY;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const [{ data: t }, { data: settings }] = await Promise.all([
     supabase.from("tasks").select(TASK_SELECT).eq("id", id).single(),
     supabase.from("app_settings").select("*").eq("id", 1).single(),

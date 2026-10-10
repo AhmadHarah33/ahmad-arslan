@@ -13,7 +13,7 @@ export async function loadFields(
   entity: FieldEntity,
   recordIds: string[]
 ): Promise<LoadedFields> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: defs } = await supabase
     .from("field_definitions")
     .select("*")

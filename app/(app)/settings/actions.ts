@@ -6,7 +6,7 @@ import type { BackgroundStyle } from "@/lib/types";
 
 // Persist the current user's theme choice to their profile.
 export async function saveTheme(accent: string, mode: ThemeMode) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -23,7 +23,7 @@ export async function saveTheme(accent: string, mode: ThemeMode) {
 // Persist the global background setting (owner/head only — RLS on
 // app_settings also enforces this).
 export async function saveBackground(style: BackgroundStyle, blur: number) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("app_settings")
     .update({ bg_style: style, bg_blur: blur })

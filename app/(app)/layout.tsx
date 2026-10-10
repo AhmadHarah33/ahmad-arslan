@@ -23,7 +23,7 @@ export default async function AppGroupLayout({
 }) {
   const profile = await requireProfile();
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const [{ data }, { data: people }, { data: companiesData }] = await Promise.all([
     supabase.from("app_settings").select("*").eq("id", 1).single(),
     supabase.from("profiles").select("id, full_name, first_name").order("full_name"),

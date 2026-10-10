@@ -20,8 +20,9 @@ function contentDisposition(filename: string): string {
   return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
 }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = createClient();
+export async function GET(req: NextRequest, { params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
+  const supabase = await createClient();
   const { data: task } = await supabase
     .from("tasks")
     .select("id, title")

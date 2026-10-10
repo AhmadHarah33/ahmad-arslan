@@ -21,7 +21,7 @@ export async function createField(input: {
 }) {
   if (!input.label.trim()) return { error: "Field name is required" };
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("field_definitions")
     .insert({
@@ -43,7 +43,7 @@ export async function updateField(
   id: string,
   patch: { label?: string; options?: FieldOption[] }
 ) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const update: Record<string, unknown> = {};
   if (patch.label !== undefined) update.label = patch.label.trim();
   if (patch.options !== undefined) update.options = patch.options;
@@ -58,7 +58,7 @@ export async function updateField(
 }
 
 export async function deleteField(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("field_definitions")
     .delete()
@@ -75,7 +75,7 @@ export async function upsertFieldValue(
   recordId: string,
   value: unknown
 ) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("field_values")
     .upsert(

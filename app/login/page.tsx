@@ -1,8 +1,8 @@
 import LoginForm from "./login-form";
 import { getServerT } from "@/lib/i18n/server";
 
-export default function LoginPage() {
-  const t = getServerT();
+export default async function LoginPage() {
+  const t = await getServerT();
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="app-bg" aria-hidden="true" />

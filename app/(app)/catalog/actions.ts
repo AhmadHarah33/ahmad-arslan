@@ -24,7 +24,7 @@ function refresh() {
 /* --- cities --- */
 
 export async function createCity(name: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const clean = name.trim();
   if (!clean) return { error: "Name is required." };
 
@@ -55,7 +55,7 @@ export async function renameCity(id: string, name: string) {
   if (denied) return { error: denied };
   const clean = name.trim();
   if (!clean) return { error: "Name is required." };
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.from("cities").update({ name: clean }).eq("id", id);
   if (error) return { error: error.message };
   refresh();
@@ -65,7 +65,7 @@ export async function renameCity(id: string, name: string) {
 export async function deleteCity(id: string) {
   const denied = await requireManager();
   if (denied) return { error: denied };
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.from("cities").delete().eq("id", id);
   if (error) return { error: error.message };
   refresh();
@@ -75,7 +75,7 @@ export async function deleteCity(id: string) {
 /* --- machine models --- */
 
 export async function createModel(companyId: string, name: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const clean = name.trim();
   if (!clean) return { error: "Name is required." };
   if (!companyId) return { error: "Pick a brand first." };
@@ -106,7 +106,7 @@ export async function renameModel(id: string, name: string) {
   if (denied) return { error: denied };
   const clean = name.trim();
   if (!clean) return { error: "Name is required." };
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("machine_models")
     .update({ name: clean })
@@ -119,7 +119,7 @@ export async function renameModel(id: string, name: string) {
 export async function deleteModel(id: string) {
   const denied = await requireManager();
   if (denied) return { error: denied };
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.from("machine_models").delete().eq("id", id);
   if (error) return { error: error.message };
   refresh();
@@ -129,7 +129,7 @@ export async function deleteModel(id: string) {
 /* --- brands (the existing companies table) --- */
 
 export async function createBrand(name: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const clean = name.trim();
   if (!clean) return { error: "Name is required." };
   const { data, error } = await supabase
@@ -147,7 +147,7 @@ export async function renameBrand(id: string, name: string) {
   if (denied) return { error: denied };
   const clean = name.trim();
   if (!clean) return { error: "Name is required." };
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.from("companies").update({ name: clean }).eq("id", id);
   if (error) return { error: error.message };
   refresh();
@@ -162,7 +162,7 @@ export async function renameBrand(id: string, name: string) {
 export async function deleteBrand(id: string) {
   const denied = await requireManager();
   if (denied) return { error: denied };
-  const supabase = createClient();
+  const supabase = await createClient();
   const [parts, models, machines, tasks] = await Promise.all([
     supabase.from("spare_parts").select("id", { count: "exact", head: true }).eq("company_id", id),
     supabase.from("machine_models").select("id", { count: "exact", head: true }).eq("company_id", id),

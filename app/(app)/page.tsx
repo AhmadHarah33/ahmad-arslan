@@ -26,9 +26,9 @@ const STATUS_ORDER: Record<TaskStatus, number> = {
 const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 } as const;
 
 export default async function DashboardPage() {
-  const t = getServerT();
+  const t = await getServerT();
   const profile = await requireProfile();
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Create the board task for any agreement visit that has come due (Bakım &
   // Garanti; idempotent). Before the task query below so a visit that just

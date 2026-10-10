@@ -14,7 +14,7 @@ export async function addTaskPart(
   quantity: number,
   unitPrice: number | null
 ) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("task_parts")
     .insert({ task_id: taskId, spare_part_id: sparePartId, quantity, unit_price: unitPrice })
@@ -33,7 +33,7 @@ export async function addTaskPartsBulk(
   rows: { spare_part_id: string; quantity: number; unit_price: number | null }[]
 ) {
   if (rows.length === 0) return { ok: true };
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("task_parts")
     .insert(rows.map((r) => ({ task_id: taskId, ...r })));
@@ -45,7 +45,7 @@ export async function addTaskPartsBulk(
 // Quantity is edited on the attached row now that selecting a part attaches
 // it immediately, so it needs its own write.
 export async function setTaskPartQuantity(id: string, quantity: number) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("task_parts")
     .update({ quantity: Math.max(1, Math.round(quantity) || 1) })
@@ -58,7 +58,7 @@ export async function setTaskPartQuantity(id: string, quantity: number) {
 // Price is editable per line — the catalog price is only the starting
 // suggestion when a part is picked (see TaskParts).
 export async function setTaskPartPrice(id: string, unitPrice: number | null) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("task_parts")
     .update({ unit_price: unitPrice })
@@ -69,7 +69,7 @@ export async function setTaskPartPrice(id: string, unitPrice: number | null) {
 }
 
 export async function removeTaskPart(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.from("task_parts").delete().eq("id", id);
   if (error) return { error: error.message };
   refresh();

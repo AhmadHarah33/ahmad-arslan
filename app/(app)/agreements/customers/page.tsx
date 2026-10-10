@@ -5,6 +5,6 @@ import AgreementsTable from "@/components/agreements/agreements-table";
 
 export default async function CustomersWithAgreementPage() {
   await requireProfile();
-  const { today, agreements } = await loadAgreementsDashboardData(createClient());
+  const { today, agreements } = await loadAgreementsDashboardData(await createClient());
   return <AgreementsTable today={today} agreements={agreements} />;
 }

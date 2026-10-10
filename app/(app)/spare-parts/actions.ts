@@ -6,7 +6,7 @@ import { SPARE_PHOTOS_BUCKET } from "@/lib/storage";
 
 export async function saveCompany(id: string | null, name: string) {
   if (!name.trim()) return { error: "Company name is required" };
-  const supabase = createClient();
+  const supabase = await createClient();
 
   if (id) {
     const { error } = await supabase
@@ -37,7 +37,7 @@ export async function saveSparePart(
   }
 ) {
   if (!input.name.trim()) return { error: "Part name is required" };
-  const supabase = createClient();
+  const supabase = await createClient();
 
   if (id) {
     const { error } = await supabase
@@ -76,7 +76,7 @@ export async function saveSparePart(
 }
 
 export async function deleteSparePart(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   // Remove stored photos first, then the row (cascade drops photo rows).
   const { data: photos } = await supabase
     .from("spare_part_photos")
@@ -95,7 +95,7 @@ export async function deleteSparePart(id: string) {
 
 // Record a photo row after the client has uploaded the file to Storage.
 export async function addPhotoRecord(sparePartId: string, storagePath: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("spare_part_photos")
     .insert({ spare_part_id: sparePartId, storage_path: storagePath });
@@ -105,7 +105,7 @@ export async function addPhotoRecord(sparePartId: string, storagePath: string) {
 }
 
 export async function deletePhoto(photoId: string, storagePath: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   await supabase.storage.from(SPARE_PHOTOS_BUCKET).remove([storagePath]);
   const { error } = await supabase
     .from("spare_part_photos")
@@ -119,7 +119,7 @@ export async function deletePhoto(photoId: string, storagePath: string) {
 // Approve/reject a pending spare-part change. See approve_customer's comment
 // in customers/actions.ts — same shape, RPC-enforced.
 export async function approveSparePart(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.rpc("approve_spare_part", { p_id: id });
   if (error) return { error: error.message };
   revalidatePath("/spare-parts");
@@ -127,7 +127,7 @@ export async function approveSparePart(id: string) {
 }
 
 export async function rejectSparePart(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.rpc("reject_spare_part", { p_id: id });
   if (error) return { error: error.message };
   revalidatePath("/spare-parts");

@@ -37,8 +37,9 @@ function first(v: any): any {
   return Array.isArray(v) ? v[0] ?? null : v ?? null;
 }
 
-export default async function AgreementPrint({ params }: { params: { id: string } }) {
-  const supabase = createClient();
+export default async function AgreementPrint({ params: paramsP }: { params: Promise<{ id: string }> }) {
+  const params = await paramsP;
+  const supabase = await createClient();
   const [{ data: a }, { data: settings }] = await Promise.all([
     supabase.from("agreements").select("*").eq("id", params.id).maybeSingle(),
     supabase.from("app_settings").select("*").eq("id", 1).single(),

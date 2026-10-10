@@ -17,7 +17,7 @@ type CustomerInput = {
 };
 
 async function currentUserId() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -31,7 +31,7 @@ function cleanLinks(links: LinkInput[]) {
 }
 
 export async function saveCustomer(id: string | null, input: CustomerInput) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const uid = await currentUserId();
 
   let customerId = id;
@@ -83,7 +83,7 @@ export async function saveCustomer(id: string | null, input: CustomerInput) {
 // doesn't need a trip to the Customers page first. Everything else about the
 // customer (machines, contact info) gets filled in later by opening it there.
 export async function createCustomer(name: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const clean = name.trim();
   if (!clean) return { error: "Name is required." };
   const uid = await currentUserId();
@@ -100,7 +100,7 @@ export async function createCustomer(name: string) {
 }
 
 export async function deleteCustomer(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   // tasks.customer_id is ON DELETE SET NULL, so Postgres would let this
   // through and quietly strip the customer off every task that used to
   // reference it. Refuse instead whenever any task still points here —
@@ -139,7 +139,7 @@ export async function saveCustomerMachine(
   id: string | null,
   input: MachineInput
 ) {
-  const supabase = createClient();
+  const supabase = await createClient();
   if (id) {
     const { error } = await supabase
       .from("customer_machines")
@@ -174,7 +174,7 @@ export async function saveCustomerMachine(
 }
 
 export async function deleteCustomerMachine(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.from("customer_machines").delete().eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/customers");
@@ -184,7 +184,7 @@ export async function deleteCustomerMachine(id: string) {
 }
 
 export async function approveCustomerMachine(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.rpc("approve_customer_machine", { p_id: id });
   if (error) return { error: error.message };
   revalidatePath("/customers");
@@ -192,7 +192,7 @@ export async function approveCustomerMachine(id: string) {
 }
 
 export async function rejectCustomerMachine(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.rpc("reject_customer_machine", { p_id: id });
   if (error) return { error: error.message };
   revalidatePath("/customers");
@@ -204,7 +204,7 @@ export async function rejectCustomerMachine(id: string) {
 // gate_customer_upsert / gate_customer_delete / approve_customer /
 // reject_customer in supabase/migrations.
 export async function approveCustomer(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.rpc("approve_customer", { p_id: id });
   if (error) return { error: error.message };
   revalidatePath("/customers");
@@ -212,7 +212,7 @@ export async function approveCustomer(id: string) {
 }
 
 export async function rejectCustomer(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.rpc("reject_customer", { p_id: id });
   if (error) return { error: error.message };
   revalidatePath("/customers");

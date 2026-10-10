@@ -7,8 +7,8 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 // Server Supabase client for Server Components, Route Handlers, and Server
 // Actions. Reads/writes the auth cookies so SSR sees the logged-in user.
-export function createClient() {
-  const cookieStore = cookies();
+export async function createClient() {
+  const cookieStore = await cookies();
 
   return createServerClient(
     supabaseServerUrl(),

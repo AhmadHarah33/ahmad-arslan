@@ -9,7 +9,7 @@ export default async function AdminPage() {
   const profile = await requireProfile();
   if (profile.role !== "head") redirect("/");
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const [{ data: profs }, { data: log }] = await Promise.all([
     supabase.from("profiles").select("*").order("role").order("full_name"),
     supabase

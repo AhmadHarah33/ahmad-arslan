@@ -36,8 +36,8 @@ const ACTIONS: {
   { href: "/tasks", titleKey: "dash.myBoard", descKey: "dash.myBoardDesc", icon: "board" },
 ];
 
-export default function QuickActions() {
-  const t = getServerT();
+export default async function QuickActions() {
+  const t = await getServerT();
 
   return (
     <section>
@@ -67,8 +67,8 @@ export default function QuickActions() {
 
 // Split out so the head dashboard can show the drives without the engineer
 // quick actions, which duplicate cards it already has.
-export function SharedDrives() {
-  const t = getServerT();
+export async function SharedDrives() {
+  const t = await getServerT();
 
   return (
     <section>

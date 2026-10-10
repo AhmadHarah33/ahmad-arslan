@@ -9,7 +9,7 @@ export async function importCustomers(
   rows: { name: string; city: string; model: string; sn: string; brand: string }[]
 ) {
   const valid = rows.filter((r) => r.name.trim());
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -77,7 +77,7 @@ export async function importParts(
   rows: { company: string; name: string; part_number: string; quantity: string }[]
 ) {
   const valid = rows.filter((r) => r.name.trim());
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Resolve / create companies.
   const { data: companies } = await supabase.from("companies").select("id, name");
