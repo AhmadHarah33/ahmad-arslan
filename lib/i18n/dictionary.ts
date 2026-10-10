@@ -67,7 +67,7 @@ const en = {
   "common.required": "required",
 
   // Login
-  "login.title": "Mars Technical Support Team",
+  "login.title": "Orbito",
   "login.subtitle": "Sign in to continue",
   "login.email": "Email",
   "login.password": "Password",
@@ -661,7 +661,7 @@ const tr: Record<StringKey, string> = {
   "common.loading": "Yükleniyor…",
   "common.required": "zorunlu",
 
-  "login.title": "Mars Teknik Servis Ekibi",
+  "login.title": "Orbito",
   "login.subtitle": "Devam etmek için giriş yapın",
   "login.email": "E-posta",
   "login.password": "Şifre",

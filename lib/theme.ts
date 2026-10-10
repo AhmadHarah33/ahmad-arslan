@@ -8,10 +8,10 @@ export interface AccentPreset {
   swatch: string; // a representative hex for the picker swatch
 }
 
-// `sky` is the default and now means the Mars navy (kept as the id so every
+// `sky` is the default and now means the Orbito ink (kept as the id so every
 // saved profile picks it up); the old light blue lives on as `lightblue`.
 export const ACCENTS: AccentPreset[] = [
-  { id: "sky", label: "Navy", swatch: "#1b2b65" },
+  { id: "sky", label: "Ink", swatch: "#1a1a1a" },
   { id: "lightblue", label: "Light blue", swatch: "#0ea5e9" },
   { id: "blue", label: "Blue", swatch: "#2563eb" },
   { id: "violet", label: "Violet", swatch: "#7c3aed" },

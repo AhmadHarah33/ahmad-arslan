@@ -1,4 +1,5 @@
 import LoginForm from "./login-form";
+import { OrbitoTile } from "@/components/orbito-mark";
 import { getServerT } from "@/lib/i18n/server";
 
 export default function LoginPage() {
@@ -8,9 +9,7 @@ export default function LoginPage() {
       <div className="app-bg" aria-hidden="true" />
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-600 text-2xl font-bold text-white shadow-pop">
-            M
-          </div>
+          <OrbitoTile size={64} className="mx-auto mb-4 !rounded-[18px] shadow-pop" />
           <h1 className="text-xl font-bold tracking-tight text-ink">
             {t("login.title")}
           </h1>

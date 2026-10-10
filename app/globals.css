@@ -43,17 +43,18 @@
   --tone-orange: 249 115 22;
   --tone-orange-ink: 194 65 12;
 
-  /* accent — navy (default; the Mars brand navy is --brand-800) */
-  --brand-50: 238 241 251;
-  --brand-100: 224 230 247;
-  --brand-200: 199 210 253;
-  --brand-300: 125 162 255;
-  --brand-400: 84 117 224;
-  --brand-500: 52 78 190;
-  --brand-600: 36 62 160;
-  --brand-700: 30 50 130;
-  --brand-800: 27 43 101;
-  --brand-900: 18 29 72;
+  /* accent — Orbito ink (default; Space Black is --brand-800). Amber is
+     reserved for the logo moon, not used as a UI accent. */
+  --brand-50: 247 246 243;
+  --brand-100: 238 236 232;
+  --brand-200: 220 217 211;
+  --brand-300: 176 172 165;
+  --brand-400: 122 118 111;
+  --brand-500: 74 72 68;
+  --brand-600: 26 26 26;
+  --brand-700: 20 20 20;
+  --brand-800: 20 20 20;
+  --brand-900: 10 10 10;
 
   color-scheme: light;
 }
@@ -565,3 +566,36 @@ body {
 :root[data-mode="dark"] .av-6 { --av: 34 211 238; --av-ink: 103 232 249; }
 .av-7 { --av: 100 116 139; --av-ink: 71 85 105; }
 :root[data-mode="dark"] .av-7 { --av: 148 163 184; --av-ink: 203 213 225; }
+
+/* ---- Orbito mark colours (components/orbito-mark.tsx) ---------------------
+   Light: ink ring on a white tile with a darker amber moon (the bright amber
+   washes out on white). Dark: white ring on Space Black. */
+:root,
+:root[data-mode="light"] {
+  --o-tile: #ffffff;
+  --o-edge: #e4e1da;
+  --o-ring: #1a1a1a;
+  --o-moon: #e07b00;
+}
+:root[data-mode="dark"] {
+  --o-tile: #141414;
+  --o-edge: #2a2a2a;
+  --o-ring: #ffffff;
+  --o-moon: #ff9f1c;
+}
+
+/* Ink would vanish on the dark canvas, so the default accent lifts to warm
+   greys in dark mode (other accents are untouched). */
+:root[data-mode="dark"]:not([data-accent]),
+:root[data-mode="dark"][data-accent="sky"] {
+  --brand-50: 38 37 35;
+  --brand-100: 46 45 42;
+  --brand-200: 64 62 58;
+  --brand-300: 214 211 205;
+  --brand-400: 170 166 159;
+  --brand-500: 110 107 101;
+  --brand-600: 74 72 68;
+  --brand-700: 96 93 88;
+  --brand-800: 20 20 20;
+  --brand-900: 10 10 10;
+}

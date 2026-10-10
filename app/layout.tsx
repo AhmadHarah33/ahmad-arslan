@@ -14,27 +14,27 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Mars Technical Support",
+  title: "Orbito",
   description: "Mars Med Dent — customers, spare parts, and engineer tasks.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Mars Support",
+    title: "Orbito",
   },
   // ?v=2 is deliberate. Odoo was served from this same hostname before this
   // app, and Chrome had cached its icon for the origin — including inside
   // already-installed PWAs, which pin their icon at install time. Changing the
   // URL is what makes Chrome fetch the icon again instead of reusing that.
-  // Bump the version if the icons are ever redrawn.
+  // Bump the version if the icons are ever redrawn (v=3: Orbito logo).
   icons: {
-    icon: "/icons/icon-192.png?v=2",
-    apple: "/icons/icon-192.png?v=2",
+    icon: "/icons/icon-192.png?v=3",
+    apple: "/icons/icon-192.png?v=3",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1b2b65",
+  themeColor: "#141414",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

@@ -11,7 +11,7 @@ export default function PrintTrigger() {
   return (
     <button
       onClick={() => window.print()}
-      className="mb-4 rounded-lg bg-[#0284c7] px-4 py-2 text-sm font-medium text-white print:hidden"
+      className="mb-4 rounded-lg bg-[#1A1A1A] px-4 py-2 text-sm font-medium text-white print:hidden"
     >
       Print / Save as PDF
     </button>

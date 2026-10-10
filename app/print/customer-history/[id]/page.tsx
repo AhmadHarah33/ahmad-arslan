@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { OrbitoMark } from "@/components/orbito-mark";
 import { loadFields } from "@/lib/fields.server";
 import { TASK_SELECT, normalizeTask } from "@/lib/tasks.server";
 import { formatDate } from "@/lib/dates";
@@ -110,9 +111,12 @@ export default async function CustomerHistory({
 
   return (
     <main className="bg-white text-[#1f2430]">
-      <header className="mb-5 flex items-start justify-between border-b-2 border-[#0284c7] pb-3">
+      <header className="mb-5 flex items-start justify-between border-b-2 border-[#E07B00] pb-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#0284c7]">{company.company_name}</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-[#1A1A1A]">
+            <OrbitoMark size={28} ink />
+            {company.company_name}
+          </h1>
           {company.company_phone && <p className="text-sm">{company.company_phone}</p>}
           {company.company_address && <p className="text-sm">{company.company_address}</p>}
         </div>
@@ -148,9 +152,9 @@ export default async function CustomerHistory({
           </colgroup>
           {/* thead repeats on every printed page */}
           <thead className="table-header-group">
-            <tr className="bg-[#0284c7] text-left text-white">
+            <tr className="bg-[#1A1A1A] text-left text-white">
               {[L.symptom, L.diagnosis, L.solution, L.date, L.engineer].map((h) => (
-                <th key={h} className="border border-[#0284c7] px-1.5 py-1 text-[10.5px] font-semibold">
+                <th key={h} className="border border-[#E07B00] px-1.5 py-1 text-[10.5px] font-semibold">
                   {h}
                 </th>
               ))}
