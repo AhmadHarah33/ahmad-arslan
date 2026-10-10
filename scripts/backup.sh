@@ -37,7 +37,42 @@ if [ ! -s "$FILE" ]; then
   exit 1
 fi
 
-# Keep the 30 most recent dumps.
-ls -1t "$DIR"/mars-*.sql 2>/dev/null | tail -n +31 | xargs -r rm --
+# Uploaded files (spare-part photos, field attachments, agreement contracts)
+# live in a Docker volume, NOT in the database, so pg_dump does not contain
+# them. A restore from the .sql alone would bring back rows pointing at
+# missing files. Archive the storage volume alongside every dump.
+STORAGE_CONTAINER="${SUPABASE_STORAGE_CONTAINER:-supabase_storage_mars-technical-support}"
+STAMP="${FILE##*/mars-}"; STAMP="${STAMP%.sql}"
+FILES_ARCHIVE="$DIR/mars-files-$STAMP.tar.gz"
+if MSYS_NO_PATHCONV=1 docker exec "$STORAGE_CONTAINER" tar czf - -C /mnt stub > "$FILES_ARCHIVE" && [ -s "$FILES_ARCHIVE" ]; then
+  echo "Files archived to $FILES_ARCHIVE"
+else
+  echo "Files backup FAILED (database dump is still fine)." >&2
+  rm -f "$FILES_ARCHIVE"
+fi
 
-echo "Done. $(ls -1 "$DIR"/mars-*.sql | wc -l) backups retained."
+# Keep the 30 most recent dumps (and 30 file archives).
+ls -1t "$DIR"/mars-2*.sql 2>/dev/null | tail -n +31 | xargs -r rm --
+ls -1t "$DIR"/mars-files-*.tar.gz 2>/dev/null | tail -n +31 | xargs -r rm --
+
+echo "Done. $(ls -1 "$DIR"/mars-2*.sql | wc -l) backups retained."
+
+# Off-PC copy. Everything above lives on the same machine as the app, so a dead
+# disk would take the backups with it. If backups/offsite-dir.txt exists, its
+# first line is a folder (e.g. a Google Drive for desktop folder) that gets a
+# copy of today's dump + files archive, keeping the newest 60 of each there.
+OFFSITE_CFG="$DIR/offsite-dir.txt"
+if [ -f "$OFFSITE_CFG" ]; then
+  OFFSITE="$(head -n1 "$OFFSITE_CFG" | tr -d '')"
+  if mkdir -p "$OFFSITE" 2>/dev/null && cp "$FILE" "$OFFSITE/"; then
+    [ -s "$FILES_ARCHIVE" ] && cp "$FILES_ARCHIVE" "$OFFSITE/"
+    ls -1t "$OFFSITE"/mars-2*.sql 2>/dev/null | tail -n +61 | xargs -r rm --
+    ls -1t "$OFFSITE"/mars-files-*.tar.gz 2>/dev/null | tail -n +61 | xargs -r rm --
+    echo "Off-PC copy OK: $OFFSITE"
+  else
+    echo "OFF-PC COPY FAILED: cannot write to $OFFSITE (is Google Drive running and signed in?)" >&2
+    exit 2
+  fi
+else
+  echo "No off-PC copy configured (backups/offsite-dir.txt missing)." >&2
+fi

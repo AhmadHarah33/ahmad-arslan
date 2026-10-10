@@ -47,3 +47,4 @@ tsconfig.tsbuildinfo
 # dev server build output (kept apart from the production .next)
 /.next-dev/
 /.next-build/
+/.next-backup/
