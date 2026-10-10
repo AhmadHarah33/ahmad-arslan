@@ -1,11 +1,11 @@
-// Cold-start splash: the Orbito mark centred on the canvas for about a second,
+// Cold-start splash: the Orbito mark centred on the canvas for about two and a half seconds,
 // then a soft fade into the app. Pure CSS + one inline script (no client JS
 // bundle), so it paints with the very first HTML.
 //
 // - Plays once per browser session and never on /print or /api pages (those
 //   are rendered to PDF server-side and must not contain it).
 // - Always the light version (Paper background, ink ring), in either app theme.
-// - It overlays the real page load; it is removed at max(load, ~1.1s), so it
+// - It overlays the real page load; it is removed at max(load, ~2.5s), so it
 //   never makes a fast load slower and never hides a slow one.
 // - The element is never removed from the DOM (React hydrates it); the script
 //   only flips data-state: "" -> "out" -> "gone".
@@ -22,11 +22,11 @@ var seen=false;try{seen=sessionStorage.getItem('splashed')==='1';}catch(e){}
 if(skip||(seen&&!q)){d.setAttribute('data-state','gone');return;}
 if(q==='draw'||q==='orbit'||q==='breathe')d.setAttribute('data-motion',q);
 try{sessionStorage.setItem('splashed','1');}catch(e){}
-var MIN=1100,done=false;
-function out(){if(done)return;done=true;d.setAttribute('data-state','out');setTimeout(function(){d.setAttribute('data-state','gone');},450);}
+var MIN=2500,done=false;
+function out(){if(done)return;done=true;d.setAttribute('data-state','out');setTimeout(function(){d.setAttribute('data-state','gone');},650);}
 function ready(){var t=Math.max(0,MIN-performance.now());setTimeout(out,t);}
 if(document.readyState==='complete')ready();else window.addEventListener('load',ready);
-setTimeout(out,5000);
+setTimeout(out,6000);
 }catch(e){var s=document.getElementById('splash');if(s)s.setAttribute('data-state','gone');}})();`;
 
 export function Splash() {

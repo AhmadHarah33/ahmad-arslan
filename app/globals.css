@@ -611,7 +611,7 @@ body {
   align-items: center;
   justify-content: center;
   background: var(--sp-bg);
-  transition: opacity 0.4s ease;
+  transition: opacity 0.6s ease;
 }
 #splash[data-state="out"] {
   opacity: 0;
@@ -621,8 +621,8 @@ body {
   display: none;
 }
 #splash .sp-mark {
-  transition: transform 0.45s ease;
-  animation: sp-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: transform 0.6s ease;
+  animation: sp-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 #splash[data-state="out"] .sp-mark {
   transform: scale(1.06);
@@ -663,20 +663,20 @@ body {
 }
 /* draw: the ring fills clockwise and the moon leads it home */
 #splash[data-motion="draw"] .sp-arc {
-  animation: sp-draw 1s cubic-bezier(0.65, 0, 0.35, 1) 0.1s both;
+  animation: sp-draw 1.9s cubic-bezier(0.65, 0, 0.35, 1) 0.3s both;
 }
 #splash[data-motion="draw"] .sp-moon {
-  animation: sp-lead 1s cubic-bezier(0.65, 0, 0.35, 1) 0.1s both;
+  animation: sp-lead 1.9s cubic-bezier(0.65, 0, 0.35, 1) 0.3s both;
 }
 /* orbit: the finished mark appears and the moon makes one lap to its place */
 #splash[data-motion="orbit"] .sp-moon {
-  animation: sp-orbit 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+  animation: sp-orbit 1.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
 }
 /* breathe: the finished mark fades in and gently breathes */
 #splash[data-motion="breathe"] .sp-mark {
   animation:
-    sp-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both,
-    sp-breathe 1.6s ease-in-out 0.5s infinite;
+    sp-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both,
+    sp-breathe 2.4s ease-in-out 0.8s infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   #splash .sp-mark,
