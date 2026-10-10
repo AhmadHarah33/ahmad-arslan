@@ -29,7 +29,10 @@ export const metadata: Metadata = {
   // URL is what makes Chrome fetch the icon again instead of reusing that.
   // Bump the version if the icons are ever redrawn (v=3: Orbito logo).
   icons: {
-    icon: "/icons/icon-192.png?v=3",
+    icon: [
+      { url: "/favicon.ico?v=3", sizes: "any" },
+      { url: "/icons/icon-192.png?v=3", type: "image/png", sizes: "192x192" },
+    ],
     apple: "/icons/icon-192.png?v=3",
   },
 };

@@ -1,4 +1,4 @@
-// Renders the Orbito icons (public/icons/*.png and app/favicon.ico) from the
+// Renders the Orbito icons (public/icons/*.png and public/favicon.ico) from the
 // same geometry as components/orbito-mark.tsx. Run: node scripts/make-icons.mjs
 import { chromium } from "playwright-core";
 import { writeFileSync } from "node:fs";
@@ -50,5 +50,5 @@ const dir = pngs.map((png, i) => {
   offset += png.length;
   return e;
 });
-writeFileSync("app/favicon.ico", Buffer.concat([head, ...dir, ...pngs]));
+writeFileSync("public/favicon.ico", Buffer.concat([head, ...dir, ...pngs]));
 await browser.close();
