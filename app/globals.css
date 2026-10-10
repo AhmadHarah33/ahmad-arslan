@@ -599,3 +599,89 @@ body {
   --brand-800: 20 20 20;
   --brand-900: 10 10 10;
 }
+
+/* ---- Cold-start splash (components/splash.tsx) ---------------------------- */
+#splash {
+  /* Always the light version (Paper + ink ring), whatever the app theme. */
+  --sp-bg: #f4f2ee;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sp-bg);
+  transition: opacity 0.4s ease;
+}
+#splash[data-state="out"] {
+  opacity: 0;
+  pointer-events: none;
+}
+#splash[data-state="gone"] {
+  display: none;
+}
+#splash .sp-mark {
+  transition: transform 0.45s ease;
+  animation: sp-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+#splash[data-state="out"] .sp-mark {
+  transform: scale(1.06);
+}
+#splash .sp-track {
+  stroke: #1a1a1a;
+  stroke-opacity: 0.18;
+}
+#splash .sp-arc {
+  stroke: #1a1a1a;
+  stroke-dasharray: 188.5 300;
+}
+#splash .sp-moon {
+  fill: #e07b00;
+  transform-box: view-box;
+  transform-origin: 50px 50px;
+  transform: rotate(300deg); /* resting place: the head of the arc */
+}
+@keyframes sp-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes sp-draw {
+  from { stroke-dashoffset: 188.5; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes sp-lead {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(300deg); }
+}
+@keyframes sp-orbit {
+  from { transform: rotate(-60deg); }
+  to { transform: rotate(300deg); }
+}
+@keyframes sp-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+/* draw: the ring fills clockwise and the moon leads it home */
+#splash[data-motion="draw"] .sp-arc {
+  animation: sp-draw 1s cubic-bezier(0.65, 0, 0.35, 1) 0.1s both;
+}
+#splash[data-motion="draw"] .sp-moon {
+  animation: sp-lead 1s cubic-bezier(0.65, 0, 0.35, 1) 0.1s both;
+}
+/* orbit: the finished mark appears and the moon makes one lap to its place */
+#splash[data-motion="orbit"] .sp-moon {
+  animation: sp-orbit 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+/* breathe: the finished mark fades in and gently breathes */
+#splash[data-motion="breathe"] .sp-mark {
+  animation:
+    sp-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both,
+    sp-breathe 1.6s ease-in-out 0.5s infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  #splash .sp-mark,
+  #splash .sp-arc,
+  #splash .sp-moon {
+    animation: none !important;
+  }
+}

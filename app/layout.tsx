@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n/provider";
+import { Splash } from "@/components/splash";
 
 // latin-ext carries the Turkish glyphs (ğ ı İ ş ç ö ü) — without it Turkish
 // text falls back mid-word and looks broken. next/font self-hosts the files at
@@ -65,6 +66,7 @@ export default function RootLayout({
     <html lang="en" className={poppins.variable} suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <Splash />
         <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
