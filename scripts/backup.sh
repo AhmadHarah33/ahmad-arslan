@@ -69,6 +69,23 @@ if [ -f "$OFFSITE_CFG" ]; then
     ls -1t "$OFFSITE"/mars-2*.sql 2>/dev/null | tail -n +61 | xargs -r rm --
     ls -1t "$OFFSITE"/mars-files-*.tar.gz 2>/dev/null | tail -n +61 | xargs -r rm --
     echo "Off-PC copy OK: $OFFSITE"
+
+    # The app's source code too (no data, no secrets): only files tracked by git
+    # at the current commit, so node_modules, builds, backups and .env files are
+    # left out. `latest/` is a plain readable folder; the .bundle holds the full
+    # git history and restores with `git clone mars-code.bundle <folder>`.
+    CODE_DIR="$OFFSITE/code"
+    REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+    if mkdir -p "$CODE_DIR/latest.new" \
+       && git -C "$REPO_ROOT" archive HEAD | tar -x -C "$CODE_DIR/latest.new" \
+       && git -C "$REPO_ROOT" bundle create "$CODE_DIR/mars-code.bundle" --all >/dev/null 2>&1; then
+      rm -rf "$CODE_DIR/latest" && mv "$CODE_DIR/latest.new" "$CODE_DIR/latest"
+      git -C "$REPO_ROOT" log -1 --format='%H %cd %s' > "$CODE_DIR/VERSION.txt"
+      echo "Code copy OK: $CODE_DIR ($(git -C "$REPO_ROOT" log -1 --format=%h))"
+    else
+      rm -rf "$CODE_DIR/latest.new"
+      echo "Code copy FAILED (data backup above is fine)." >&2
+    fi
   else
     echo "OFF-PC COPY FAILED: cannot write to $OFFSITE (is Google Drive running and signed in?)" >&2
     exit 2
