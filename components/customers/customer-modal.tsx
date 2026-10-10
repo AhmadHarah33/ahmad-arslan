@@ -34,6 +34,7 @@ import { customerQrValue } from "@/lib/qr";
 import { useAction } from "@/lib/use-action";
 import PendingBadge from "@/components/pending-badge";
 import { toastErr } from "@/lib/toast";
+import DateInput from "@/components/date-input";
 
 type LinkRow = { label: string; url: string };
 type MachineRow = {
@@ -563,8 +564,7 @@ export default function CustomerModal({
                     </div>
                     <div className="mt-3">
                       <label className="label">{t("customers.warrantyEnds")}</label>
-                      <input
-                        type="date"
+                      <DateInput
                         className="input"
                         value={m.warrantyEnd}
                         onChange={(e) => updateMachine(i, { warrantyEnd: e.target.value })}

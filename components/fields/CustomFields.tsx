@@ -21,6 +21,7 @@ import { useT, useLanguage } from "@/lib/i18n/provider";
 import { translateFieldLabel } from "@/lib/i18n/dictionary";
 import Modal from "@/components/modal";
 import { SkeletonRows } from "@/components/skeleton";
+import DateInput from "@/components/date-input";
 import {
   createField,
   deleteField,
@@ -290,8 +291,7 @@ function FieldInput({
       );
     case "date":
       return (
-        <input
-          type="date"
+        <DateInput
           className="input"
           disabled={disabled}
           value={value ? String(value) : ""}

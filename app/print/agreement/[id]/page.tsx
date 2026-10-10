@@ -4,6 +4,7 @@ import { CURRENCY_SYMBOLS } from "@/lib/types";
 import type { Agreement } from "@/lib/types";
 import QrCode from "@/components/qr-code";
 import { customerQrValue } from "@/lib/qr";
+import { formatDate } from "@/lib/dates";
 
 const DEFAULT_COMPANY = {
   company_name: "Mars Med Dent",
@@ -29,15 +30,7 @@ const STATUS: Record<string, string> = {
 };
 
 // Dates are plain days: format them in UTC so they never shift with a timezone.
-const date = (d: string | null | undefined) =>
-  d
-    ? new Date(`${d}T00:00:00Z`).toLocaleDateString("tr-TR", {
-        timeZone: "UTC",
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-    : "—";
+const date = (d: string | null | undefined) => (d ? formatDate(d) : "—");
 
 // PostgREST returns a joined row as an object or a one-element array.
 function first(v: any): any {

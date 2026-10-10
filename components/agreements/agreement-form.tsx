@@ -9,6 +9,7 @@ import DownloadAgreementPdf from "@/components/agreements/download-pdf";
 import { toast, toastErr } from "@/lib/toast";
 import { formatDate } from "@/lib/dates";
 import { formatAmount, parseAmount, sanitizeAmount } from "@/lib/money";
+import DateInput from "@/components/date-input";
 import {
   defaultEndDate,
   spreadVisitDates,
@@ -458,8 +459,7 @@ export default function AgreementForm({
                         {on && (
                           <div className="mt-3 pl-7">
                             <label className="label">{t("ag.factoryWarranty")}</label>
-                            <input
-                              type="date"
+                            <DateInput
                               className="input sm:max-w-[220px]"
                               value={factoryOf(m)}
                               onChange={(e) =>
@@ -593,8 +593,7 @@ export default function AgreementForm({
                 </div>
                 <div>
                   <label className="label">{t("ag.warrantyEnds")}</label>
-                  <input
-                    type="date"
+                  <DateInput
                     className="input"
                     value={warrantyEnd}
                     onChange={(e) => {
@@ -629,8 +628,7 @@ export default function AgreementForm({
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className="label">{t("ag.start")}</label>
-                <input
-                  type="date"
+                <DateInput
                   className="input"
                   value={start}
                   onChange={(e) => changeStart(e.target.value)}
@@ -638,8 +636,7 @@ export default function AgreementForm({
               </div>
               <div>
                 <label className="label">{t("ag.end")}</label>
-                <input
-                  type="date"
+                <DateInput
                   className="input"
                   value={end}
                   min={start}
@@ -784,8 +781,7 @@ export default function AgreementForm({
               </div>
               <div>
                 <label className="label">{t("ag.paymentDue")}</label>
-                <input
-                  type="date"
+                <DateInput
                   className="input"
                   value={paymentDue}
                   onChange={(e) => setPaymentDue(e.target.value)}
@@ -965,8 +961,7 @@ function VisitDate({
       <span className="w-20 shrink-0 text-sm text-ink-muted">
         {label} {n}
       </span>
-      <input
-        type="date"
+      <DateInput
         className="input !border-0 !bg-transparent !px-0 !py-1 focus:!ring-0"
         value={value}
         disabled={done}

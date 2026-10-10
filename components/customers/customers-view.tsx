@@ -13,15 +13,9 @@ import { toastErr } from "@/lib/toast";
 import { approveCustomer, rejectCustomer } from "@/app/(app)/customers/actions";
 import PendingBadge from "@/components/pending-badge";
 import CustomerModal from "./customer-modal";
+import { formatDate } from "@/lib/dates";
 
 const PAGE_SIZE = 25;
-
-// Fixed dd.mm.yyyy — toLocaleDateString differs between the server and the
-// browser, which breaks hydration for anything rendered in the first pass.
-function fmtDay(d: string) {
-  const [y, m, day] = d.split("-");
-  return `${day}.${m}.${y}`;
-}
 
 // Soft tone pairs (bg / text) used for avatars and brand pills. Picked by
 // hashing an id so a customer or brand keeps its colour between visits.
@@ -290,7 +284,7 @@ export default function CustomersView({
                 onClick={() => setModal({ open: true, customer: c })}
                 className="underline-offset-2 hover:underline"
               >
-                {c.name} · {fmtDay(date)}
+                {c.name} · {formatDate(date)}
               </button>
             ))}
           </div>

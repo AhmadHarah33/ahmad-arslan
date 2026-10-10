@@ -8,6 +8,7 @@ import type { FieldDefinition } from "@/lib/customFields";
 import PrintTrigger from "./print-trigger";
 import QrCode from "@/components/qr-code";
 import { customerQrValue } from "@/lib/qr";
+import { formatDate } from "@/lib/dates";
 
 const DEFAULT_COMPANY = {
   company_name: "Mars Med Dent",
@@ -102,7 +103,7 @@ export default async function TaskReport({
         <div className="flex items-start gap-3 text-right text-sm">
           <div>
             <p className="font-semibold">Servis Raporu</p>
-            <p>{new Date(task.created_at || Date.now()).toLocaleDateString("tr-TR")}</p>
+            <p>{formatDate((task.created_at || new Date().toISOString()).slice(0, 10))}</p>
           </div>
           {customer && (
             <div className="rounded bg-white p-1">

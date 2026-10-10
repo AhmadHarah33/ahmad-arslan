@@ -1,3 +1,5 @@
+import { formatDateTime } from "@/lib/dates";
+
 type AuditRow = {
   id: number | string;
   entity: string;
@@ -33,7 +35,7 @@ export default function AuditLog({ rows }: { rows: AuditRow[] }) {
             {r.summary ? ` · ${r.summary}` : ""}
           </span>
           <span className="shrink-0 text-xs text-ink-faint">
-            {new Date(r.created_at).toLocaleString()}
+            {formatDateTime(r.created_at)}
           </span>
         </div>
       ))}

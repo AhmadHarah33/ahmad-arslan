@@ -40,6 +40,7 @@ import { formatAmount, sanitizeAmount } from "@/lib/money";
 import { createCity, createModel } from "@/app/(app)/catalog/actions";
 import { createCustomer } from "@/app/(app)/customers/actions";
 import { toastErr } from "@/lib/toast";
+import DateInput from "@/components/date-input";
 
 type CustomerMachineLite = Pick<
   CustomerMachine,
@@ -664,9 +665,8 @@ export default function TaskModal({
             <label className="label" htmlFor="task-due">
               {t("task.dueDate")}
             </label>
-            <input
+            <DateInput
               id="task-due"
-              type="date"
               className="input"
               value={dueDate}
               disabled={!editable}

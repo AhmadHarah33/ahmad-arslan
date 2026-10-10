@@ -2,6 +2,7 @@
 
 import type { FieldDefinition } from "@/lib/customFields";
 import { isEmpty, tagClasses } from "@/lib/customFields";
+import { formatDate } from "@/lib/dates";
 
 // Read-only renderer for a single custom field value — used as chips on cards.
 export default function FieldValue({
@@ -50,7 +51,7 @@ export default function FieldValue({
     case "date":
       return (
         <span className="chip bg-surface-soft text-ink-muted">
-          {new Date(String(value)).toLocaleDateString()}
+          {formatDate(String(value))}
         </span>
       );
     default:

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { formatDate } from "@/lib/dates";
 import {
   isIsoDate,
   spreadVisitDates,
@@ -75,6 +76,9 @@ function today() {
 }
 
 function refresh() {
+  // An agreement changed — let the next page load re-run visit generation
+  // instead of waiting out the throttle (see lib/agreements.server.ts).
+  globalThis.__lastVisitGeneration = 0;
   revalidatePath("/agreements");
   revalidatePath("/customers");
   revalidatePath("/tasks");
@@ -619,10 +623,10 @@ export async function sendReminder(
 
   const detail = {
     payment: `Payment${a.amount != null ? ` of ${a.amount} ${a.currency}` : ""} is unpaid${
-      a.payment_due ? ` (due ${a.payment_due})` : ""
+      a.payment_due ? ` (due ${formatDate(a.payment_due)})` : ""
     }.`,
-    renewal: `The agreement ends on ${a.end_date}. Ask whether they want to renew.`,
-    visit: `A maintenance visit${a.next_visit ? ` due ${a.next_visit}` : ""} hasn't been done.`,
+    renewal: `The agreement ends on ${formatDate(a.end_date)}. Ask whether they want to renew.`,
+    visit: `A maintenance visit${a.next_visit ? ` due ${formatDate(a.next_visit)}` : ""} hasn't been done.`,
   }[kind];
 
   const { data: task, error: tErr } = await supabase

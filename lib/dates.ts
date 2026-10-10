@@ -38,3 +38,15 @@ export function formatDateShort(d: string | null | undefined): string {
   const month = MONTHS[Number(m) - 1];
   return month ? `${Number(day)} ${month}` : d;
 }
+
+// dd.mm.yyyy hh:mm in the viewer's local time, for timestamps (audit log).
+// Built by hand for the same reason as formatDate. Callers rendering this on
+// the server and the client should add suppressHydrationWarning, since the two
+// can be in different timezones.
+export function formatDateTime(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
