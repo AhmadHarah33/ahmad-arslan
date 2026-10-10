@@ -90,7 +90,7 @@ depend on it, and expect to adjust.
    schema granted again. This is the least certain step and the one to rehearse.
 6. Put the uploaded files back from the newest `mars-files-*.tar.gz` into the storage
    container's `/mnt` (the archive's top folder is `stub`).
-7. `npm run build`, start it (or let the `MarsApp-Watchdog` task do it), then check
+7. `npm run build`. Install the watchdog and backup tasks from `scripts/ops/` (see its README), which also starts the app. Then check
    login, a customer, a task, a photo, and **Download report**.
 8. Re-point the Cloudflare Tunnel at the new machine.
 
