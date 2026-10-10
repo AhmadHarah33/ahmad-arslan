@@ -24,7 +24,12 @@ $node = "C:\Program Files\nodejs\node.exe"
 $next = Join-Path $repo "node_modules\next\dist\bin\next"
 $serverLog = "C:\Users\MARS TST\mars-ops\server.log"
 
+$lockFile = "C:\Users\MARS TST\mars-ops\maintenance.lock"
+
 function Stop-Live {
+  # While the server is deliberately down, tell the watchdog not to start it
+  # (it would race us). Start-Live removes the lock again.
+  Set-Content -Path $lockFile -Value (Get-Date -Format s)
   Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue |
     ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
   Start-Sleep -Seconds 2
@@ -36,6 +41,7 @@ function Start-Live {
   # Chromium path for PDF export) no matter where this script is run from, and it
   # cannot race the watchdog's own 2-minute check (it only starts the server when
   # nothing is listening).
+  Remove-Item $lockFile -ErrorAction SilentlyContinue
   Start-ScheduledTask -TaskName "MarsApp-Watchdog"
 }
 

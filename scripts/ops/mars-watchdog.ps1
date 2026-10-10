@@ -6,6 +6,12 @@ $ErrorActionPreference = "SilentlyContinue"
 $listening = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
 if ($listening) { exit 0 }
 
+# A deploy/upgrade in progress drops maintenance.lock while the server is
+# deliberately down (so the watchdog cannot start it half-installed or race the
+# deploy). A lock older than 20 minutes is treated as forgotten and ignored.
+$lock = "C:\Users\MARS TST\mars-ops\maintenance.lock"
+if ((Test-Path $lock) -and (((Get-Date) - (Get-Item $lock).LastWriteTime).TotalMinutes -lt 20)) { exit 0 }
+
 $log = "C:\Users\MARS TST\mars-ops\app.log"
 Add-Content -Path $log -Value "$(Get-Date -Format s)  port 3000 down - starting app"
 
