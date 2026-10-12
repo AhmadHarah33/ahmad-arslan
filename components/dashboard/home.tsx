@@ -270,6 +270,7 @@ function TasksColumn({ data }: { data: HomeData }) {
           value={tab}
           onChange={(id) => setTab(id as typeof tab)}
           on="bg-brand-800 text-white"
+          lime
         />
         {rows.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-ink-faint">{t("dash.noTasks")}</p>
@@ -485,11 +486,13 @@ function Tabs({
   value,
   onChange,
   on,
+  lime = false,
 }: {
   items: { id: string; label: string; count: string | number }[];
   value: string;
   onChange: (id: string) => void;
   on: string;
+  lime?: boolean; // selected tab's count in brand lime (indigo tabs only)
 }) {
   return (
     <div role="tablist" className="flex gap-1.5 overflow-x-auto px-3.5 pt-3">
@@ -505,7 +508,8 @@ function Tabs({
               active ? on : "bg-surface-soft text-ink-muted hover:text-ink"
             }`}
           >
-            {x.label} <span className="opacity-70">{x.count}</span>
+            {x.label}{" "}
+            <span className={active && lime ? "font-semibold text-[#BED631]" : "opacity-70"}>{x.count}</span>
           </button>
         );
       })}
@@ -583,7 +587,7 @@ function Ring({ pct }: { pct: number }) {
           cy="48"
           r="40"
           fill="none"
-          stroke="rgba(255,255,255,0.95)"
+          stroke="#BED631"
           strokeWidth="10"
           strokeLinecap="round"
           strokeDasharray={`${(pct / 100) * c} ${c}`}

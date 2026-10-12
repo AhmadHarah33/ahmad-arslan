@@ -111,7 +111,8 @@ export default async function CustomerHistory({
 
   return (
     <main className="bg-white text-[#1f2430]">
-      <header className="mb-5 flex items-start justify-between border-b-2 border-[#BED631] pb-3">
+      <header className="mb-5 flex items-start justify-between relative border-b-2 border-[#323490] pb-3">
+        <span aria-hidden="true" className="absolute -bottom-[2px] left-0 h-[5px] w-14 bg-[#BED631] [print-color-adjust:exact]" />
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-[#323490]">
             <MarsMark size={44} />

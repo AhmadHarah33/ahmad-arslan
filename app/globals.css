@@ -568,6 +568,15 @@ body {
 .av-7 { --av: 100 116 139; --av-ink: 71 85 105; }
 :root[data-mode="dark"] .av-7 { --av: 148 163 184; --av-ink: 203 213 225; }
 
+/* Dark mode: a brighter indigo for buttons, selected pills and hovers (the
+   default accent only; other accents are untouched). The logo keeps #323490. */
+:root[data-mode="dark"]:not([data-accent]),
+:root[data-mode="dark"][data-accent="sky"] {
+  --brand-500: 96 98 205;
+  --brand-600: 68 70 190;
+  --brand-700: 88 90 205;
+}
+
 /* ---- Mars Technical wordmark colours (components/mars-mark.tsx) ----------- */
 :root,
 :root[data-mode="light"] {

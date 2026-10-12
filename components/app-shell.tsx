@@ -176,7 +176,7 @@ export default function AppShell({
                     prefetch
                     className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                       active(item.href)
-                        ? "bg-brand-600/10 font-semibold text-ink"
+                        ? "bg-brand-600/10 font-semibold text-ink shadow-[inset_3px_0_0_#BED631]"
                         : "text-ink-muted hover:bg-surface-soft hover:text-ink"
                     }`}
                   >
@@ -195,7 +195,7 @@ export default function AppShell({
                   <div
                     className={`flex items-center gap-1 rounded-xl pr-1 text-sm font-medium transition ${
                       noBrand
-                        ? "bg-brand-600/10 font-semibold text-ink"
+                        ? "bg-brand-600/10 font-semibold text-ink shadow-[inset_3px_0_0_#BED631]"
                         : "text-ink-muted hover:bg-surface-soft hover:text-ink"
                     }`}
                   >
