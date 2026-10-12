@@ -5,8 +5,9 @@
 //
 // - Plays once per browser session and never on /print or /api pages (those
 //   are rendered to PDF server-side and must not contain it).
-// - It overlays the real page load; it is removed at max(load, ~2.5s), so it
-//   never makes a fast load slower and never hides a slow one.
+// - It overlays the real page load; it is removed once the page has loaded AND
+//   the animation has finished (+0.45s hold, measured from the animation's own
+//   end, so a fast load can't cut it short). A slow load keeps it up longer.
 // - The element is never removed from the DOM (React hydrates it); the script
 //   only flips data-state: "" -> "out" -> "gone".
 // - ?splash=1 forces it to play again, for design review.
@@ -20,11 +21,18 @@ var P=location.pathname,skip=P.indexOf('/print/')===0||P.indexOf('/api/')===0;
 var seen=false;try{seen=sessionStorage.getItem('splashed')==='1';}catch(e){}
 if(skip||(seen&&!q)){d.setAttribute('data-state','gone');return;}
 try{sessionStorage.setItem('splashed','1');}catch(e){}
-var MIN=2500,done=false;
+var loaded=false,played=false,done=false;
 function out(){if(done)return;done=true;d.setAttribute('data-state','out');setTimeout(function(){d.setAttribute('data-state','gone');},650);}
-function ready(){var t=Math.max(0,MIN-performance.now());setTimeout(out,t);}
+function check(){if(loaded&&played)out();}
+// "played" = the last animation (the second moon) has finished, plus a short hold,
+// counted from when the splash itself started animating, not from navigation start.
+var last=d.querySelector('.sp-moon2');
+function hold(){setTimeout(function(){played=true;check();},450);}
+if(last)last.addEventListener('animationend',hold);
+setTimeout(function(){if(!played){played=true;check();}},3600); // no animation events (reduced motion)
+function ready(){loaded=true;check();}
 if(document.readyState==='complete')ready();else window.addEventListener('load',ready);
-setTimeout(out,6000);
+setTimeout(out,8000);
 }catch(e){var s=document.getElementById('splash');if(s)s.setAttribute('data-state','gone');}})();`;
 
 const W = "#FFFFFF";
