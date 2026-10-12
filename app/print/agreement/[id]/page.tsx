@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { MarsMark } from "@/components/mars-mark";
 import { formatAmount } from "@/lib/money";
 import { CURRENCY_SYMBOLS } from "@/lib/types";
 import type { Agreement } from "@/lib/types";
@@ -89,10 +88,14 @@ export default async function AgreementPrint({ params }: { params: { id: string 
       <header className="mb-6 flex items-start justify-between relative border-b-2 border-[#323490] pb-4">
         <span aria-hidden="true" className="absolute -bottom-[2px] left-0 h-[5px] w-14 bg-[#BED631] [print-color-adjust:exact]" />
         <div>
-          <h1 className="flex items-center gap-3 text-xl font-bold text-[#323490]">
-            <MarsMark size={68} />
-            {company.company_name}
-          </h1>
+          {/* The parent company's logo (it carries the company name): these documents
+              go out under Mars Med Dent; Mars Technical is only the footer credit. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/mars-med-dent-logo.png"
+            alt={company.company_name}
+            className="mb-1 h-20 w-auto"
+          />
           {company.company_phone && <p className="text-sm">{company.company_phone}</p>}
           {company.company_address && <p className="text-sm">{company.company_address}</p>}
         </div>
