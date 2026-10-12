@@ -43,18 +43,19 @@
   --tone-orange: 249 115 22;
   --tone-orange-ink: 194 65 12;
 
-  /* accent — Orbito ink (default; Space Black is --brand-800). Amber is
-     reserved for the logo moon, not used as a UI accent. */
-  --brand-50: 247 246 243;
-  --brand-100: 238 236 232;
-  --brand-200: 220 217 211;
-  --brand-300: 176 172 165;
-  --brand-400: 122 118 111;
-  --brand-500: 74 72 68;
-  --brand-600: 26 26 26;
-  --brand-700: 20 20 20;
-  --brand-800: 20 20 20;
-  --brand-900: 10 10 10;
+  /* accent — Mars Technical indigo (default; #323490 is --brand-600, the
+     board's deep ink #1B1C4A is --brand-800). Lime #BED631 is a highlight used
+     in the logo, wordmark and PDFs, not a UI accent. */
+  --brand-50: 241 241 250;
+  --brand-100: 230 230 245;
+  --brand-200: 201 202 234;
+  --brand-300: 143 146 232;
+  --brand-400: 99 101 190;
+  --brand-500: 70 72 165;
+  --brand-600: 50 52 144;
+  --brand-700: 35 36 107;
+  --brand-800: 27 28 74;
+  --brand-900: 20 20 56;
 
   color-scheme: light;
 }
@@ -567,50 +568,31 @@ body {
 .av-7 { --av: 100 116 139; --av-ink: 71 85 105; }
 :root[data-mode="dark"] .av-7 { --av: 148 163 184; --av-ink: 203 213 225; }
 
-/* ---- Orbito mark colours (components/orbito-mark.tsx) ---------------------
-   Light: ink ring on a white tile with a darker amber moon (the bright amber
-   washes out on white). Dark: white ring on Space Black. */
+/* ---- Mars Technical wordmark colours (components/mars-mark.tsx) ----------- */
 :root,
 :root[data-mode="light"] {
-  --o-tile: #ffffff;
-  --o-edge: #e4e1da;
-  --o-ring: #1a1a1a;
-  --o-moon: #e07b00;
+  --m-word: #323490;
+  --m-sub: #323490;
 }
 :root[data-mode="dark"] {
-  --o-tile: #141414;
-  --o-edge: #2a2a2a;
-  --o-ring: #ffffff;
-  --o-moon: #ff9f1c;
-}
-
-/* Ink would vanish on the dark canvas, so the default accent lifts to warm
-   greys in dark mode (other accents are untouched). */
-:root[data-mode="dark"]:not([data-accent]),
-:root[data-mode="dark"][data-accent="sky"] {
-  --brand-50: 38 37 35;
-  --brand-100: 46 45 42;
-  --brand-200: 64 62 58;
-  --brand-300: 214 211 205;
-  --brand-400: 170 166 159;
-  --brand-500: 110 107 101;
-  --brand-600: 74 72 68;
-  --brand-700: 96 93 88;
-  --brand-800: 20 20 20;
-  --brand-900: 10 10 10;
+  --m-word: #ffffff;
+  --m-sub: #bed631;
 }
 
 /* ---- Cold-start splash (components/splash.tsx) ---------------------------- */
+/* Indigo screen, reversed mark: the planet appears, the rings sweep around it,
+   then the two moons settle into place and the wordmark fades in. The resting
+   state is the finished logo, so reduced-motion users simply see it. */
 #splash {
-  /* Always the light version (Paper + ink ring), whatever the app theme. */
-  --sp-bg: #f4f2ee;
   position: fixed;
   inset: 0;
   z-index: 9999;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--sp-bg);
+  gap: 18px;
+  background: #323490;
   transition: opacity 0.6s ease;
 }
 #splash[data-state="out"] {
@@ -622,66 +604,78 @@ body {
 }
 #splash .sp-mark {
   transition: transform 0.6s ease;
-  animation: sp-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-#splash[data-state="out"] .sp-mark {
-  transform: scale(1.06);
+#splash[data-state="out"] .sp-mark,
+#splash[data-state="out"] .sp-word {
+  transform: scale(1.05);
 }
-#splash .sp-track {
-  stroke: #1a1a1a;
-  stroke-opacity: 0.18;
+#splash .sp-ring {
+  stroke-dasharray: 100;
+  animation: sp-sweep 1.2s cubic-bezier(0.65, 0, 0.35, 1) 0.5s both;
 }
-#splash .sp-arc {
-  stroke: #1a1a1a;
-  stroke-dasharray: 188.5 300;
+#splash .sp-ring.sp-inner {
+  animation-delay: 0.7s;
+}
+/* the front arcs sit over the planet; they appear once the ring has swept past */
+#splash .sp-front {
+  animation: sp-front 1.05s linear 0s both;
+}
+#splash .sp-front.sp-inner {
+  animation-duration: 1.25s;
+}
+#splash .sp-planet {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sp-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
 }
 #splash .sp-moon {
-  fill: #e07b00;
   transform-box: view-box;
   transform-origin: 50px 50px;
-  transform: rotate(300deg); /* resting place: the head of the arc */
 }
-@keyframes sp-in {
-  from { opacity: 0; transform: scale(0.94); }
-  to { opacity: 1; transform: scale(1); }
+#splash .sp-moon1 {
+  animation: sp-settle1 0.8s cubic-bezier(0.22, 1, 0.36, 1) 1.5s both;
 }
-@keyframes sp-draw {
-  from { stroke-dashoffset: 188.5; }
+#splash .sp-moon2 {
+  animation: sp-settle2 0.8s cubic-bezier(0.22, 1, 0.36, 1) 1.7s both;
+}
+#splash .sp-word {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  transition: transform 0.6s ease;
+  animation: sp-word 0.7s ease 1.5s both;
+}
+@keyframes sp-sweep {
+  from { stroke-dashoffset: 100; }
   to { stroke-dashoffset: 0; }
 }
-@keyframes sp-lead {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(300deg); }
+@keyframes sp-front {
+  0%, 99% { opacity: 0; }
+  100% { opacity: 1; }
 }
-@keyframes sp-orbit {
-  from { transform: rotate(-60deg); }
-  to { transform: rotate(300deg); }
+@keyframes sp-pop {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
 }
-@keyframes sp-breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.035); }
+@keyframes sp-settle1 {
+  from { opacity: 0; transform: rotate(-40deg); }
+  to { opacity: 1; transform: rotate(0deg); }
 }
-/* draw: the ring fills clockwise and the moon leads it home */
-#splash[data-motion="draw"] .sp-arc {
-  animation: sp-draw 1.9s cubic-bezier(0.65, 0, 0.35, 1) 0.3s both;
+@keyframes sp-settle2 {
+  from { opacity: 0; transform: rotate(40deg); }
+  to { opacity: 1; transform: rotate(0deg); }
 }
-#splash[data-motion="draw"] .sp-moon {
-  animation: sp-lead 1.9s cubic-bezier(0.65, 0, 0.35, 1) 0.3s both;
-}
-/* orbit: the finished mark appears and the moon makes one lap to its place */
-#splash[data-motion="orbit"] .sp-moon {
-  animation: sp-orbit 1.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
-}
-/* breathe: the finished mark fades in and gently breathes */
-#splash[data-motion="breathe"] .sp-mark {
-  animation:
-    sp-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both,
-    sp-breathe 2.4s ease-in-out 0.8s infinite;
+@keyframes sp-word {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  #splash .sp-mark,
-  #splash .sp-arc,
-  #splash .sp-moon {
+  #splash .sp-ring,
+  #splash .sp-front,
+  #splash .sp-planet,
+  #splash .sp-moon,
+  #splash .sp-word {
     animation: none !important;
   }
 }

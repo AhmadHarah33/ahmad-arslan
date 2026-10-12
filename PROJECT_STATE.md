@@ -1,4 +1,4 @@
-# Orbito — Project State / Handoff
+# Mars Technical — Project State / Handoff
 
 > Read this first. It captures what the app is, what's built, how it's wired, and
 > what's next — so work can resume cold.

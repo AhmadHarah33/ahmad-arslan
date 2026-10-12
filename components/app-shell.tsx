@@ -16,7 +16,7 @@ import { applyTheme } from "@/lib/theme";
 import type { ThemeMode } from "@/lib/theme";
 import { saveTheme } from "@/app/(app)/settings/actions";
 import type { BackgroundStyle } from "@/lib/types";
-import { OrbitoTile } from "@/components/orbito-mark";
+import { MarsTile, MarsWordmark } from "@/components/mars-mark";
 
 const NAV = [
   { href: "/", key: "nav.home", icon: HomeIcon },
@@ -154,8 +154,8 @@ export default function AppShell({
         <aside className="card sticky top-3 hidden h-[calc(100vh-1.5rem)] w-56 shrink-0 flex-col rounded-[20px] p-3 md:flex">
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2.5 px-1.5 pt-1">
-            <OrbitoTile />
-            <span className="text-[17px] font-bold tracking-tight text-ink">orbito</span>
+            <MarsTile />
+            <MarsWordmark />
           </Link>
 
           {/* Pages */}
@@ -346,8 +346,8 @@ export default function AppShell({
           {/* Mobile top bar */}
           <header className="sticky top-0 z-20 flex items-center justify-between bg-[rgb(var(--canvas))] px-4 pb-2 pt-3 md:hidden">
             <Link href="/" className="flex items-center gap-2.5">
-              <OrbitoTile />
-              <span className="text-[17px] font-bold tracking-tight text-ink">orbito</span>
+              <MarsTile />
+              <MarsWordmark />
             </Link>
             <div className="flex items-center gap-2">
               <button

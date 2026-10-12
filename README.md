@@ -1,4 +1,4 @@
-# Orbito
+# Mars Technical
 
 An internal **work organizer + database** for the Mars Med Dent technical support
 team — a focused Notion-style app for **Customers**, **Spare parts inventory**, and
@@ -13,7 +13,7 @@ Docker.
 
 ## Features
 
-- 🔐 **Login** ("Orbito"), with devices remembered so users
+- 🔐 **Login** ("Mars Technical"), with devices remembered so users
   don't re-login.
 - 🏠 **Personalized dashboard** — time-based greeting ("Morning Ahmed"), your own
   open tasks up top, quick access below.

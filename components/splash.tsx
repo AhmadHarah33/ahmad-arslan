@@ -1,18 +1,17 @@
-// Cold-start splash: the Orbito mark centred on the canvas for about two and a half seconds,
-// then a soft fade into the app. Pure CSS + one inline script (no client JS
-// bundle), so it paints with the very first HTML.
+// Cold-start splash: indigo screen, the Mars Technical mark builds up (planet,
+// rings sweeping round it, the two moons settling in) and the wordmark fades in,
+// then the screen fades into the app. Pure CSS (see the end of globals.css) plus
+// one inline script, so it paints with the very first HTML.
 //
 // - Plays once per browser session and never on /print or /api pages (those
 //   are rendered to PDF server-side and must not contain it).
-// - Always the light version (Paper background, ink ring), in either app theme.
 // - It overlays the real page load; it is removed at max(load, ~2.5s), so it
 //   never makes a fast load slower and never hides a slow one.
 // - The element is never removed from the DOM (React hydrates it); the script
 //   only flips data-state: "" -> "out" -> "gone".
-// - ?splash=draw|orbit|breathe forces it to play with that motion, for design
-//   review. Default motion is DEFAULT_MOTION.
-
-export const DEFAULT_MOTION = "draw";
+// - ?splash=1 forces it to play again, for design review.
+//
+// The Orbito splash this replaced is archived in brand/orbito.
 
 const script = `(function(){try{
 var d=document.getElementById('splash');if(!d)return;
@@ -20,7 +19,6 @@ var q=new URLSearchParams(location.search).get('splash');
 var P=location.pathname,skip=P.indexOf('/print/')===0||P.indexOf('/api/')===0;
 var seen=false;try{seen=sessionStorage.getItem('splashed')==='1';}catch(e){}
 if(skip||(seen&&!q)){d.setAttribute('data-state','gone');return;}
-if(q==='draw'||q==='orbit'||q==='breathe')d.setAttribute('data-motion',q);
 try{sessionStorage.setItem('splashed','1');}catch(e){}
 var MIN=2500,done=false;
 function out(){if(done)return;done=true;d.setAttribute('data-state','out');setTimeout(function(){d.setAttribute('data-state','gone');},650);}
@@ -29,23 +27,43 @@ if(document.readyState==='complete')ready();else window.addEventListener('load',
 setTimeout(out,6000);
 }catch(e){var s=document.getElementById('splash');if(s)s.setAttribute('data-state','gone');}})();`;
 
+const W = "#FFFFFF";
+const INDIGO = "#323490";
+const LIME = "#BED631";
+
 export function Splash() {
   return (
     <>
-      <div id="splash" data-motion={DEFAULT_MOTION} aria-hidden="true" suppressHydrationWarning>
-        <svg className="sp-mark" viewBox="0 0 100 100" width="112" height="112">
-          <circle className="sp-track" cx="50" cy="50" r="36" fill="none" strokeWidth="19" />
-          <path
-            className="sp-arc"
-            d="M50 14 A36 36 0 1 1 18.82 32"
-            fill="none"
-            strokeWidth="19"
-            strokeLinecap="round"
-          />
-          <g className="sp-moon">
-            <circle cx="50" cy="14" r="12" />
+      <div id="splash" aria-hidden="true" suppressHydrationWarning>
+        <svg className="sp-mark" viewBox="0 0 100 100" width="132" height="132">
+          {/* rings (pathLength=100 so one dash value draws any of them) */}
+          <ellipse className="sp-ring" pathLength="100" cx="50" cy="50" rx="43" ry="13.5" transform="rotate(-25 50 50)" fill="none" stroke={W} strokeWidth="3" />
+          <ellipse className="sp-ring sp-inner" pathLength="100" cx="50" cy="50" rx="29" ry="9" transform="rotate(-25 50 50)" fill="none" stroke={W} strokeWidth="3.5" />
+          <g className="sp-planet">
+            <circle cx="50" cy="50" r="19" fill={INDIGO} />
+            <circle cx="50" cy="50" r="15" fill={W} />
+          </g>
+          <g transform="rotate(-25 50 50)">
+            <path className="sp-front" d="M7 50 A43 13.5 0 0 0 93 50" fill="none" stroke={W} strokeWidth="3" />
+            <path className="sp-front sp-inner" d="M21 50 A29 9 0 0 0 79 50" fill="none" stroke={W} strokeWidth="3.5" />
+          </g>
+          <g className="sp-moon sp-moon1">
+            <circle cx="76" cy="41.27" r="10" fill={INDIGO} />
+            <circle cx="76" cy="41.27" r="6.8" fill={LIME} />
+          </g>
+          <g className="sp-moon sp-moon2">
+            <circle cx="11.43" cy="62.89" r="7" fill={INDIGO} />
+            <circle cx="11.43" cy="62.89" r="4.2" fill={W} />
           </g>
         </svg>
+        <div className="sp-word">
+          <span style={{ fontFamily: "var(--font-slab), serif", fontWeight: 700, fontSize: 30, letterSpacing: "0.1em", lineHeight: 0.95, color: W }}>
+            MARS
+          </span>
+          <span style={{ fontFamily: "var(--font-manrope), sans-serif", fontWeight: 800, fontSize: 12, letterSpacing: "0.44em", marginTop: 6, color: LIME }}>
+            TECHNICAL
+          </span>
+        </div>
       </div>
       <script dangerouslySetInnerHTML={{ __html: script }} />
     </>

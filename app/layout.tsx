@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins } from "next/font/google";
+import { Poppins, Zilla_Slab, Manrope } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n/provider";
 import { Splash } from "@/components/splash";
@@ -14,31 +14,35 @@ const poppins = Poppins({
   display: "swap",
 });
 
+// Wordmark faces (brand board): Zilla Slab for "MARS", Manrope for "TECHNICAL".
+const zillaSlab = Zilla_Slab({ subsets: ["latin"], weight: ["700"], variable: "--font-slab", display: "swap" });
+const manrope = Manrope({ subsets: ["latin"], weight: ["800"], variable: "--font-manrope", display: "swap" });
+
 export const metadata: Metadata = {
-  title: "Orbito",
+  title: "Mars Technical",
   description: "Mars Med Dent — customers, spare parts, and engineer tasks.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Orbito",
+    title: "Mars Technical",
   },
   // ?v=2 is deliberate. Odoo was served from this same hostname before this
   // app, and Chrome had cached its icon for the origin — including inside
   // already-installed PWAs, which pin their icon at install time. Changing the
   // URL is what makes Chrome fetch the icon again instead of reusing that.
-  // Bump the version if the icons are ever redrawn (v=3: Orbito logo).
+  // Bump the version if the icons are ever redrawn (v=4: Mars Technical logo).
   icons: {
     icon: [
-      { url: "/favicon.ico?v=3", sizes: "any" },
-      { url: "/icons/icon-192.png?v=3", type: "image/png", sizes: "192x192" },
+      { url: "/favicon.ico?v=4", sizes: "any" },
+      { url: "/icons/icon-192.png?v=4", type: "image/png", sizes: "192x192" },
     ],
-    apple: "/icons/icon-192.png?v=3",
+    apple: "/icons/icon-192.png?v=4",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#141414",
+  themeColor: "#323490",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -66,7 +70,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={poppins.variable} suppressHydrationWarning>
+    <html lang="en" className={`${poppins.variable} ${zillaSlab.variable} ${manrope.variable}`} suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <Splash />

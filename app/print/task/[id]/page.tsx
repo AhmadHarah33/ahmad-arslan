@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { OrbitoMark } from "@/components/orbito-mark";
+import { MarsMark } from "@/components/mars-mark";
 import { loadFields } from "@/lib/fields.server";
 import { TASK_SELECT, normalizeTask } from "@/lib/tasks.server";
 import { formatAmount } from "@/lib/money";
@@ -95,10 +95,10 @@ export default async function TaskReport({
     <main className="mx-auto max-w-3xl bg-white p-8 text-[#1f2430] print:p-0">
       <PrintTrigger />
 
-      <header className="mb-6 flex items-start justify-between border-b-2 border-[#E07B00] pb-4">
+      <header className="mb-6 flex items-start justify-between border-b-2 border-[#BED631] pb-4">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-[#1A1A1A]">
-            <OrbitoMark size={28} ink />
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-[#323490]">
+            <MarsMark size={34} />
             {company.company_name}
           </h1>
           {company.company_phone && <p className="text-sm">{company.company_phone}</p>}
@@ -224,7 +224,7 @@ export default async function TaskReport({
       </div>
 
       <footer className="mt-10 border-t pt-3 text-xs text-gray-500">
-        {company.company_name} tarafından oluşturuldu · Orbito
+        {company.company_name} tarafından oluşturuldu · Mars Technical
       </footer>
     </main>
   );
