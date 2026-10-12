@@ -579,6 +579,13 @@ body {
   --m-sub: #bed631;
 }
 
+/* Tile versions (components/mars-mark.tsx): white-background mark in light
+   theme, reversed on indigo in dark. */
+.mars-tile-light { display: block; }
+.mars-tile-dark { display: none; }
+:root[data-mode="dark"] .mars-tile-light { display: none; }
+:root[data-mode="dark"] .mars-tile-dark { display: block; }
+
 /* ---- Cold-start splash (components/splash.tsx) ---------------------------- */
 /* Indigo screen, reversed mark: the planet appears, the rings sweep around it,
    then the two moons settle into place and the wordmark fades in. The resting

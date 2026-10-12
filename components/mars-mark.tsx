@@ -1,8 +1,9 @@
 // The Mars Technical mark ("Tilted Twins"): a planet with two tilted rings and
 // two moons — lime Deimos on the outer ring, a small Phobos on the inner ring.
-// Geometry is the brand board's: small sizes drop the inner ring and Phobos and
-// thicken the strokes so the mark survives at 16px. The PNG icons are rendered
-// from the same shapes (see scripts/make-icons.mjs).
+// Geometry is the brand board's. Every size the UI uses keeps both rings and both
+// moons; only the tiniest sizes (under 20px, not used in the app) fall back to
+// the board's one-ring version. The PNG icons are rendered from the same shapes
+// (see scripts/make-icons.mjs).
 
 export const MARS_INDIGO = "#323490";
 export const MARS_LIME = "#BED631";
@@ -26,7 +27,7 @@ export const TIERS: Record<"xl" | "lg" | "md" | "sm" | "xs", Tier> = {
 };
 
 export function tierFor(size: number): keyof typeof TIERS {
-  return size >= 120 ? "xl" : size >= 80 ? "lg" : size >= 44 ? "md" : size >= 24 ? "sm" : "xs";
+  return size >= 120 ? "xl" : size >= 64 ? "lg" : size >= 20 ? "md" : size >= 16 ? "sm" : "xs";
 }
 
 // tone "indigo": indigo on a light surface (white knock-outs, lime moon outlined).
@@ -79,16 +80,28 @@ export function MarsMark({ size = 28, className }: { size?: number; className?: 
   );
 }
 
-// App tile: reversed mark on indigo (sidebar, top bar, login). Same in both themes.
+// App tile. Light theme: the indigo mark on a white tile (the board's "on white"
+// version, lime moon outlined). Dark theme: the reversed mark, white planet on
+// indigo. Both are rendered and CSS shows the one for the current theme
+// (.mars-tile-* in globals.css), so there is no flash while the theme applies.
 export function MarsTile({ size = 34, className }: { size?: number; className?: string }) {
   const t = TIERS[tierFor(size)];
+  const inner = `translate(50 50) scale(${t.scale}) translate(-50 -50)`;
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true" className={`shrink-0 ${className ?? ""}`}>
-      <rect width="100" height="100" rx="23" fill={MARS_INDIGO} />
-      <g transform={`translate(50 50) scale(${t.scale}) translate(-50 -50)`}>
-        <Twins tier={t} tone="reversed" />
-      </g>
-    </svg>
+    <>
+      <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true" className={`mars-tile-light shrink-0 ${className ?? ""}`}>
+        <rect x="0.75" y="0.75" width="98.5" height="98.5" rx="23" fill="#FFFFFF" stroke="#E6E6F0" strokeWidth="1.5" />
+        <g transform={inner}>
+          <Twins tier={t} tone="indigo" />
+        </g>
+      </svg>
+      <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true" className={`mars-tile-dark shrink-0 ${className ?? ""}`}>
+        <rect width="100" height="100" rx="23" fill={MARS_INDIGO} />
+        <g transform={inner}>
+          <Twins tier={t} tone="reversed" />
+        </g>
+      </svg>
+    </>
   );
 }
 

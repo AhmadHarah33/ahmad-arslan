@@ -1,7 +1,6 @@
 // Renders the Mars Technical icons (public/icons/*.png and public/favicon.ico)
 // from the same geometry as components/mars-mark.tsx (the brand board's
 // "Tilted Twins"). Run: node scripts/make-icons.mjs
-// Small sizes use the board's simplified mark (one orbit, Phobos dropped).
 import { chromium } from "playwright-core";
 import { writeFileSync } from "node:fs";
 
@@ -14,7 +13,8 @@ const tiers = {
   sm: { o: [40, 13, 6.5], i: null, pk: 21, pb: 16, m1: [83, 36, 13, 9.5], m2: null, s: 0.84 },
   xs: { o: [40, 13, 9], i: null, pk: 22, pb: 17, m1: [83, 36, 15, 11], m2: null, s: 0.86 },
 };
-const tierFor = (px) => (px >= 80 ? "lg" : px >= 44 ? "md" : px >= 24 ? "sm" : "xs");
+// Every icon keeps both rings and both moons (the favicon sizes included).
+const tierFor = (px) => (px >= 64 ? "lg" : "md");
 
 // scale < 1 shrinks the mark inside the tile (maskable icons need a safe zone).
 const svg = (px, safe = 1) => {
