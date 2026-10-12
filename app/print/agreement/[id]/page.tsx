@@ -92,9 +92,9 @@ export default async function AgreementPrint({ params }: { params: { id: string 
               go out under Mars Med Dent; Mars Technical is only the footer credit. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/brand/mars-med-dent-logo.png"
+            src="/brand/mars-med-dent-logo.webp"
             alt={company.company_name}
-            className="mb-1 h-20 w-auto"
+            className="mb-1.5 h-11 w-auto"
           />
           {company.company_phone && <p className="text-sm">{company.company_phone}</p>}
           {company.company_address && <p className="text-sm">{company.company_address}</p>}
