@@ -27,7 +27,9 @@ export const TIERS: Record<"xl" | "lg" | "md" | "sm" | "xs", Tier> = {
 };
 
 export function tierFor(size: number): keyof typeof TIERS {
-  return size >= 120 ? "xl" : size >= 64 ? "lg" : size >= 20 ? "md" : size >= 16 ? "sm" : "xs";
+  // lg (thinner strokes) from 40px up: at the heavier md weight the rings merge
+  // into the planet at tile sizes and the orbits look blobby.
+  return size >= 120 ? "xl" : size >= 40 ? "lg" : size >= 20 ? "md" : size >= 16 ? "sm" : "xs";
 }
 
 // tone "indigo": indigo on a light surface (white knock-outs, lime moon outlined).

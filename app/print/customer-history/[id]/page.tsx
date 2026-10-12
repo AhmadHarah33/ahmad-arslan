@@ -114,7 +114,7 @@ export default async function CustomerHistory({
       <header className="mb-5 flex items-start justify-between border-b-2 border-[#BED631] pb-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-[#323490]">
-            <MarsMark size={34} />
+            <MarsMark size={44} />
             {company.company_name}
           </h1>
           {company.company_phone && <p className="text-sm">{company.company_phone}</p>}
