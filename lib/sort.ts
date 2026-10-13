@@ -10,3 +10,15 @@ const collator = new Intl.Collator("tr");
 export function compareNames(a: string, b: string): number {
   return collator.compare(a, b);
 }
+
+// Part numbers like DOF_2 / DOF_10 / DOF_011: `numeric` compares the digit runs
+// as numbers, so DOF_2 comes before DOF_10 instead of after it. Parts with no
+// number go to the end of their list.
+const partCollator = new Intl.Collator("tr", { numeric: true });
+
+export function comparePartNumbers(a: string | null, b: string | null): number {
+  const x = (a ?? "").trim();
+  const y = (b ?? "").trim();
+  if (!x || !y) return x === y ? 0 : x ? -1 : 1;
+  return partCollator.compare(x, y);
+}

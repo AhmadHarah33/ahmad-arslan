@@ -421,16 +421,19 @@ export default function PartModal({
               {/* Plain text with a digit filter rather than type="number": the
                   spinner arrows and the browser's own mid-typing validation got
                   in the way of just entering an amount. */}
-              <input
-                id="part-price"
-                type="text"
-                inputMode="decimal"
-                className="input !h-[50px] !rounded-[14px] !px-4 !text-[15px]"
-                value={price}
-                disabled={!editable}
-                onChange={(e) => setPrice(sanitizeAmount(e.target.value))}
-                placeholder="0"
-              />
+              <div className="flex h-[50px] overflow-hidden rounded-[14px] border-[1.5px] border-surface-border bg-surface focus-within:border-brand-500">
+                <span className="flex items-center bg-surface-soft px-3 text-[15px] font-bold text-ink-muted">€</span>
+                <input
+                  id="part-price"
+                  type="text"
+                  inputMode="decimal"
+                  className="min-w-0 flex-1 bg-transparent px-3 text-[15px] text-ink outline-none"
+                  value={price}
+                  disabled={!editable}
+                  onChange={(e) => setPrice(sanitizeAmount(e.target.value))}
+                  placeholder="0"
+                />
+              </div>
             </div>
             <div>
               <label className="label" htmlFor="part-notes">{t("parts.notes")}</label>

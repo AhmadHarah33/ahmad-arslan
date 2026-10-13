@@ -20,7 +20,7 @@ import { formatAmount } from "@/lib/money";
 import PhotoLightbox from "./photo-lightbox";
 import PartModal from "./part-modal";
 import { useAction } from "@/lib/use-action";
-import { compareNames } from "@/lib/sort";
+import { compareNames, comparePartNumbers } from "@/lib/sort";
 
 type Stock = "ok" | "low" | "neg";
 type Sort = "company" | "qty" | "price" | "name";
@@ -164,6 +164,11 @@ export default function SparePartsView({
         byBrand.set(id, { id, name: p.company?.name ?? t("customers.noBrand"), rows: [] });
       }
       byBrand.get(id)!.rows.push(p);
+    }
+    for (const g of byBrand.values()) {
+      g.rows.sort(
+        (a, b) => comparePartNumbers(a.part_number, b.part_number) || compareNames(a.name, b.name)
+      );
     }
     return [...byBrand.values()].sort((a, b) => compareNames(a.name, b.name));
   }, [filtered, sort, t]);
@@ -485,7 +490,7 @@ export default function SparePartsView({
                           </span>
                           <span className="truncate text-sm font-medium text-ink">{p.name}</span>
                           <span className="text-center text-[15px] font-bold tabular-nums text-ink">{p.quantity}</span>
-                          <span className="text-sm text-ink-muted">{formatAmount(p.price)}</span>
+                          <span className="text-sm text-ink-muted">{p.price != null ? `€${formatAmount(p.price)}` : "—"}</span>
                           <span>
                             <StockPill p={p} />
                           </span>
@@ -544,7 +549,7 @@ export default function SparePartsView({
                         <div className="flex min-w-0 flex-1 flex-col">
                           <span className="truncate text-sm font-semibold text-ink">{p.name}</span>
                           <span className="truncate text-xs text-ink-muted">
-                            {[p.part_number, sort !== "company" ? p.company?.name : "", p.price != null ? formatAmount(p.price) : ""]
+                            {[p.part_number, sort !== "company" ? p.company?.name : "", p.price != null ? `€${formatAmount(p.price)}` : ""]
                               .filter(Boolean)
                               .join(" · ")}
                           </span>
