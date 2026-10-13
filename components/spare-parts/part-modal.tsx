@@ -19,6 +19,7 @@ import CustomFields from "@/components/fields/CustomFields";
 import PendingBadge from "@/components/pending-badge";
 import { useAction } from "@/lib/use-action";
 import { parseAmount, sanitizeAmount } from "@/lib/money";
+import { toWebp } from "@/lib/image";
 
 export default function PartModal({
   profile,
@@ -87,7 +88,8 @@ export default function PartModal({
     // Upload any newly selected photos, then record them.
     if (pendingFiles.length > 0) {
       const supabase = createClient();
-      for (const file of pendingFiles) {
+      for (const picked of pendingFiles) {
+        const file = await toWebp(picked);
         const path = `${res.id}/${crypto.randomUUID()}-${sanitize(file.name)}`;
         const up = await supabase.storage
           .from(SPARE_PHOTOS_BUCKET)
