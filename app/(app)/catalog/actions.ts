@@ -19,6 +19,9 @@ function refresh() {
   revalidatePath("/catalog");
   revalidatePath("/customers");
   revalidatePath("/spare-parts");
+  // Customers' warranty follows the models' warranty months.
+  revalidatePath("/agreements");
+  revalidatePath("/");
 }
 
 /* --- cities --- */
@@ -110,6 +113,24 @@ export async function renameModel(id: string, name: string) {
   const { error } = await supabase
     .from("machine_models")
     .update({ name: clean })
+    .eq("id", id);
+  if (error) return { error: error.message };
+  refresh();
+  return { ok: true };
+}
+
+// How many months a model is under factory warranty (null = not set). Every
+// customer's In/Out warranty follows from this plus their installation date,
+// so changing it is a manager-only edit like renaming.
+export async function setModelWarranty(id: string, months: number | null) {
+  const denied = await requireManager();
+  if (denied) return { error: denied };
+  if (months !== null && !(Number.isInteger(months) && months >= 0 && months <= 120))
+    return { error: "Enter a whole number of months from 0 to 120." };
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("machine_models")
+    .update({ warranty_months: months })
     .eq("id", id);
   if (error) return { error: error.message };
   refresh();

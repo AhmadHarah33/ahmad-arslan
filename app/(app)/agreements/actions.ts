@@ -451,12 +451,12 @@ export async function cancelAgreement(id: string) {
 }
 
 // Permanent delete: the agreement with its visits, covered machines and
-// technicians (all cascade), plus the signed contract file.
+// technicians (all cascade), plus the signed contract and receipt files.
 export async function deleteAgreement(id: string) {
   const supabase = createClient();
   const { data: a, error: rErr } = await supabase
     .from("agreements")
-    .select("contract_path")
+    .select("contract_path, receipt_path")
     .eq("id", id)
     .maybeSingle();
   if (rErr) return { error: rErr.message };
@@ -466,6 +466,9 @@ export async function deleteAgreement(id: string) {
   if (error) return { error: error.message };
   if (a.contract_path) {
     await supabase.storage.from("agreement-contracts").remove([a.contract_path]);
+  }
+  if (a.receipt_path) {
+    await supabase.storage.from("agreement-receipts").remove([a.receipt_path]);
   }
   refresh();
   return { ok: true };
@@ -512,8 +515,22 @@ export async function setVisitDone(visitId: string, done: boolean) {
   return { ok: true };
 }
 
+// The accounting receipt (makbuz) behind a payment. An agreement can only be
+// marked paid with one on file; the database enforces the same rule
+// (agreements_paid_needs_receipt), this just gives a readable message first.
 export async function setPaymentStatus(id: string, paid: boolean) {
   const supabase = createClient();
+  if (paid) {
+    const { data: a, error: rErr } = await supabase
+      .from("agreements")
+      .select("receipt_path")
+      .eq("id", id)
+      .maybeSingle();
+    if (rErr) return { error: rErr.message };
+    if (!a) return { error: "Agreement not found." };
+    if (!a.receipt_path)
+      return { error: "Upload the receipt (makbuz) first. An agreement can only be marked paid with one." };
+  }
   const { error } = await supabase
     .from("agreements")
     .update({
@@ -524,6 +541,71 @@ export async function setPaymentStatus(id: string, paid: boolean) {
   if (error) return { error: error.message };
   refresh();
   return { ok: true };
+}
+
+const RECEIPT_EXT = /\.(pdf|jpe?g|png|webp)$/i;
+
+// The browser uploads the receipt straight to the private agreement-receipts
+// bucket under "<agreement id>/…", then calls this to record it (and delete
+// the file it replaces).
+export async function attachReceipt(id: string, path: string) {
+  if (!path.startsWith(`${id}/`) || !RECEIPT_EXT.test(path))
+    return { error: "Unexpected receipt file." };
+  const supabase = createClient();
+  const { data: prev } = await supabase
+    .from("agreements")
+    .select("receipt_path")
+    .eq("id", id)
+    .single();
+  const { error } = await supabase
+    .from("agreements")
+    .update({ receipt_path: path })
+    .eq("id", id);
+  if (error) return { error: error.message };
+  if (prev?.receipt_path && prev.receipt_path !== path) {
+    await supabase.storage.from("agreement-receipts").remove([prev.receipt_path]);
+  }
+  refresh();
+  return { ok: true };
+}
+
+// A paid agreement keeps its receipt: mark it unpaid first, then remove.
+export async function removeReceipt(id: string) {
+  const supabase = createClient();
+  const { data: prev, error: rErr } = await supabase
+    .from("agreements")
+    .select("receipt_path, payment_status")
+    .eq("id", id)
+    .single();
+  if (rErr) return { error: rErr.message };
+  if (prev.payment_status === "paid")
+    return { error: "Mark the agreement as unpaid before removing its receipt." };
+  const { error } = await supabase
+    .from("agreements")
+    .update({ receipt_path: null })
+    .eq("id", id);
+  if (error) return { error: error.message };
+  if (prev.receipt_path) {
+    await supabase.storage.from("agreement-receipts").remove([prev.receipt_path]);
+  }
+  refresh();
+  return { ok: true };
+}
+
+// Short-lived link to open the private receipt.
+export async function getReceiptUrl(id: string) {
+  const supabase = createClient();
+  const { data: a, error } = await supabase
+    .from("agreements")
+    .select("receipt_path")
+    .eq("id", id)
+    .single();
+  if (error || !a?.receipt_path) return { error: "No receipt on file." };
+  const { data, error: sErr } = await supabase.storage
+    .from("agreement-receipts")
+    .createSignedUrl(a.receipt_path, 300);
+  if (sErr) return { error: sErr.message };
+  return { ok: true, url: data.signedUrl };
 }
 
 // The signed contract. The browser uploads the PDF straight to the private

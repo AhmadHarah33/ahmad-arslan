@@ -279,3 +279,22 @@ Plan and decisions: `PLAN_MAINTENANCE_WARRANTY.md`. Sidebar item "Service" (`/ag
   `components/agreements/`.
 - Old per-customer maintenance schedules were removed from the UI; the table and
   `generate_due_maintenance()` remain in the DB, unused.
+
+## Automatic warranty, payment receipts, second head — added 2026-10-21
+Migration `20261021000000_warranty_receipts_head.sql` (not auto-applied; see README/RESTORE for the
+backup-first routine).
+- **Warranty is automatic.** Catalog → each model has `machine_models.warranty_months`. A customer's
+  factory warranty ends at *Installation Date* (customer custom field, matched by name in
+  `lib/warranty.server.ts`) + the model's months − 1 day. Past it the customer is **Out** until a Service
+  agreement with a warranty extension covers their machine (`effectiveWarrantyEnd`; `ended` agreements
+  still count, drafts/cancelled don't). Where nothing can be computed (no install date, or the model has no
+  months) the old manual In/Out switch and the typed machine warranty date still apply ("manual" state).
+  Pure maths: `lib/warranty.ts`; loader: `loadWarrantyData` → Customers page/modal, agreement form,
+  Service dashboard, expiring banner, printed agreement. `customers.status` is no longer the source of
+  truth where a warranty can be computed.
+- **Payment + receipt.** Each saved agreement has Paid/Unpaid in the form's Payment section
+  (`components/agreements/payment-receipt.tsx`). Marking it paid requires the accounting receipt (makbuz)
+  — `agreements.receipt_path` in the private `agreement-receipts` bucket (PDF/JPG/PNG/WebP, 10 MB);
+  enforced by the `agreements_paid_needs_receipt` check (NOT VALID, so old rows are untouched) and by
+  `setPaymentStatus`. A paid agreement's receipt can't be replaced/removed until it is marked unpaid.
+- **Abdulmuin = head** via the migration (matched by e-mail). Roles are otherwise managed in /admin.

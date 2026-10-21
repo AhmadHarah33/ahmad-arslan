@@ -5,6 +5,7 @@ import type { Agreement } from "@/lib/types";
 import QrCode from "@/components/qr-code";
 import { customerQrValue } from "@/lib/qr";
 import { formatDate } from "@/lib/dates";
+import { loadWarrantyData } from "@/lib/warranty.server";
 
 const DEFAULT_COMPANY = {
   company_name: "Mars Med Dent",
@@ -47,12 +48,12 @@ export default async function AgreementPrint({ params }: { params: { id: string 
   const ag = a as Agreement;
   const company = (settings as typeof DEFAULT_COMPANY | null) ?? DEFAULT_COMPANY;
 
-  const [{ data: cust }, { data: ms }, { data: ts }, { data: vs }] = await Promise.all([
+  const [{ data: cust }, { data: ms }, { data: ts }, { data: vs }, warrantyData] = await Promise.all([
     supabase.from("customers").select("name, contact_person").eq("id", ag.customer_id).single(),
     supabase
       .from("agreement_machines")
       .select(
-        "machine:machine_id(serial_number, warranty_end, company:company_id(name), model:model_id(name))"
+        "machine:machine_id(id, serial_number, warranty_end, company:company_id(name), model:model_id(name))"
       )
       .eq("agreement_id", ag.id),
     supabase
@@ -64,6 +65,7 @@ export default async function AgreementPrint({ params }: { params: { id: string 
       .select("seq, due_date, done_at")
       .eq("agreement_id", ag.id)
       .order("seq"),
+    loadWarrantyData(supabase),
   ]);
 
   const machines = (ms ?? []).map((r: any) => {
@@ -71,7 +73,11 @@ export default async function AgreementPrint({ params }: { params: { id: string 
     return {
       name: [first(m?.company)?.name, first(m?.model)?.name].filter(Boolean).join(" ") || "—",
       serial: (m?.serial_number as string) || "—",
-      warranty: (m?.warranty_end as string | null) ?? null,
+      // Factory warranty: installation date + the catalog's months when known.
+      warranty:
+        warrantyData.machines.get(m?.id as string)?.end ??
+        (m?.warranty_end as string | null) ??
+        null,
     };
   });
   const techs = (ts ?? [])

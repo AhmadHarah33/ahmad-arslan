@@ -54,6 +54,9 @@ export default async function EditAgreementPage({
     payment_due: ag.payment_due,
     notes: ag.notes,
     contract_path: ag.contract_path,
+    payment_status: ag.payment_status,
+    paid_at: ag.paid_at,
+    receipt_path: ag.receipt_path,
     visits: (vs ?? []) as FormInitial["visits"],
   };
 

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { addDays, effectiveWarrantyEnd } from "./agreements";
+import { addDays } from "./agreements";
+import { expiringFrom, loadWarrantyData } from "./warranty.server";
 import {
   warrantyEvents,
   type CoveredMachine,
@@ -48,7 +49,7 @@ export async function generateDueAgreementVisits(
 // Everything the agreement form needs to pick from: customers, their machines
 // (with a readable label), and the technicians.
 export async function loadAgreementFormData(supabase: SupabaseClient) {
-  const [{ data: customers }, { data: machines }, { data: people }] = await Promise.all([
+  const [{ data: customers }, { data: machines }, { data: people }, warranty] = await Promise.all([
     supabase.from("customers").select("id, name, contact_person").order("name"),
     supabase
       .from("customer_machines")
@@ -58,6 +59,7 @@ export async function loadAgreementFormData(supabase: SupabaseClient) {
       .eq("is_approved", true)
       .order("created_at"),
     supabase.from("profiles").select("id, full_name").order("full_name"),
+    loadWarrantyData(supabase),
   ]);
 
   type Joined = { name: string } | { name: string }[] | null;
@@ -79,7 +81,10 @@ export async function loadAgreementFormData(supabase: SupabaseClient) {
         customer_id: m.customer_id as string,
         label: [parts || "—", city].filter(Boolean).join(" · "),
         serial_number: (m.serial_number as string) ?? "",
-        warranty_end: (m.warranty_end as string | null) ?? null,
+        // Computed from the install date + the model's catalog months when
+        // possible (then the form shows it read-only), else the typed date.
+        warranty_end: warranty.machines.get(m.id as string)?.end ?? null,
+        warranty_auto: warranty.machines.get(m.id as string)?.auto ?? false,
       };
     }),
     technicians: (people ?? []).map((p) => ({
@@ -103,7 +108,7 @@ export async function loadAgreementsDashboardData(supabase: SupabaseClient): Pro
 }> {
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: ags }, { data: vis }, { data: cov }, { data: techs }] = await Promise.all([
+  const [{ data: ags }, { data: vis }, { data: cov }, { data: techs }, warranty] = await Promise.all([
     supabase
       .from("agreement_overview")
       .select("*")
@@ -123,6 +128,7 @@ export async function loadAgreementsDashboardData(supabase: SupabaseClient): Pro
     supabase
       .from("agreement_assignees")
       .select("agreement_id, profile:profile_id(full_name)"),
+    loadWarrantyData(supabase),
   ]);
 
   const overview = (ags ?? []) as AgreementOverview[];
@@ -162,7 +168,7 @@ export async function loadAgreementsDashboardData(supabase: SupabaseClient): Pro
       machine_id: m.id,
       customer_id: m.customer_id,
       customer_name: a.customer_name,
-      factory_end: m.warranty_end,
+      factory_end: warranty.machines.get(m.id)?.end ?? m.warranty_end,
     });
   }
 
@@ -197,50 +203,10 @@ export async function loadAgreementsDashboardData(supabase: SupabaseClient): Pro
 
 // Customers with a machine whose warranty ends within the next 30 days, for
 // the banner on the Customers page. A machine's warranty is the later of its
-// own factory date and the extension of any live agreement covering it.
+// factory end (installation date + the model's catalog months) and the
+// extension of any live agreement covering it.
 export async function loadExpiringWarranties(
   supabase: SupabaseClient
 ): Promise<{ customer_id: string; date: string }[]> {
-  const today = new Date().toISOString().slice(0, 10);
-  const horizon = addDays(today, 30);
-
-  const [{ data: machines }, { data: links }] = await Promise.all([
-    supabase
-      .from("customer_machines")
-      .select("id, customer_id, warranty_end")
-      .eq("is_approved", true),
-    supabase
-      .from("agreement_machines")
-      .select("machine_id, agreement:agreement_id(status, includes_warranty, warranty_end)"),
-  ]);
-
-  type Ext = {
-    status: "active" | "ended" | "cancelled" | "draft";
-    includes_warranty: boolean;
-    warranty_end: string | null;
-  };
-  const exts = new Map<string, Ext[]>();
-  for (const l of (links ?? []) as unknown as {
-    machine_id: string;
-    agreement: Ext | Ext[] | null;
-  }[]) {
-    const a = Array.isArray(l.agreement) ? l.agreement[0] : l.agreement;
-    if (a) exts.set(l.machine_id, [...(exts.get(l.machine_id) ?? []), a]);
-  }
-
-  const soonest = new Map<string, string>();
-  for (const m of (machines ?? []) as {
-    id: string;
-    customer_id: string;
-    warranty_end: string | null;
-  }[]) {
-    const end = effectiveWarrantyEnd(m, exts.get(m.id) ?? []);
-    if (!end || end < today || end > horizon) continue;
-    const prev = soonest.get(m.customer_id);
-    if (!prev || end < prev) soonest.set(m.customer_id, end);
-  }
-  return [...soonest.entries()]
-    .map(([customer_id, date]) => ({ customer_id, date }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  return expiringFrom(await loadWarrantyData(supabase));
 }
-

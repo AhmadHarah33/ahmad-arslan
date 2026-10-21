@@ -59,6 +59,9 @@ export interface MachineModel {
   id: string;
   company_id: string;
   name: string;
+  // Factory warranty in months (null = not set). A customer's warranty is
+  // their installation date + this, unless a service agreement extends it.
+  warranty_months: number | null;
   created_at: string;
 }
 
@@ -249,6 +252,9 @@ export interface Agreement {
   remind_days: RemindDays;
   // Path in the private agreement-contracts bucket (signed PDF).
   contract_path: string | null;
+  // Path in the private agreement-receipts bucket: the accounting receipt
+  // (makbuz). Required before payment_status can be 'paid'.
+  receipt_path: string | null;
   amount: number | null;
   currency: TaskCurrency;
   payment_status: PaymentStatus;

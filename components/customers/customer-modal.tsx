@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type {
   City,
   Company,
@@ -35,6 +36,8 @@ import { useAction } from "@/lib/use-action";
 import PendingBadge from "@/components/pending-badge";
 import { toastErr } from "@/lib/toast";
 import DateInput from "@/components/date-input";
+import { formatDate } from "@/lib/dates";
+import type { CustomerWarranty } from "@/lib/warranty";
 
 type LinkRow = { label: string; url: string };
 type MachineRow = {
@@ -82,6 +85,7 @@ export default function CustomerModal({
   cities,
   models,
   customer,
+  warranty,
   onClose,
   onSaved,
   onChanged,
@@ -91,6 +95,10 @@ export default function CustomerModal({
   cities: City[];
   models: MachineModel[];
   customer: Customer | null;
+  // Computed from the installation date + the model's catalog warranty (or a
+  // Service extension). null / "manual" = nothing to compute: the In/Out
+  // switch below still applies.
+  warranty: CustomerWarranty | null;
   onClose: () => void;
   onSaved: () => void;
   // Called when the list behind should refresh but the modal stays open
@@ -112,7 +120,10 @@ export default function CustomerModal({
   const [name, setName] = useState(customer?.name ?? "");
   const [contactPerson, setContactPerson] = useState(customer?.contact_person ?? "");
   const [contactInfo, setContactInfo] = useState(customer?.contact_info ?? "");
-  const [status, setStatus] = useState<CustomerStatus>(customer?.status ?? "active");
+  const autoWarranty = !!warranty && warranty.state !== "manual";
+  const [status, setStatus] = useState<CustomerStatus>(
+    autoWarranty ? (warranty!.state === "in" ? "active" : "inactive") : customer?.status ?? "active"
+  );
   const [links, setLinks] = useState<LinkRow[]>(
     customer?.customer_links?.map((l) => ({ label: l.label, url: l.url })) ?? []
   );
@@ -363,6 +374,11 @@ export default function CustomerModal({
             <span className="text-[10px] font-medium uppercase tracking-wider text-brand-200">
               {t("customers.colWarranty")}
             </span>
+            {autoWarranty ? (
+              <span className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-brand-800">
+                {t(status === "active" ? "customers.warrantyIn" : "customers.warrantyOut")}
+              </span>
+            ) : (
             <div role="radiogroup" aria-label={t("customers.colWarranty")} className="flex rounded-full bg-white/[0.14] p-[3px]">
               {(["active", "inactive"] as const).map((v) => {
                 const on = status === v;
@@ -382,6 +398,7 @@ export default function CustomerModal({
                 );
               })}
             </div>
+            )}
           </div>
         </section>
 
@@ -399,6 +416,45 @@ export default function CustomerModal({
           />
         </div>
 
+        {autoWarranty && warranty && (
+          <div className="rounded-2xl bg-surface-soft p-3.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="label mb-0">{t("customers.colWarranty")}</span>
+              <span
+                className={`${warranty.state === "in" ? "tone-done" : "tone-neutral"} rounded-full px-2.5 py-0.5 text-xs font-semibold`}
+              >
+                {t(warranty.state === "in" ? "customers.warrantyIn" : "customers.warrantyOut")}
+              </span>
+              <span className="text-xs text-ink-muted">· {t("customers.warrantyAuto")}</span>
+            </div>
+            <p className="mt-1.5 text-sm text-ink">
+              {warranty.state === "in"
+                ? `${t("customers.warrantyUntil")} ${formatDate(warranty.end)}`
+                : `${t("customers.warrantyEndedOn")} ${formatDate(warranty.end)}`}
+            </p>
+            {warranty.auto && warranty.installedAt && (
+              <p className="mt-0.5 text-xs text-ink-muted">
+                {formatDate(warranty.installedAt)} · {t("customers.warrantyHow")}
+              </p>
+            )}
+            {warranty.extended && (
+              <p className="mt-0.5 text-xs text-ink-muted">{t("customers.warrantyExtended")}</p>
+            )}
+            {warranty.state === "out" && cid && (
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <p className="text-xs text-ink-muted">{t("customers.warrantyOnlyService")}</p>
+                <Link
+                  href={`/agreements/new?customer=${cid}`}
+                  className="text-xs font-semibold text-brand-600"
+                >
+                  {t("customers.warrantyExtend")}
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!autoWarranty && (
         <div className="hidden md:block">
           <label className="label">{t("customers.colWarranty")}</label>
           <div role="radiogroup" aria-label={t("customers.colWarranty")} className="grid grid-cols-2 gap-2">
@@ -431,6 +487,10 @@ export default function CustomerModal({
             })}
           </div>
         </div>
+        )}
+        {!autoWarranty && cid && (
+          <p className="-mt-2 text-xs text-ink-muted">{t("customers.warrantyManualHint")}</p>
+        )}
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
@@ -562,14 +622,16 @@ export default function CustomerModal({
                         />
                       </div>
                     </div>
-                    <div className="mt-3">
-                      <label className="label">{t("customers.warrantyEnds")}</label>
-                      <DateInput
-                        className="input"
-                        value={m.warrantyEnd}
-                        onChange={(e) => updateMachine(i, { warrantyEnd: e.target.value })}
-                      />
-                    </div>
+                    {!(warranty?.auto) && (
+                      <div className="mt-3">
+                        <label className="label">{t("customers.warrantyEnds")}</label>
+                        <DateInput
+                          className="input"
+                          value={m.warrantyEnd}
+                          onChange={(e) => updateMachine(i, { warrantyEnd: e.target.value })}
+                        />
+                      </div>
+                    )}
                     {machines.length > 1 && (
                       <button
                         type="button"

@@ -1,6 +1,6 @@
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { loadExpiringWarranties } from "@/lib/agreements.server";
+import { expiringFrom, loadWarrantyData } from "@/lib/warranty.server";
 import CustomersView from "@/components/customers/customers-view";
 import type { City, Company, Customer, MachineModel } from "@/lib/types";
 
@@ -42,7 +42,9 @@ export default async function CustomersPage({
   const companies = (companiesData ?? []) as Company[];
   const cities = (citiesData ?? []) as City[];
   const models = (modelsData ?? []) as MachineModel[];
-  const expiringWarranties = await loadExpiringWarranties(supabase);
+  const warrantyData = await loadWarrantyData(supabase);
+  const expiringWarranties = expiringFrom(warrantyData);
+  const warranties = Object.fromEntries(warrantyData.customers);
   const brandCounts: Record<string, number> = {};
   for (const r of (brandRows ?? []) as { company_id: string | null }[]) {
     const k = r.company_id ?? "__none__";
@@ -58,6 +60,7 @@ export default async function CustomersPage({
       models={models}
       brandFilter={brandFilter}
       expiringWarranties={expiringWarranties}
+      warranties={warranties}
       brandCounts={brandCounts}
       initialQuery={initialQuery}
     />

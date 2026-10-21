@@ -18,6 +18,7 @@ import {
   renameBrand,
   renameCity,
   renameModel,
+  setModelWarranty,
 } from "@/app/(app)/catalog/actions";
 
 export default function CatalogView({
@@ -166,6 +167,10 @@ export default function CatalogView({
                         key={m.id}
                         name={m.name}
                         manager={manager}
+                        warranty={{
+                          months: m.warranty_months,
+                          onSave: (v) => run(() => setModelWarranty(m.id, v)),
+                        }}
                         onRename={(v) => run(() => renameModel(m.id, v))}
                         onDelete={() =>
                           confirm(t("catalog.confirmDeleteModel")) && run(() => deleteModel(m.id))
@@ -176,6 +181,11 @@ export default function CatalogView({
                       label={t("catalog.addModel")}
                       onAdd={(v) => run(() => createModel(c.id, v))}
                     />
+                    {own.length > 0 && (
+                      <p className="w-full pt-1 text-xs text-ink-muted">
+                        {t("catalog.warrantyHint")}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -235,22 +245,35 @@ function Chip({
   name,
   manager,
   icon,
+  warranty,
   onRename,
   onDelete,
 }: {
   name: string;
   manager: boolean;
   icon?: React.ReactNode;
+  // Models only: factory warranty in months, shown on the chip and edited
+  // next to the name.
+  warranty?: { months: number | null; onSave: (months: number | null) => void };
   onRename: (name: string) => void;
   onDelete: () => void;
 }) {
   const t = useT();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
+  const [months, setMonths] = useState(warranty?.months?.toString() ?? "");
 
   if (editing) {
     const save = () => {
       if (draft.trim() && draft.trim() !== name) onRename(draft.trim());
+      if (warranty) {
+        const next = months.trim() === "" ? null : Number(months);
+        if (next !== null && !(Number.isInteger(next) && next >= 0 && next <= 120)) {
+          toastErr(t("catalog.warrantyInvalid"));
+          return;
+        }
+        if (next !== warranty.months) warranty.onSave(next);
+      }
       setEditing(false);
     };
     return (
@@ -265,6 +288,21 @@ function Chip({
             if (e.key === "Escape") setEditing(false);
           }}
         />
+        {warranty && (
+          <input
+            className="input !h-[38px] !w-24 !rounded-xl !px-3 !py-1 !text-sm"
+            inputMode="numeric"
+            value={months}
+            placeholder={t("catalog.warrantyMonths")}
+            aria-label={t("catalog.warrantyMonths")}
+            title={t("catalog.warrantyHint")}
+            onChange={(e) => setMonths(e.target.value.replace(/\D/g, "").slice(0, 3))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") save();
+              if (e.key === "Escape") setEditing(false);
+            }}
+          />
+        )}
         <button
           onClick={save}
           className="h-[38px] rounded-xl bg-ink px-3 text-xs font-semibold text-surface"
@@ -282,6 +320,7 @@ function Chip({
         <button
           onClick={() => {
             setDraft(name);
+            setMonths(warranty?.months?.toString() ?? "");
             setEditing(false);
           }}
           aria-label="Cancel"
@@ -295,10 +334,23 @@ function Chip({
 
   const cls =
     "flex h-[38px] items-center gap-1.5 rounded-xl border border-surface-border bg-surface px-3.5 text-[13px] font-medium text-ink";
+  const badge = warranty ? (
+    <span
+      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+        warranty.months === null ? "tone-neutral" : "tone-done"
+      }`}
+      title={t("catalog.warrantyHint")}
+    >
+      {warranty.months === null
+        ? t("catalog.warrantyNotSet")
+        : `${warranty.months} ${t("catalog.warrantyShort")}`}
+    </span>
+  ) : null;
   return manager ? (
     <button
       onClick={() => {
         setDraft(name);
+        setMonths(warranty?.months?.toString() ?? "");
         setEditing(true);
       }}
       title={t("common.edit")}
@@ -306,11 +358,13 @@ function Chip({
     >
       {icon}
       {name}
+      {badge}
     </button>
   ) : (
     <span className={cls}>
       {icon}
       {name}
+      {badge}
     </span>
   );
 }

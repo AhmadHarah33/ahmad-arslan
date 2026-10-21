@@ -15,6 +15,7 @@ import PendingBadge from "@/components/pending-badge";
 import CustomerModal from "./customer-modal";
 import { formatDate } from "@/lib/dates";
 import { compareNames } from "@/lib/sort";
+import type { CustomerWarranty } from "@/lib/warranty";
 
 const PAGE_SIZE = 25;
 
@@ -46,6 +47,7 @@ export default function CustomersView({
   models,
   brandFilter,
   expiringWarranties,
+  warranties,
   brandCounts,
   initialQuery = "",
 }: {
@@ -57,6 +59,9 @@ export default function CustomersView({
   brandFilter: string;
   // Customers with a machine whose warranty ends within 30 days (soonest first).
   expiringWarranties: { customer_id: string; date: string }[];
+  // Each customer's computed warranty (installation date + the model's
+  // catalog months, or an agreement extension). "manual" = nothing to compute.
+  warranties: Record<string, CustomerWarranty>;
   // Customers per brand across the whole list ("__none__" = no brand).
   brandCounts: Record<string, number>;
   initialQuery?: string;
@@ -190,16 +195,21 @@ export default function CustomersView({
   // Warranty is the customer's In / Out flag (the old Active / Inactive
   // field). In turns amber when one of their machines' warranties ends soon.
   const expiringIds = useMemo(() => new Set(expiring.map((x) => x.c.id)), [expiring]);
+  const isIn = (c: Customer) => {
+    const w = warranties[c.id];
+    return w && w.state !== "manual" ? w.state === "in" : c.status === "active";
+  };
   function warrantyOf(c: Customer): { label: string; tone: string } {
-    if (c.status !== "active") return { label: t("customers.warrantyOut"), tone: "--tone-neutral" };
+    if (!isIn(c)) return { label: t("customers.warrantyOut"), tone: "--tone-neutral" };
     return {
       label: t("customers.warrantyIn"),
       tone: expiringIds.has(c.id) ? "--tone-warn" : "--tone-done",
     };
   }
   const inWarrantyCount = useMemo(
-    () => initialCustomers.filter((c) => c.status === "active").length,
-    [initialCustomers]
+    () => initialCustomers.filter(isIn).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [initialCustomers, warranties]
   );
   const brandHeading = (c: Customer) => c.company?.name ?? t("customers.noBrand");
 
@@ -601,6 +611,7 @@ export default function CustomersView({
           cities={cities}
           models={models}
           customer={modal.customer}
+          warranty={modal.customer ? warranties[modal.customer.id] ?? null : null}
           onClose={() => setModal({ open: false, customer: null })}
           onSaved={() => {
             setModal({ open: false, customer: null });

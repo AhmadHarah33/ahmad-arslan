@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/lib/i18n/provider";
 import DownloadAgreementPdf from "@/components/agreements/download-pdf";
+import PaymentReceipt from "@/components/agreements/payment-receipt";
 import { toast, toastErr } from "@/lib/toast";
 import { formatDate } from "@/lib/dates";
 import { formatAmount, parseAmount, sanitizeAmount } from "@/lib/money";
@@ -28,6 +29,7 @@ import {
 import type {
   AgreementPlan,
   AgreementStatus,
+  PaymentStatus,
   RemindDays,
   TaskCurrency,
   WarrantyCoverage,
@@ -40,6 +42,9 @@ export type FormMachine = {
   label: string;
   serial_number: string;
   warranty_end: string | null;
+  // True when warranty_end is computed (installation date + the model's
+  // catalog warranty), so it can't be typed over here.
+  warranty_auto: boolean;
 };
 export type FormTech = { id: string; name: string };
 
@@ -64,6 +69,9 @@ export type FormInitial = {
   payment_due: string | null;
   notes: string;
   contract_path: string | null;
+  payment_status: PaymentStatus;
+  paid_at: string | null;
+  receipt_path: string | null;
   visits: { id: string; due_date: string; done_at: string | null }[];
 };
 
@@ -459,13 +467,22 @@ export default function AgreementForm({
                         {on && (
                           <div className="mt-3 pl-7">
                             <label className="label">{t("ag.factoryWarranty")}</label>
-                            <DateInput
-                              className="input sm:max-w-[220px]"
-                              value={factoryOf(m)}
-                              onChange={(e) =>
-                                setFactoryEdits((cur) => ({ ...cur, [m.id]: e.target.value }))
-                              }
-                            />
+                            {m.warranty_auto ? (
+                              <p className="text-sm text-ink">
+                                {formatDate(m.warranty_end)}
+                                <span className="ml-2 text-xs text-ink-muted">
+                                  · {t("customers.warrantyAuto")}
+                                </span>
+                              </p>
+                            ) : (
+                              <DateInput
+                                className="input sm:max-w-[220px]"
+                                value={factoryOf(m)}
+                                onChange={(e) =>
+                                  setFactoryEdits((cur) => ({ ...cur, [m.id]: e.target.value }))
+                                }
+                              />
+                            )}
                           </div>
                         )}
                       </div>
@@ -828,6 +845,22 @@ export default function AgreementForm({
               <span className="ml-3 text-xs text-ink-faint">
                 {contractFile ? t("ag.contractPending") : t("ag.contractHint")}
               </span>
+            </div>
+
+            <div className="mt-5 border-t border-surface-border pt-4">
+              {initial ? (
+                <PaymentReceipt
+                  agreementId={initial.id}
+                  paymentStatus={initial.payment_status}
+                  paidAt={initial.paid_at}
+                  receiptPath={initial.receipt_path}
+                />
+              ) : (
+                <>
+                  <label className="label">{t("ag.pay.status")}</label>
+                  <p className="text-sm text-ink-muted">{t("ag.pay.saveFirst")}</p>
+                </>
+              )}
             </div>
           </Section>
         </div>
