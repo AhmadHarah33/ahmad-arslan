@@ -13,8 +13,9 @@ import Fab from "@/components/fab";
 import PageTools from "@/components/page-tools";
 import StatCard from "@/components/stat-card";
 import { useT } from "@/lib/i18n/provider";
-import { toastErr } from "@/lib/toast";
+import { toast, toastErr } from "@/lib/toast";
 import PendingBadge from "@/components/pending-badge";
+import { OrderBar, OrderModal, OrderHistoryModal } from "./order-list";
 import { photoUrl } from "@/lib/storage";
 import { formatAmount } from "@/lib/money";
 import PhotoLightbox from "./photo-lightbox";
@@ -173,6 +174,66 @@ export default function SparePartsView({
     return [...byBrand.values()].sort((a, b) => compareNames(a.name, b.name));
   }, [filtered, sort, t]);
 
+  // --- Order list: pick parts + quantities, one brand per list ---------------
+  const [ordering, setOrdering] = useState(false);
+  const [picked, setPicked] = useState<Record<string, number>>({});
+  const [orderModal, setOrderModal] = useState(false);
+  const [historyModal, setHistoryModal] = useState(false);
+
+  const orderLines = useMemo(
+    () =>
+      parts
+        .filter((p) => (picked[p.id] ?? 0) > 0)
+        .sort(
+          (a, b) =>
+            comparePartNumbers(a.part_number, b.part_number) || compareNames(a.name, b.name)
+        )
+        .map((part) => ({ part, quantity: picked[part.id] })),
+    [parts, picked]
+  );
+  const pickedBrandId = useMemo(() => {
+    const first = Object.keys(picked)[0];
+    return first ? parts.find((p) => p.id === first)?.company_id ?? "" : "";
+  }, [parts, picked]);
+  const pieces = orderLines.reduce((s, l) => s + l.quantity, 0);
+
+  // Low stock suggests topping back up to the minimum; anything else starts at 1.
+  const suggestedQty = (p: SparePart) =>
+    stockOf(p) === "ok" ? 1 : Math.max((p.min_quantity ?? 0) - p.quantity, 1);
+
+  function togglePick(p: SparePart) {
+    if (pickedBrandId && p.company_id !== pickedBrandId) return;
+    setPicked((prev) => {
+      const next = { ...prev };
+      if (p.id in next) delete next[p.id];
+      else next[p.id] = suggestedQty(p);
+      return next;
+    });
+  }
+
+  function setPickQty(p: SparePart, qty: number) {
+    setPicked((prev) => ({ ...prev, [p.id]: Number.isFinite(qty) ? Math.floor(qty) : 0 }));
+  }
+
+  function addLowStock() {
+    const brands = new Set(filtered.map((p) => p.company_id));
+    const target = pickedBrandId || brandFilter || (brands.size === 1 ? [...brands][0] : "");
+    if (!target) return toastErr(t("order.pickBrandFirst"));
+    const low = parts.filter((p) => p.company_id === target && stockOf(p) !== "ok");
+    if (low.length === 0) return toast(t("order.noLow"), "info");
+    setPicked((prev) => {
+      const next = { ...prev };
+      for (const p of low) if (!(p.id in next)) next[p.id] = suggestedQty(p);
+      return next;
+    });
+  }
+
+  function endOrdering() {
+    setOrdering(false);
+    setOrderModal(false);
+    setPicked({});
+  }
+
   const lowNames = useMemo(
     () =>
       parts
@@ -266,7 +327,7 @@ export default function SparePartsView({
   ];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={`flex flex-col gap-4 ${ordering ? "pb-28" : ""}`}>
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex min-w-0 flex-1 flex-col">
@@ -276,7 +337,26 @@ export default function SparePartsView({
           <span className="text-[13px] text-ink-muted">{t("parts.subtitle")}</span>
         </div>
         <PageTools />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {manager && (
+            <>
+              <button
+                className="inline-flex h-11 items-center rounded-xl bg-surface px-4 text-sm font-medium text-ink transition hover:opacity-80"
+                onClick={() => setHistoryModal(true)}
+              >
+                {t("order.history")}
+              </button>
+              <button
+                aria-pressed={ordering}
+                className={`inline-flex h-11 items-center rounded-xl px-4 text-sm font-medium transition hover:opacity-80 ${
+                  ordering ? "bg-brand-800 text-white" : "bg-surface text-ink"
+                }`}
+                onClick={() => (ordering ? endOrdering() : setOrdering(true))}
+              >
+                {t("order.start")}
+              </button>
+            </>
+          )}
           <ImportExport
             kind="parts"
             columns={["company", "name", "part_number", "quantity", "price"]}
@@ -305,7 +385,7 @@ export default function SparePartsView({
         </div>
       </div>
 
-      <Fab onClick={() => setPartModal({ open: true, part: null })} />
+      {!ordering && <Fab onClick={() => setPartModal({ open: true, part: null })} />}
 
       {/* Stat tiles. The three stock tiles double as the stock filter. */}
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -444,14 +524,16 @@ export default function SparePartsView({
             className="hidden overflow-hidden rounded-[22px] bg-surface md:block"
           >
             <div className="overflow-x-auto">
-              <div className="min-w-[1000px]">
-                <div className={`${ROW} border-b border-surface-border py-3.5 text-[11px] font-semibold uppercase tracking-wider text-ink-muted`}>
+              <div className={ordering ? "min-w-[1180px]" : "min-w-[1000px]"}>
+                <div className={`${ordering ? ROW_ORDER : ROW} border-b border-surface-border py-3.5 text-[11px] font-semibold uppercase tracking-wider text-ink-muted`}>
+                  {ordering && <span />}
                   <span />
                   <span>{t("parts.partNumber")}</span>
                   <span>{t("parts.partName")}</span>
                   <span className="text-center">{t("parts.quantity")}</span>
                   <span>{t("parts.price")}</span>
                   <span>{t("task.status")}</span>
+                  {ordering && <span className="text-center">{t("order.qty")}</span>}
                   <span />
                 </div>
                 {groups.map((g) => (
@@ -478,12 +560,18 @@ export default function SparePartsView({
                     )}
                     {g.rows.map((p) => {
                       const s = stockOf(p);
+                      const on = p.id in picked;
+                      const locked = ordering && !!pickedBrandId && p.company_id !== pickedBrandId;
                       return (
                         <div
                           key={p.id}
-                          onClick={() => setPartModal({ open: true, part: p })}
-                          className={`${ROW} cursor-pointer border-b border-surface-border py-2.5 transition hover:bg-surface-soft`}
+                          onClick={() => (ordering ? togglePick(p) : setPartModal({ open: true, part: p }))}
+                          className={`${ordering ? ROW_ORDER : ROW} cursor-pointer border-b border-surface-border py-2.5 transition hover:bg-surface-soft ${
+                            on ? "bg-brand-50/60" : ""
+                          } ${locked ? "cursor-not-allowed opacity-40" : ""}`}
+                          title={locked ? t("order.otherBrand") : undefined}
                         >
+                          {ordering && <PickBox on={on} disabled={locked} />}
                           <Thumbnail part={p} onZoom={() => setLightbox(p)} />
                           <span className="truncate text-[13px] font-semibold text-brand-600">
                             {p.part_number || "—"}
@@ -494,6 +582,17 @@ export default function SparePartsView({
                           <span>
                             <StockPill p={p} />
                           </span>
+                          {ordering && (
+                            <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+                              {on && (
+                                <QtyInput
+                                  value={picked[p.id]}
+                                  label={t("order.qty")}
+                                  onChange={(n) => setPickQty(p, n)}
+                                />
+                              )}
+                            </div>
+                          )}
                           <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
                             {!p.is_approved && manager ? (
                               <div className="flex gap-1.5">
@@ -539,12 +638,17 @@ export default function SparePartsView({
                 <div className="overflow-hidden rounded-[20px] bg-surface">
                   {g.rows.map((p) => {
                     const s = stockOf(p);
+                    const on = p.id in picked;
+                    const locked = ordering && !!pickedBrandId && p.company_id !== pickedBrandId;
                     return (
                       <div
                         key={p.id}
-                        onClick={() => setPartModal({ open: true, part: p })}
-                        className="flex cursor-pointer items-center gap-3 border-b border-surface-border px-3.5 py-3 last:border-b-0"
+                        onClick={() => (ordering ? togglePick(p) : setPartModal({ open: true, part: p }))}
+                        className={`flex cursor-pointer items-center gap-3 border-b border-surface-border px-3.5 py-3 last:border-b-0 ${
+                          on ? "bg-brand-50/60" : ""
+                        } ${locked ? "opacity-40" : ""}`}
                       >
+                        {ordering && <PickBox on={on} disabled={locked} />}
                         <Thumbnail part={p} onZoom={() => setLightbox(p)} size={46} />
                         <div className="flex min-w-0 flex-1 flex-col">
                           <span className="truncate text-sm font-semibold text-ink">{p.name}</span>
@@ -554,6 +658,15 @@ export default function SparePartsView({
                               .join(" · ")}
                           </span>
                         </div>
+                        {ordering && on && (
+                          <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <QtyInput
+                              value={picked[p.id]}
+                              label={t("order.qty")}
+                              onChange={(n) => setPickQty(p, n)}
+                            />
+                          </div>
+                        )}
                         <div className="flex shrink-0 flex-col items-end">
                           <span className="text-xl font-bold leading-tight text-ink">
                             {p.quantity}
@@ -626,6 +739,28 @@ export default function SparePartsView({
         </Modal>
       )}
 
+      {ordering && (
+        <OrderBar
+          parts={orderLines.length}
+          pieces={pieces}
+          onAddLow={addLowStock}
+          onCreate={() => setOrderModal(true)}
+          onCancel={endOrdering}
+        />
+      )}
+
+      {orderModal && orderLines.length > 0 && (
+        <OrderModal
+          brandId={pickedBrandId}
+          brandName={orderLines[0].part.company?.name ?? ""}
+          lines={orderLines}
+          onClose={() => setOrderModal(false)}
+          onDone={endOrdering}
+        />
+      )}
+
+      {historyModal && <OrderHistoryModal onClose={() => setHistoryModal(false)} />}
+
       {lightbox && (
         <PhotoLightbox
           photos={lightbox.spare_part_photos ?? []}
@@ -652,6 +787,48 @@ export default function SparePartsView({
 
 const ROW =
   "grid grid-cols-[52px_130px_minmax(220px,1fr)_150px_150px_170px_90px] items-center gap-x-8 px-5";
+
+// Same columns as ROW with a tick box in front and the order-quantity column
+// before the actions.
+const ROW_ORDER =
+  "grid grid-cols-[28px_52px_130px_minmax(220px,1fr)_130px_130px_150px_120px_90px] items-center gap-x-6 px-5";
+
+function PickBox({ on, disabled }: { on: boolean; disabled: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md border-[1.5px] text-[13px] text-white ${
+        on ? "border-brand-800 bg-brand-800" : "border-surface-border bg-surface"
+      } ${disabled ? "opacity-50" : ""}`}
+    >
+      {on ? "✓" : ""}
+    </span>
+  );
+}
+
+function QtyInput({
+  value,
+  label,
+  onChange,
+}: {
+  value: number;
+  label: string;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <input
+      type="number"
+      inputMode="numeric"
+      min={1}
+      aria-label={label}
+      value={value || ""}
+      onChange={(e) => onChange(e.target.valueAsNumber)}
+      // An empty / zero box would silently drop the line, so snap back to 1.
+      onBlur={() => value < 1 && onChange(1)}
+      className="input h-9 w-20 px-2 text-center font-semibold tabular-nums"
+    />
+  );
+}
 
 function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
