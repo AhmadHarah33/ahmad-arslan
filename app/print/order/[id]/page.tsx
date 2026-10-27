@@ -70,9 +70,8 @@ export default async function OrderListPrint({
   const pieces = items.reduce((s, i) => s + i.quantity, 0);
 
   return (
-    <main className="bg-white text-[#1f2430]">
-      <header className="relative mb-5 flex items-start justify-between border-b-2 border-[#323490] pb-3">
-        <span aria-hidden="true" className="absolute -bottom-[2px] left-0 h-[5px] w-14 bg-[#BED631] [print-color-adjust:exact]" />
+    <main className="bg-white text-black">
+      <header className="mb-6 flex items-start justify-between border-b border-black pb-3">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -84,7 +83,7 @@ export default async function OrderListPrint({
           {company.company_address && <p className="text-sm">{company.company_address}</p>}
         </div>
         <div className="text-right text-sm">
-          <p className="text-lg font-semibold">{L.title}</p>
+          <p className="text-xl font-bold uppercase tracking-wide">{L.title}</p>
           <p className="font-semibold">{orderCode(order.number)}</p>
           <p>
             {L.date}: {formatDate(order.created_at)}
@@ -111,11 +110,13 @@ export default async function OrderListPrint({
         </colgroup>
         {/* thead repeats on every printed page */}
         <thead className="table-header-group">
-          <tr className="bg-[#323490] text-left text-white [print-color-adjust:exact]">
+          <tr className="bg-gray-100 text-left text-black [print-color-adjust:exact]">
             {["#", L.photo, L.partNumber, L.name, L.qty].map((h, i) => (
               <th
                 key={h}
-                className={`border border-[#323490] px-2 py-1.5 font-semibold ${i === 4 ? "text-center" : ""}`}
+                className={`border border-gray-500 px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide ${
+                  i === 0 || i === 1 || i === 4 ? "text-center" : ""
+                }`}
               >
                 {h}
               </th>
@@ -126,13 +127,12 @@ export default async function OrderListPrint({
           {items.map((it, i) => (
             <tr
               key={it.id}
-              className={i % 2 ? "bg-gray-50" : ""}
               style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
             >
-              <td className="border border-gray-300 px-2 py-1 text-center align-middle text-gray-500">
+              <td className="border border-gray-400 px-2 py-1 text-center align-middle text-gray-600">
                 {i + 1}
               </td>
-              <td className="border border-gray-300 p-1 text-center align-middle">
+              <td className="border border-gray-400 p-1 text-center align-middle">
                 {it.photo_path ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -144,13 +144,13 @@ export default async function OrderListPrint({
                   <span className="text-gray-300">—</span>
                 )}
               </td>
-              <td className="break-words border border-gray-300 px-2 py-1 align-middle font-semibold">
+              <td className="break-words border border-gray-400 px-2 py-1 align-middle font-semibold">
                 {it.part_number || "—"}
               </td>
-              <td className="whitespace-pre-wrap break-words border border-gray-300 px-2 py-1 align-middle">
+              <td className="whitespace-pre-wrap break-words border border-gray-400 px-2 py-1 align-middle">
                 {it.name}
               </td>
-              <td className="border border-gray-300 px-2 py-1 text-center align-middle text-[15px] font-bold">
+              <td className="border border-gray-400 px-2 py-1 text-center align-middle text-[15px] font-bold">
                 {it.quantity}
               </td>
             </tr>
