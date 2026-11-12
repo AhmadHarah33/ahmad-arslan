@@ -15,6 +15,8 @@ import OrganizerHome from "@/components/dashboard/organizer-home";
 import EngineerHome from "@/components/dashboard/engineer-home";
 import { buildEngineerData } from "@/lib/dashboard.engineer";
 import { buildHeadData } from "@/lib/dashboard.head";
+import { DEFAULT_LINKS, type SharedLink } from "@/lib/shared-links";
+import { canEditData } from "@/lib/permissions";
 import { buildOrganizerData } from "@/lib/dashboard.organizer";
 import { addDays } from "@/lib/agreements";
 import type { SparePart, TaskStatus } from "@/lib/types";
@@ -168,6 +170,15 @@ export default async function DashboardPage() {
     }
   }
 
+  // The Shared drives card. If the table is not there yet, fall back to the two
+  // default folders (read-only) rather than failing the page.
+  const { data: linkRows, error: linkError } = await supabase
+    .from("shared_links")
+    .select("id, title, note, url, icon, position")
+    .order("position", { ascending: true });
+  const links: SharedLink[] = linkError || !linkRows ? DEFAULT_LINKS : (linkRows as SharedLink[]);
+  const canEditLinks = !linkError && canEditData(profile);
+
   if (profile.role === "engineer") {
     const myVisits = visits
       .filter((v) => !v.done_at && v.due_date >= today && live(v.agreement_id))
@@ -190,6 +201,8 @@ export default async function DashboardPage() {
       });
     return (
       <EngineerHome
+        links={links}
+        canEditLinks={canEditLinks}
         greeting={{
           hello: t(greetingKey()),
           name: profile.first_name || profile.full_name || "there",
@@ -228,6 +241,8 @@ export default async function DashboardPage() {
     });
     return (
       <OrganizerHome
+        links={links}
+        canEditLinks={canEditLinks}
         greeting={{
           hello: t(greetingKey()),
           name: profile.first_name || profile.full_name || "there",
@@ -259,6 +274,8 @@ export default async function DashboardPage() {
     });
     return (
       <HeadHome
+        links={links}
+        canEditLinks={canEditLinks}
         greeting={{
           hello: t(greetingKey()),
           name: profile.first_name || profile.full_name || "there",

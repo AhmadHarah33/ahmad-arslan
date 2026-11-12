@@ -1,6 +1,7 @@
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import AppShell from "@/components/app-shell";
+import { AvatarPictures } from "@/components/avatar";
 import ThemeProvider from "@/components/theme/theme-provider";
 import BackgroundProvider from "@/components/theme/background-provider";
 import type { ThemeMode } from "@/lib/theme";
@@ -26,13 +27,16 @@ export default async function AppGroupLayout({
   const supabase = createClient();
   const [{ data }, { data: people }, { data: companiesData }] = await Promise.all([
     supabase.from("app_settings").select("*").eq("id", 1).single(),
-    supabase.from("profiles").select("id, full_name, first_name").order("full_name"),
+    supabase.from("profiles").select("id, full_name, first_name, avatar_path").order("full_name"),
     supabase.from("companies").select("*").order("name"),
   ]);
   // The app_settings row is seeded by migration; fall back rather than crash
   // the whole shell if it is ever missing.
   const settings: AppSettings = (data as AppSettings | null) ?? FALLBACK_SETTINGS;
   const teammates = (people ?? []) as AssigneeLite[];
+  const pictures: Record<string, string | null> = Object.fromEntries(
+    (people ?? []).map((p: { id: string; avatar_path?: string | null }) => [p.id, p.avatar_path ?? null])
+  );
   // Feeds the Customers/Parts brand tree in the sidebar.
   const companies = (companiesData ?? []) as Company[];
 
@@ -43,15 +47,17 @@ export default async function AppGroupLayout({
         mode={(profile.theme_mode as ThemeMode) ?? "system"}
       />
       <BackgroundProvider style={settings.bg_style} blur={settings.bg_blur} />
-      <AppShell
-        profile={profile}
-        teammates={teammates}
-        companies={companies}
-        bgStyle={settings.bg_style}
-        bgBlur={settings.bg_blur}
-      >
-        {children}
-      </AppShell>
+      <AvatarPictures pictures={pictures}>
+        <AppShell
+          profile={profile}
+          teammates={teammates}
+          companies={companies}
+          bgStyle={settings.bg_style}
+          bgBlur={settings.bg_blur}
+        >
+          {children}
+        </AppShell>
+      </AvatarPictures>
     </>
   );
 }

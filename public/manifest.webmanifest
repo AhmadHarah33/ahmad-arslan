@@ -4,8 +4,8 @@
   "description": "Mars Med Dent — customers, spare parts, and engineer tasks.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#323490",
-  "theme_color": "#323490",
+  "background_color": "#2A1B12",
+  "theme_color": "#2A1B12",
   "orientation": "portrait-primary",
   "icons": [
     {

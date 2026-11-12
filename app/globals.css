@@ -26,6 +26,7 @@
   --tone-neutral-ink: 51 65 85;
   --tone-progress: 37 99 235;
   --tone-progress-ink: 29 78 216;
+  --on-done: 255 255 255;
   --tone-done: 5 150 105;
   --tone-done-ink: 4 120 87;
   --tone-stuck: 225 29 72;
@@ -67,12 +68,12 @@
      sheet with no card edges. Body and secondary text are lifted too — the
      old muted/faint pair was grey-on-grey at anything under full brightness. */
   --canvas: 0 0 0;
-  --surface: 21 23 29;
-  --surface-soft: 33 36 45;
-  --surface-border: 55 60 74;
-  --ink: 242 244 249;
-  --ink-muted: 182 190 204;
-  --ink-faint: 147 156 173;
+  --surface: 15 15 17;
+  --surface-soft: 26 26 29;
+  --surface-border: 38 38 43;
+  --ink: 240 240 242;
+  --ink-muted: 168 168 176;
+  --ink-faint: 130 130 139;
 
   /* Lighter, less saturated tones so tinted chips read on dark surfaces. */
   --tone-neutral: 148 163 184;
@@ -92,6 +93,8 @@
   --tone-orange: 251 146 60;
   --tone-orange-ink: 253 186 116;
 
+    /* Text on solid green controls (Done, Review): dark on the mint fill. */
+  --on-done: 8 22 15;
   color-scheme: dark;
 }
 :root[data-mode="light"] {
@@ -219,11 +222,11 @@ body {
       0 10px 26px -18px rgb(16 24 40 / 0.35);
   }
   :root[data-mode="dark"] .glass {
-    background: rgb(var(--surface) / 0.92);
-    /* 0.07 was invisible against the panel it sat on, so tables and cards had
-       no perceptible edge. */
-    border-color: rgb(255 255 255 / 0.13);
-    box-shadow: 0 10px 26px -18px rgb(0 0 0 / 0.8);
+    background: rgb(var(--surface));
+    /* No outline: the card is told apart from the black canvas by its lighter
+       fill and a faint highlight along its top edge. */
+    border-color: transparent;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
   }
   /* Chrome (app frame, bars, modals): frosted, not a flat opaque panel — kept
      high-opacity so it stays readable over the canvas/wallpaper behind it. */
@@ -599,103 +602,45 @@ body {
 :root[data-mode="dark"] .mars-tile-light { display: none; }
 :root[data-mode="dark"] .mars-tile-dark { display: block; }
 
-/* ---- Cold-start splash (components/splash.tsx) ---------------------------- */
-/* Indigo screen, reversed mark: the planet appears, the rings sweep around it,
-   then the two moons settle into place and the wordmark fades in. The resting
-   state is the finished logo, so reduced-motion users simply see it. */
-#splash {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  background: #323490;
-  transition: opacity 0.6s ease;
+
+/* Dark mode: the bento cards written with plain utilities get the same borderless
+   look as .glass (faint top highlight instead of an outline). */
+:root[data-mode="dark"] .dark-card {
+  border-color: transparent;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
 }
-#splash[data-state="out"] {
-  opacity: 0;
-  pointer-events: none;
+
+/* Inverted emphasis cards (dark ink on light pages). In dark mode "ink" is
+   near-white, which made them blinding white blocks, so they become a lifted
+   dark card instead and keep their content colours. */
+:root[data-mode="dark"] .inv {
+  background: rgb(var(--surface-soft));
+  color: rgb(var(--ink));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
 }
-#splash[data-state="gone"] {
-  display: none;
+:root[data-mode="dark"] .inv .text-ink-faint {
+  color: rgb(var(--ink-faint));
 }
-#splash .sp-mark {
-  transition: transform 0.6s ease;
+:root[data-mode="dark"] .inv .border-t {
+  border-color: rgb(var(--surface-border));
 }
-#splash[data-state="out"] .sp-mark,
-#splash[data-state="out"] .sp-word {
-  transform: scale(1.05);
+
+/* Quiet "done" action: a soft pill with green text that fills green on hover or
+   press, so a column of them does not glow. */
+.done-btn {
+  background: rgb(var(--surface-soft));
+  color: rgb(var(--tone-done-ink));
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
-#splash .sp-ring {
-  stroke-dasharray: 100;
-  animation: sp-sweep 1.2s cubic-bezier(0.65, 0, 0.35, 1) 0.5s both;
+.done-btn:hover,
+.done-btn:active {
+  background: rgb(var(--tone-done));
+  color: rgb(var(--on-done));
 }
-#splash .sp-ring.sp-inner {
-  animation-delay: 0.7s;
+:root[data-mode="dark"] .inv .done-btn {
+  background: rgb(var(--surface));
 }
-/* the front arcs sit over the planet; they appear once the ring has swept past */
-#splash .sp-front {
-  animation: sp-front 1.05s linear 0s both;
-}
-#splash .sp-front.sp-inner {
-  animation-duration: 1.25s;
-}
-#splash .sp-planet {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: sp-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
-}
-#splash .sp-moon {
-  transform-box: view-box;
-  transform-origin: 50px 50px;
-}
-#splash .sp-moon1 {
-  animation: sp-settle1 0.8s cubic-bezier(0.22, 1, 0.36, 1) 1.5s both;
-}
-#splash .sp-moon2 {
-  animation: sp-settle2 0.8s cubic-bezier(0.22, 1, 0.36, 1) 1.7s both;
-}
-#splash .sp-word {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1;
-  transition: transform 0.6s ease;
-  animation: sp-word 0.7s ease 1.5s both;
-}
-@keyframes sp-sweep {
-  from { stroke-dashoffset: 100; }
-  to { stroke-dashoffset: 0; }
-}
-@keyframes sp-front {
-  0%, 99% { opacity: 0; }
-  100% { opacity: 1; }
-}
-@keyframes sp-pop {
-  from { opacity: 0; transform: scale(0.6); }
-  to { opacity: 1; transform: scale(1); }
-}
-@keyframes sp-settle1 {
-  from { opacity: 0; transform: rotate(-40deg); }
-  to { opacity: 1; transform: rotate(0deg); }
-}
-@keyframes sp-settle2 {
-  from { opacity: 0; transform: rotate(40deg); }
-  to { opacity: 1; transform: rotate(0deg); }
-}
-@keyframes sp-word {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  #splash .sp-ring,
-  #splash .sp-front,
-  #splash .sp-planet,
-  #splash .sp-moon,
-  #splash .sp-word {
-    animation: none !important;
-  }
+:root[data-mode="dark"] .inv .done-btn:hover,
+:root[data-mode="dark"] .inv .done-btn:active {
+  background: rgb(var(--tone-done));
 }

@@ -1,4 +1,23 @@
+"use client";
+
+import { createContext, useContext } from "react";
 import type { AssigneeLite } from "@/lib/types";
+import { profileImageUrl } from "@/lib/storage";
+
+// Everyone's picture, keyed by profile id. The app layout loads it once, so
+// every avatar on every screen (task cards, the task dialog, the team list…)
+// shows the person's photo without each place having to fetch it.
+const PicturesContext = createContext<Record<string, string | null>>({});
+
+export function AvatarPictures({
+  pictures,
+  children,
+}: {
+  pictures: Record<string, string | null>;
+  children: React.ReactNode;
+}) {
+  return <PicturesContext.Provider value={pictures}>{children}</PicturesContext.Provider>;
+}
 
 const COLORS = [
   "bg-red-500",
@@ -40,9 +59,11 @@ export function Avatar({
   // The person's picture, when they have set one; initials otherwise.
   src?: string | null;
 }) {
-  if (src) {
+  const pictures = useContext(PicturesContext);
+  const picture = src ?? profileImageUrl(pictures[id]);
+  if (picture) {
     // eslint-disable-next-line @next/next/no-img-element
-    return (<img src={src} alt={name} title={name} width={size} height={size} className="inline-block shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />);
+    return (<img src={picture} alt={name} title={name} width={size} height={size} className="inline-block shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />);
   }
   return (
     <span

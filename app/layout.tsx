@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Poppins, Zilla_Slab, Manrope } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n/provider";
-import { Splash } from "@/components/splash";
 
 // latin-ext carries the Turkish glyphs (ğ ı İ ş ç ö ü) — without it Turkish
 // text falls back mid-word and looks broken. next/font self-hosts the files at
@@ -42,7 +41,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#323490",
+  themeColor: "#2A1B12",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -73,7 +72,6 @@ export default function RootLayout({
     <html lang="en" className={`${poppins.variable} ${zillaSlab.variable} ${manrope.variable}`} suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <Splash />
         <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>

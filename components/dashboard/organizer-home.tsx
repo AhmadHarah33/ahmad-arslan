@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useLanguage, useT } from "@/lib/i18n/provider";
 import type { OrganizerData } from "@/lib/dashboard.organizer";
+import type { SharedLink } from "@/lib/shared-links";
 import { CountUp, Reveal, useInView } from "@/components/dashboard/motion";
 import { Attention, CARD, DataCard } from "@/components/dashboard/head-home";
 
@@ -18,10 +19,14 @@ export default function OrganizerHome({
   greeting,
   today,
   data,
+  links,
+  canEditLinks,
 }: {
   greeting: { hello: string; name: string };
   today: string;
   data: OrganizerData;
+  links: SharedLink[];
+  canEditLinks: boolean;
 }) {
   const t = useT();
   const { lang } = useLanguage();
@@ -134,7 +139,7 @@ export default function OrganizerHome({
           />
         </Reveal>
         <Reveal delay={360} className="col-span-2 xl:col-span-1">
-          <DataCard />
+          <DataCard links={links} canEdit={canEditLinks} />
         </Reveal>
       </div>
 
@@ -158,7 +163,7 @@ export default function OrganizerHome({
 function Queue({ data }: { data: OrganizerData }) {
   const t = useT();
   return (
-    <section className="flex h-full flex-col gap-4 rounded-[28px] bg-ink p-5 text-surface sm:rounded-[32px] sm:p-7">
+    <section className="inv flex h-full flex-col gap-4 rounded-[28px] bg-ink p-5 text-surface sm:rounded-[32px] sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <span className="block text-sm opacity-75 sm:text-[15px]">{t("head.waitingApproval")}</span>
@@ -192,8 +197,7 @@ function Queue({ data }: { data: OrganizerData }) {
               )}
               <Link
                 href="/tasks"
-                className="flex min-h-[44px] shrink-0 items-center rounded-full px-5 text-sm font-semibold text-white transition active:scale-95"
-                style={{ background: DONE }}
+                className="done-btn flex min-h-[44px] shrink-0 items-center rounded-full px-5 text-sm font-semibold transition active:scale-95"
               >
                 {t("head.review")}
               </Link>

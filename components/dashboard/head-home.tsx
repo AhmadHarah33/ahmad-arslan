@@ -6,6 +6,8 @@ import { useLanguage, useT } from "@/lib/i18n/provider";
 import { statusKey } from "@/lib/i18n/task-keys";
 import type { HeadData } from "@/lib/dashboard.head";
 import { CountUp, Reveal, useInView } from "@/components/dashboard/motion";
+import SharedLinksCard from "@/components/dashboard/shared-links-card";
+import type { SharedLink } from "@/lib/shared-links";
 
 // Home screen for the Head of engineers: one big picture of the workload,
 // four things that need a decision, who is free, and the approvals queue.
@@ -16,16 +18,20 @@ const ACTIVE = "rgb(var(--tone-warn))";
 const TODO = "rgb(var(--tone-neutral))";
 const STUCK = "rgb(var(--tone-stuck))";
 
-export const CARD = "rounded-[28px] border border-surface-border bg-surface shadow-card";
+export const CARD = "rounded-[28px] dark-card border border-surface-border bg-surface shadow-card";
 
 export default function HeadHome({
   greeting,
   today,
   data,
+  links,
+  canEditLinks,
 }: {
   greeting: { hello: string; name: string };
   today: string;
   data: HeadData;
+  links: SharedLink[];
+  canEditLinks: boolean;
 }) {
   const t = useT();
   const { lang } = useLanguage();
@@ -78,7 +84,7 @@ export default function HeadHome({
           />
         </Reveal>
         <Reveal delay={180}>
-          <DataCard />
+          <DataCard links={links} canEdit={canEditLinks} />
         </Reveal>
         <Reveal delay={240}>
           <Attention
@@ -333,7 +339,7 @@ export function Attention({
     <Link
       href={href}
       className={`group flex h-full flex-col justify-between gap-6 rounded-[28px] p-4 transition duration-300 hover:-translate-y-1 hover:shadow-pop active:scale-[0.98] sm:p-[22px] ${
-        inverted ? "bg-ink text-surface" : "border border-surface-border bg-surface shadow-card"
+        inverted ? "inv bg-ink text-surface" : "dark-card border border-surface-border bg-surface shadow-card"
       }`}
     >
       <span
@@ -372,47 +378,10 @@ export function Attention({
 
 /* ------------------------------ Shared drives ------------------------------ */
 
-const DRIVES = [
-  {
-    title: "dash.database",
-    sub: "dash.databaseDesc",
-    href: "https://drive.google.com/drive/folders/1sGwxZYtF_dxSXz2HRgu3Erlx61LNqJKr?usp=drive_link",
-  },
-  {
-    title: "dash.desktopData",
-    sub: "dash.desktopDataDesc",
-    href: "https://drive.google.com/drive/folders/1m_BFgqE0Y-DFh_MydXtBE-vi1xh0904C?usp=drive_link",
-  },
-] as const;
-
-export function DataCard() {
-  const t = useT();
-  return (
-    <div className={`${CARD} flex h-full flex-col gap-2 p-4 sm:p-[22px]`}>
-      <span className="text-sm text-ink-muted sm:text-[15px]">{t("dash.resources")}</span>
-      <div className="mt-auto flex flex-col gap-2">
-        {DRIVES.map((d) => (
-          <a
-            key={d.href}
-            href={d.href}
-            target="_blank"
-            rel="noreferrer"
-            className="group flex min-h-[48px] items-center gap-3 rounded-2xl bg-surface-soft px-3.5 transition duration-300 hover:-translate-y-0.5 hover:shadow-pop active:scale-[0.98]"
-          >
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-semibold text-ink sm:text-sm">
-                {t(d.title)}
-              </span>
-              <span className="block truncate text-[11px] text-ink-muted">{t(d.sub)}</span>
-            </span>
-            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-ink transition duration-300 group-hover:rotate-45" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M7 17 17 7M8 7h9v9" />
-            </svg>
-          </a>
-        ))}
-      </div>
-    </div>
-  );
+// Shared by all three home screens. The list lives in the database; people who
+// may edit shared data can add and remove links (see shared-links-card.tsx).
+export function DataCard({ links, canEdit }: { links: SharedLink[]; canEdit: boolean }) {
+  return <SharedLinksCard links={links} canEdit={canEdit} />;
 }
 
 /* -------------------------------- Heatmap -------------------------------- */

@@ -182,11 +182,11 @@ export default function AppShell({
       {/* Canvas the app frame floats on */}
       <div className="app-bg" aria-hidden="true" />
 
-      <div className="flex min-h-screen gap-3 md:p-3">
+      <div className="flex min-h-screen gap-3 md:pr-3">
         {/* Desktop sidebar (Aceternity): an icon rail that opens on hover. The
             slot keeps the rail's width so the page never shifts; the panel
             grows over the page instead of pushing it. */}
-        <div className="relative z-40 hidden w-[84px] shrink-0 md:block">
+        <div className="relative z-40 hidden w-[68px] shrink-0 md:block">
           {/* Softly blurs the page while the rail is open. Hidden (not just
               transparent) when closed so it costs nothing at rest. */}
           <div
@@ -195,9 +195,9 @@ export default function AppShell({
               railOpen ? "visible opacity-100" : "invisible opacity-0"
             }`}
           />
-          <div className="sticky top-3 h-[calc(100vh-1.5rem)]">
+          <div className="sticky top-0 h-screen">
             <Sidebar open={railOpen} setOpen={setRailOpen}>
-              <DesktopSidebar className="card absolute inset-y-0 left-0 z-40 justify-between gap-6 rounded-[20px]">
+              <DesktopSidebar className="card absolute inset-y-0 left-0 z-40 justify-between gap-6 rounded-l-none rounded-r-[24px] border-l-0">
                 <div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
                   {/* Brand */}
                   <Link href="/" className="flex items-center gap-2.5 pt-1">

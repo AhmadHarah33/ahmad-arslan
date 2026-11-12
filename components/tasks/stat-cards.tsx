@@ -146,7 +146,7 @@ function Tile({
       onClick={onClick}
       aria-pressed={active}
       className={`group flex h-full w-full flex-col gap-5 rounded-[28px] p-4 text-left transition-shadow duration-300 hover:shadow-pop sm:p-5 ${
-        inverted ? "bg-ink text-surface" : "border border-surface-border bg-surface shadow-card"
+        inverted ? "inv bg-ink text-surface" : "dark-card border border-surface-border bg-surface shadow-card"
       } ${active ? (inverted ? "ring-2 ring-[rgb(var(--tone-stuck))] ring-offset-2 ring-offset-[rgb(var(--canvas))]" : "ring-2 ring-ink") : ""}`}
     >
       <span
