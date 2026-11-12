@@ -26,6 +26,8 @@ const nextConfig = {
   // it external makes Node `require` it directly at runtime instead.
   experimental: {
     serverComponentsExternalPackages: ["playwright-core"],
+    // Import only the icons used instead of the whole icon set.
+    optimizePackageImports: ["@tabler/icons-react", "motion"],
   },
   images: {
     // Allow Supabase Storage-served images (local + tunnel domain).

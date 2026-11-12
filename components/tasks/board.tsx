@@ -38,7 +38,7 @@ import { moveTask } from "@/app/(app)/tasks/actions";
 import type { FieldDefinition } from "@/lib/customFields";
 import { Avatar } from "@/components/avatar";
 import PageTools from "@/components/page-tools";
-import StatCard from "@/components/stat-card";
+import TaskStatCards from "./stat-cards";
 import Fab from "@/components/fab";
 import TaskModal from "./task-modal";
 import { toastErr } from "@/lib/toast";
@@ -90,7 +90,7 @@ function useIsDesktop() {
   return desktop;
 }
 
-type TaskFilter = "all" | "mine" | "high";
+type TaskFilter = "all" | "mine" | "high" | "done" | "open" | "stuck";
 
 export default function TasksBoard({
   openNewOnMount = false,
@@ -164,6 +164,9 @@ export default function TasksBoard({
     return tasks.filter((tk) => {
       if (filter === "mine" && !tk.assignees.some((a) => a.id === profile.id)) return false;
       if (filter === "high" && tk.priority !== "high") return false;
+      if (filter === "done" && tk.status !== "done") return false;
+      if (filter === "stuck" && tk.status !== "stuck") return false;
+      if (filter === "open" && tk.status !== "todo" && tk.status !== "in_progress") return false;
       if (q) {
         const hay = `${tk.title} ${customerName(tk.customer_id)}`.toLowerCase();
         if (!hay.includes(q)) return false;
@@ -423,16 +426,16 @@ export default function TasksBoard({
           </span>
         </div>
 
-        <div role="tablist" className="flex gap-[3px] rounded-xl bg-surface p-1">
+        <div role="tablist" className="flex gap-[3px] rounded-full bg-surface p-1">
           {(["board", "list"] as const).map((v) => (
             <button
               key={v}
               role="tab"
               aria-selected={view === v}
               onClick={() => setView(v)}
-              className={`flex h-9 items-center gap-1.5 rounded-[9px] px-3.5 text-[13px] transition ${
+              className={`flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] transition ${
                 view === v
-                  ? "bg-brand-800 font-semibold text-white"
+                  ? "bg-ink font-semibold text-surface"
                   : "font-medium text-ink-muted hover:text-ink"
               }`}
             >
@@ -442,7 +445,7 @@ export default function TasksBoard({
           ))}
         </div>
 
-        <label className="flex h-11 items-center gap-2 rounded-xl bg-surface px-3.5 text-[13px] text-ink-faint">
+        <label className="flex h-11 items-center gap-2 rounded-full bg-surface px-4 text-[13px] text-ink-faint">
           <SearchIcon className="h-4 w-4 shrink-0" />
           <input
             type="search"
@@ -457,7 +460,7 @@ export default function TasksBoard({
         <PageTools />
 
         <button
-          className="hidden h-11 items-center gap-2 rounded-xl bg-ink px-[18px] text-sm font-semibold text-surface transition hover:opacity-90 md:inline-flex"
+          className="hidden h-11 items-center gap-2 rounded-full bg-ink px-5 text-sm font-semibold text-surface transition hover:opacity-90 active:scale-95 md:inline-flex"
           onClick={() => openNew()}
         >
           <PlusIcon className="h-4 w-4" />
@@ -467,65 +470,18 @@ export default function TasksBoard({
 
       <Fab onClick={() => openNew()} label={t("task.create")} />
 
-      {/* Stat cards */}
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="card col-span-2 flex flex-col p-4 md:col-span-1">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <div className="text-2xl font-bold tabular-nums text-ink">{pct}%</div>
-              <div className="mt-0.5 text-sm font-medium text-ink">{t("tasks.done")}</div>
-            </div>
-            <div className="flex items-center pt-0.5">
-              {engineers.slice(0, 4).map((p, i) => (
-                <span key={p.id} className={`rounded-full ring-2 ring-surface ${i > 0 ? "-ml-1.5" : ""}`}>
-                  <Avatar id={p.id} name={p.full_name || p.first_name} size={24} />
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="mt-1 text-xs text-ink-muted">
-            {counts.done} {t("tasks.ofTasks")} {total} {t("tasks.tasksWord")}
-          </div>
-          <div className="mt-2.5 flex h-1.5 gap-[2px] overflow-hidden rounded-full bg-surface-soft">
-            {TASK_STATUSES.map((s2) =>
-              counts[s2.key] > 0 ? (
-                <span
-                  key={s2.key}
-                  style={{
-                    width: `${(counts[s2.key] / Math.max(total, 1)) * 100}%`,
-                    background: `rgb(var(${STATUS_VAR[s2.key]}))`,
-                  }}
-                />
-              ) : null
-            )}
-          </div>
-        </div>
-        <StatCard
-          value={counts.todo + counts.in_progress}
-          label={t("tasks.openTasks")}
-          sub={[
-            `${counts.todo} ${t(statusKey("todo")).toLowerCase()}`,
-            `${counts.in_progress} ${t(statusKey("in_progress")).toLowerCase()}`,
-            counts.pending_approval > 0 ? `${counts.pending_approval} ${t(statusKey("pending_approval")).toLowerCase()}` : "",
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        />
-        <StatCard
-          value={counts.stuck}
-          label={t(statusKey("stuck"))}
-          tone="--tone-stuck"
-          sub={stuckSub}
-        />
-        <StatCard
-          value={mineOpen}
-          label={t("tasks.mineOpen")}
-          sub={mineHigh > 0 ? `${mineHigh} ${t("tasks.highSub")}` : ""}
-          active={filter === "mine"}
-          onClick={() => setFilter(filter === "mine" ? "all" : "mine")}
-          className="col-span-2 md:col-span-1"
-        />
-      </section>
+      {/* Stat cards: each one is also a filter */}
+      <TaskStatCards
+        counts={counts}
+        total={total}
+        pct={pct}
+        engineers={engineers}
+        mineOpen={mineOpen}
+        mineHigh={mineHigh}
+        stuckSub={stuckSub}
+        filter={filter}
+        onFilter={(f) => setFilter(f)}
+      />
 
       {/* Filters */}
       <div role="tablist" className="seg max-w-full self-start overflow-x-auto">
@@ -551,7 +507,7 @@ export default function TasksBoard({
           {/* One board at every size: five columns on desktop (draggable),
               swipeable snap-scrolling columns on phones (cards move via the
               ⋯ menu instead). */}
-          <div>
+          <div className="md:min-h-[72vh]">
             <DndContext
               // Explicit id: without one dnd-kit derives its a11y ids from a
               // render counter that differs between the server and the client,
@@ -752,7 +708,7 @@ function Column({
       }}
       // Only background transitions — never `transform` — so it can't fight the
       // drag transform dnd-kit applies to the cards inside.
-      className="flex min-h-[160px] flex-col gap-2 rounded-[20px] border-[1.5px] p-2.5 transition-[background-color,border-color] duration-150"
+      className="flex min-h-[160px] flex-col gap-2 rounded-[24px] border-[1.5px] p-2.5 transition-[background-color,border-color] duration-150"
     >
       <div className="flex items-center gap-2 px-1.5 pb-1.5 pt-1">
         <span
@@ -886,9 +842,9 @@ function CardBody({
 
   return (
     <article
-      className={`relative flex flex-col gap-3 border border-[rgb(var(--ink)/0.07)] bg-surface shadow-card transition-shadow ${
-        roomy ? "rounded-[20px] p-4" : "rounded-[16px] p-3.5"
-      } ${lifted ? "shadow-pop" : "hover:shadow-pop"} ${isDone && !lifted ? "opacity-80" : ""}`}
+      className={`relative flex flex-col gap-3 border border-[rgb(var(--ink)/0.07)] bg-surface shadow-card transition-[box-shadow,transform] ${
+        roomy ? "rounded-[22px] p-4" : "rounded-[18px] p-3.5"
+      } ${lifted ? "shadow-pop" : "hover:-translate-y-px hover:shadow-pop"} ${isDone && !lifted ? "opacity-80" : ""}`}
     >
       <div className="flex items-start gap-2">
         <p

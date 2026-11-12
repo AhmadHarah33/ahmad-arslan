@@ -156,6 +156,12 @@ body {
   height: 100%;
 }
 
+/* Keep the page from nudging sideways when a scrollbar appears or goes away
+   (e.g. filtering the task board makes the page shorter). */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   @apply font-sans text-ink antialiased;
   background-color: rgb(var(--canvas));
@@ -577,19 +583,17 @@ body {
   --brand-700: 88 90 205;
 }
 
-/* ---- Mars Technical wordmark colours (components/mars-mark.tsx) ----------- */
+/* ---- Mars Technical wordmark gradient (components/mars-mark.tsx) ----------- */
 :root,
 :root[data-mode="light"] {
-  --m-word: #323490;
-  --m-sub: #323490;
+  --m-grad: linear-gradient(135deg, #C9772B, #8E4A16 60%, #6E3410);
 }
 :root[data-mode="dark"] {
-  --m-word: #ffffff;
-  --m-sub: #bed631;
+  --m-grad: linear-gradient(135deg, #F8C58C, #D98338);
 }
 
 /* Tile versions (components/mars-mark.tsx): white-background mark in light
-   theme, reversed on indigo in dark. */
+   theme, light copper on deep brown in dark. */
 .mars-tile-light { display: block; }
 .mars-tile-dark { display: none; }
 :root[data-mode="dark"] .mars-tile-light { display: none; }

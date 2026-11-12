@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
+import StatCard from "@/components/stat-card";
 import Link from "next/link";
 import PageTools from "@/components/page-tools";
 import { useRouter } from "next/navigation";
@@ -190,19 +191,19 @@ export default function AgreementsDashboard({
 
       {/* Stat cards */}
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4 [&>*]:min-w-0">
-        <Stat value={String(stats.active)} label={t("ag.stat.active")} sub={planSplit || "—"} />
-        <Stat
-          value={String(stats.visits.done + stats.visits.late + stats.visits.planned)}
+        <StatCard value={stats.active} label={t("ag.stat.active")} sub={planSplit || "—"} />
+        <StatCard
+          value={stats.visits.done + stats.visits.late + stats.visits.planned}
           label={`${t("ag.stat.visitsIn")} ${fmt({ month: "long" }, `${stats.month}-01`)}`}
           sub={`${stats.visits.done} ${t("ag.done")} · ${stats.visits.late} ${t("ag.overdue")} · ${stats.visits.planned} ${t("ag.planned")}`}
           warn={stats.visits.late > 0}
         />
-        <Stat
-          value={String(stats.warrantyEnding.count)}
+        <StatCard
+          value={stats.warrantyEnding.count}
           label={t("ag.stat.warranty")}
           sub={warrantyText}
         />
-        <Stat
+        <StatCard
           value={paymentTotal}
           label={t("ag.stat.payments")}
           sub={`${stats.payments.count} ${t("ag.agreementsWord")} · ${stats.payments.overdue} ${t("ag.overdue")}`}
@@ -211,11 +212,11 @@ export default function AgreementsDashboard({
       </div>
 
       {/* Calendar */}
-      <section className="card mb-5 p-4 md:p-5" aria-label={t("ag.title")}>
+      <section className="card mb-5 rounded-[28px] p-4 md:p-6" aria-label={t("ag.title")}>
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <h2 className="mr-auto text-lg font-semibold capitalize text-ink">{monthTitle}</h2>
+          <h2 className="mr-auto text-xl font-medium capitalize tracking-tight text-ink">{monthTitle}</h2>
           <button
-            className="btn-ghost !px-3 !py-1.5"
+            className="btn-ghost !px-4 !py-2"
             onClick={() => {
               setMonth(today.slice(0, 7));
               setSelected(today);
@@ -224,14 +225,14 @@ export default function AgreementsDashboard({
             {t("ag.today")}
           </button>
           <button
-            className="icon-btn h-9 w-9 text-lg"
+            className="icon-btn h-10 w-10 bg-surface-soft text-lg"
             aria-label={t("ag.prevMonth")}
             onClick={() => setMonth((m) => shiftMonth(m, -1))}
           >
             ‹
           </button>
           <button
-            className="icon-btn h-9 w-9 text-lg"
+            className="icon-btn h-10 w-10 bg-surface-soft text-lg"
             aria-label={t("ag.nextMonth")}
             onClick={() => setMonth((m) => shiftMonth(m, 1))}
           >
@@ -239,7 +240,7 @@ export default function AgreementsDashboard({
           </button>
         </div>
 
-        <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-surface-border bg-surface-border">
+        <div key={month} className="animate-pop grid grid-cols-7 gap-px overflow-hidden rounded-[22px] border border-surface-border bg-surface-border">
           {weekdays.map((w) => (
             <div
               key={w}
@@ -260,7 +261,7 @@ export default function AgreementsDashboard({
                 aria-label={`${fmt({ day: "numeric", month: "long" }, cell.date)}, ${list.length}`}
                 className={`flex min-h-[56px] flex-col items-stretch gap-1 p-1.5 text-left transition md:min-h-[104px] ${
                   cell.inMonth ? "bg-surface" : "bg-surface-soft"
-                } ${isSel ? "ring-2 ring-inset ring-brand-400" : ""} hover:bg-surface-soft`}
+                } ${isSel ? "ring-2 ring-inset ring-ink" : ""} hover:bg-surface-soft`}
               >
                 <span
                   className={`flex h-6 w-6 items-center justify-center self-start rounded-full text-xs font-medium ${
@@ -282,7 +283,7 @@ export default function AgreementsDashboard({
                       href={`/agreements/${c.agreement_id}/edit`}
                       onClick={(e) => e.stopPropagation()}
                       title={c.name}
-                      className={`${c.state === "late" ? "tone-stuck" : CHIP_TONE[c.kind]} flex items-center gap-1.5 truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium ${
+                      className={`${c.state === "late" ? "tone-stuck" : CHIP_TONE[c.kind]} flex items-center gap-1.5 truncate rounded-full px-2 py-0.5 text-[11px] font-medium ${
                         c.state === "done" ? "line-through opacity-60" : ""
                       }`}
                     >
@@ -502,30 +503,6 @@ export default function AgreementsDashboard({
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
-}
-
-function Stat({
-  value,
-  label,
-  sub,
-  warn,
-}: {
-  value: string;
-  label: string;
-  sub: string;
-  warn?: boolean;
-}) {
-  return (
-    <div className="card p-4">
-      <div className="text-2xl font-bold tabular-nums text-ink">{value}</div>
-      <div className="mt-0.5 text-sm font-medium text-ink">{label}</div>
-      <div
-        className={`mt-1 break-words text-xs ${warn ? "text-[rgb(var(--tone-stuck-ink))]" : "text-ink-muted"}`}
-      >
-        {sub}
-      </div>
-    </div>
-  );
 }
 
 function Legend({ dot, label }: { dot: string; label: string }) {

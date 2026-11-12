@@ -1,9 +1,11 @@
 "use client";
 
-// Plain white stat tile: big number, label, one small line of context. The
-// same card the Service (Maintenance & Warranty) dashboard uses. When `onClick`
-// is given the tile is a toggle (used as a filter) and gets an ink ring while
-// `active`.
+import { CountUp, Reveal } from "@/components/dashboard/motion";
+
+// Stat tile: label, big number, one small line of context. Same look and motion
+// as the dashboards: numbers count up (whole numbers keep a greyed ".0"), and
+// the tile fades in when the page opens. When `onClick` is given the tile is a
+// toggle (used as a filter) and gets an ink ring while `active`.
 export default function StatCard({
   value,
   label,
@@ -12,8 +14,10 @@ export default function StatCard({
   warn,
   active,
   onClick,
+  delay = 0,
   className = "",
 }: {
+  // A number counts up; a string (e.g. "€1,200.00") is shown as is.
   value: string | number;
   label: string;
   sub?: string;
@@ -22,20 +26,25 @@ export default function StatCard({
   warn?: boolean;
   active?: boolean;
   onClick?: () => void;
+  delay?: number;
   className?: string;
 }) {
   const body = (
     <>
+      <div className="text-sm font-medium text-ink-muted">{label}</div>
       <div
-        className="text-2xl font-bold tabular-nums text-ink"
+        className="mt-3 text-[32px] font-semibold leading-none tracking-tight text-ink sm:text-[36px]"
         style={tone ? { color: `rgb(var(${tone}-ink))` } : undefined}
       >
-        {value}
+        {typeof value === "number" ? (
+          <CountUp value={value} decimals={1} mutedDecimals />
+        ) : (
+          <span className="tabular-nums">{value}</span>
+        )}
       </div>
-      <div className="mt-0.5 text-sm font-medium text-ink">{label}</div>
       {sub !== undefined && (
         <div
-          className="mt-1 break-words text-xs text-ink-muted"
+          className="mt-3 break-words text-xs text-ink-muted"
           style={warn ? { color: "rgb(var(--tone-stuck-ink))" } : undefined}
         >
           {sub || "—"}
@@ -43,12 +52,21 @@ export default function StatCard({
       )}
     </>
   );
-  const cls = `card p-4 text-left ${active ? "ring-2 ring-ink" : ""} ${className}`;
-  return onClick ? (
-    <button type="button" onClick={onClick} aria-pressed={active} className={`${cls} transition hover:shadow-pop`}>
-      {body}
-    </button>
-  ) : (
-    <div className={cls}>{body}</div>
+  const cls = `card h-full rounded-[28px] p-4 text-left sm:p-5 ${active ? "ring-2 ring-ink" : ""}`;
+  return (
+    <Reveal delay={delay} className={className}>
+      {onClick ? (
+        <button
+          type="button"
+          onClick={onClick}
+          aria-pressed={active}
+          className={`${cls} block w-full transition-shadow duration-300 hover:shadow-pop`}
+        >
+          {body}
+        </button>
+      ) : (
+        <div className={cls}>{body}</div>
+      )}
+    </Reveal>
   );
 }

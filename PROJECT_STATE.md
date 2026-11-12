@@ -43,7 +43,7 @@ Runs on the office Windows PC, reached from anywhere at
   `C:\Users\MARS TST\mars-ops\`.
 - **Reboots:** Docker Desktop is a *user-session* app, so the stack only comes
   back after someone logs in. For unattended reboots, enable Windows auto-login.
-- **Accounts:** 6 real users — Amr (head), Merve (organizer), Abdulmuin, Ahmed,
+- **Accounts:** 6 real users — Abdulmuin (head), Merve (organizer), Amr, Ahmed,
   Ali Kaan, Ömer (engineers). Self-registration is disabled; the head creates
   accounts from `/admin`.
 

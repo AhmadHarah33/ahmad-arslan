@@ -242,7 +242,7 @@ export default function CustomersView({
             exportRows={exportRows}
           />
           <button
-            className="hidden h-11 items-center gap-2 rounded-xl bg-ink px-[18px] text-sm font-semibold text-surface transition hover:opacity-90 md:inline-flex"
+            className="hidden h-11 items-center gap-2 rounded-full bg-ink px-5 text-sm font-semibold text-surface transition hover:opacity-90 md:inline-flex"
             onClick={() => setModal({ open: true, customer: null })}
           >
             + {t("customers.new")}
@@ -304,7 +304,7 @@ export default function CustomersView({
 
       {/* Search + brand filter */}
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex h-12 min-w-0 flex-1 basis-[320px] items-center gap-2.5 rounded-[14px] bg-surface px-4 text-ink-faint">
+        <label className="flex h-12 min-w-0 flex-1 basis-[320px] items-center gap-2.5 rounded-full bg-surface px-5 text-ink-faint">
           <SearchIcon className="h-[17px] w-[17px] shrink-0" />
           <input
             type="search"
@@ -382,7 +382,7 @@ export default function CustomersView({
       )}
 
       {filtered.length === 0 ? (
-        <div className="rounded-[22px] bg-surface px-5 py-10 text-center text-sm text-ink-muted">
+        <div className="rounded-[28px] bg-surface px-5 py-10 text-center text-sm text-ink-muted">
           {t("customers.none")}
         </div>
       ) : (
@@ -390,7 +390,7 @@ export default function CustomersView({
           {/* Desktop table */}
           <section
             aria-label={t("customers.title")}
-            className="hidden overflow-hidden rounded-[22px] bg-surface md:block"
+            className="hidden overflow-hidden rounded-[28px] bg-surface md:block"
           >
             <div className="overflow-x-auto">
               <div className="min-w-[1050px]">
@@ -520,7 +520,7 @@ export default function CustomersView({
                 )}
                 <article
                   onClick={() => setModal({ open: true, customer: c })}
-                  className="flex cursor-pointer items-center gap-3 rounded-[20px] bg-surface p-3.5"
+                  className="flex cursor-pointer items-center gap-3 rounded-[28px] bg-surface p-3.5"
                 >
                   <span
                     className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-surface-soft text-[13px] font-bold text-ink-muted"

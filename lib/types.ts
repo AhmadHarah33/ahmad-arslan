@@ -14,6 +14,9 @@ export interface Profile {
   created_at: string;
   theme_accent?: string;
   theme_mode?: "light" | "dark" | "system";
+  // Paths inside the profile-images bucket; null/absent = none.
+  avatar_path?: string | null;
+  cover_path?: string | null;
 }
 
 export type AssigneeLite = Pick<Profile, "id" | "full_name" | "first_name">;

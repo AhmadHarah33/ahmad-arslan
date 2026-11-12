@@ -58,6 +58,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
   // Run on everything except static assets and the PWA service worker files.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|workbox-.*|icons/.*|brand/.*|.*\\.png$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|workbox-.*|icons/.*|brand/.*|bg/.*|.*\\.png$).*)",
   ],
 };

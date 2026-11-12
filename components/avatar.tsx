@@ -29,6 +29,7 @@ export function Avatar({
   id,
   size = 24,
   solid = false,
+  src,
 }: {
   name: string;
   id: string;
@@ -36,7 +37,13 @@ export function Avatar({
   // Outlined (stroke + coloured initials) is the default everywhere; `solid`
   // is for the rare spot on a dark background where that wouldn't read.
   solid?: boolean;
+  // The person's picture, when they have set one; initials otherwise.
+  src?: string | null;
 }) {
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (<img src={src} alt={name} title={name} width={size} height={size} className="inline-block shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />);
+  }
   return (
     <span
       className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold ${

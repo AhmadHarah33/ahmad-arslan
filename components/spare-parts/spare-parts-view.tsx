@@ -341,7 +341,7 @@ export default function SparePartsView({
           {manager && (
             <>
               <button
-                className="inline-flex h-11 items-center rounded-xl bg-surface px-4 text-sm font-medium text-ink transition hover:opacity-80"
+                className="inline-flex h-11 items-center rounded-full bg-surface px-4 text-sm font-medium text-ink transition hover:opacity-80"
                 onClick={() => setHistoryModal(true)}
               >
                 {t("order.history")}
@@ -369,7 +369,7 @@ export default function SparePartsView({
             }))}
           />
           <button
-            className="hidden h-11 items-center rounded-xl bg-surface px-4 text-sm font-medium text-ink transition hover:opacity-80 md:inline-flex"
+            className="hidden h-11 items-center rounded-full bg-surface px-4 text-sm font-medium text-ink transition hover:opacity-80 md:inline-flex"
             onClick={() => setCompanyModal(true)}
           >
             {t("parts.newCompany")}
@@ -377,7 +377,7 @@ export default function SparePartsView({
           {/* The FAB below is md:hidden, so without this there was no way to
               add a spare part from a desktop browser. */}
           <button
-            className="hidden h-11 items-center rounded-xl bg-ink px-[18px] text-sm font-semibold text-surface transition hover:opacity-90 md:inline-flex"
+            className="hidden h-11 items-center rounded-full bg-ink px-5 text-sm font-semibold text-surface transition hover:opacity-90 md:inline-flex"
             onClick={() => setPartModal({ open: true, part: null })}
           >
             + {t("parts.newPart")}
@@ -419,7 +419,7 @@ export default function SparePartsView({
 
       {/* Search + stock chips */}
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex h-12 min-w-0 flex-1 basis-[280px] items-center gap-2.5 rounded-[14px] bg-surface px-4 text-ink-faint">
+        <label className="flex h-12 min-w-0 flex-1 basis-[280px] items-center gap-2.5 rounded-full bg-surface px-5 text-ink-faint">
           <SearchIcon className="h-[17px] w-[17px] shrink-0" />
           <input
             type="search"
@@ -509,11 +509,11 @@ export default function SparePartsView({
       )}
 
       {companies.length === 0 ? (
-        <div className="rounded-[22px] bg-surface px-5 py-10 text-center text-sm text-ink-muted">
+        <div className="rounded-[28px] bg-surface px-5 py-10 text-center text-sm text-ink-muted">
           {t("parts.noCompanies")} {t("parts.startInventory")}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-[22px] bg-surface px-5 py-10 text-center text-sm text-ink-muted">
+        <div className="rounded-[28px] bg-surface px-5 py-10 text-center text-sm text-ink-muted">
           {t("parts.noPartsHere")}
         </div>
       ) : (
@@ -521,7 +521,7 @@ export default function SparePartsView({
           {/* Desktop table */}
           <section
             aria-label={t("parts.title")}
-            className="hidden overflow-hidden rounded-[22px] bg-surface md:block"
+            className="hidden overflow-hidden rounded-[28px] bg-surface md:block"
           >
             <div className="overflow-x-auto">
               <div className={ordering ? "min-w-[1180px]" : "min-w-[1000px]"}>
@@ -635,7 +635,7 @@ export default function SparePartsView({
                     {sortLabel[sort]} · {g.rows.length}
                   </span>
                 )}
-                <div className="overflow-hidden rounded-[20px] bg-surface">
+                <div className="overflow-hidden rounded-[28px] bg-surface">
                   {g.rows.map((p) => {
                     const s = stockOf(p);
                     const on = p.id in picked;

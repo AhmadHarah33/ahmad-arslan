@@ -31,13 +31,13 @@ export const metadata: Metadata = {
   // app, and Chrome had cached its icon for the origin — including inside
   // already-installed PWAs, which pin their icon at install time. Changing the
   // URL is what makes Chrome fetch the icon again instead of reusing that.
-  // Bump the version if the icons are ever redrawn (v=4: Mars Technical logo).
+  // Bump the version if the icons are ever redrawn (v=5: Copper logo).
   icons: {
     icon: [
-      { url: "/favicon.ico?v=4", sizes: "any" },
-      { url: "/icons/icon-192.png?v=4", type: "image/png", sizes: "192x192" },
+      { url: "/favicon.ico?v=5", sizes: "any" },
+      { url: "/icons/icon-192.png?v=5", type: "image/png", sizes: "192x192" },
     ],
-    apple: "/icons/icon-192.png?v=4",
+    apple: "/icons/icon-192.png?v=5",
   },
 };
 

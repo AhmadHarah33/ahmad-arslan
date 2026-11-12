@@ -4,8 +4,10 @@
 import { chromium } from "playwright-core";
 import { writeFileSync } from "node:fs";
 
-const INDIGO = "#323490";
-const LIME = "#BED631";
+// Copper: light-copper gradient mark on a deep-brown tile (same as the dark app tile).
+const BG = "#2A1B12";
+const INK = "url(#ink)";
+const MOON = "#FBE3C2";
 
 const tiers = {
   lg: { o: [43, 13.5, 3], i: [29, 9, 3.5], pk: 19, pb: 15, m1: [76, 41.27, 10, 6.8], m2: [11.43, 62.89, 7, 4.2], s: 0.82 },
@@ -19,16 +21,17 @@ const tierFor = (px) => (px >= 64 ? "lg" : "md");
 // scale < 1 shrinks the mark inside the tile (maskable icons need a safe zone).
 const svg = (px, safe = 1) => {
   const t = tiers[tierFor(px)];
-  const arc = (r) => `<path d="M${50 - r[0]} 50 A${r[0]} ${r[1]} 0 0 0 ${50 + r[0]} 50" fill="none" stroke="#fff" stroke-width="${r[2]}"/>`;
-  const ell = (r) => `<ellipse cx="50" cy="50" rx="${r[0]}" ry="${r[1]}" transform="rotate(-25 50 50)" fill="none" stroke="#fff" stroke-width="${r[2]}"/>`;
-  const moon = (m, body) => `<circle cx="${m[0]}" cy="${m[1]}" r="${m[2]}" fill="${INDIGO}"/><circle cx="${m[0]}" cy="${m[1]}" r="${m[3]}" fill="${body}"/>`;
+  const arc = (r) => `<path d="M${50 - r[0]} 50 A${r[0]} ${r[1]} 0 0 0 ${50 + r[0]} 50" fill="none" stroke="${INK}" stroke-width="${r[2]}"/>`;
+  const ell = (r) => `<ellipse cx="50" cy="50" rx="${r[0]}" ry="${r[1]}" transform="rotate(-25 50 50)" fill="none" stroke="${INK}" stroke-width="${r[2]}"/>`;
+  const moon = (m, body) => `<circle cx="${m[0]}" cy="${m[1]}" r="${m[2]}" fill="${BG}"/><circle cx="${m[0]}" cy="${m[1]}" r="${m[3]}" fill="${body}"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
-<rect width="100" height="100" fill="${INDIGO}"/>
+<defs><linearGradient id="ink" gradientUnits="userSpaceOnUse" x1="14" y1="12" x2="86" y2="88"><stop offset="0" stop-color="#F8C58C"/><stop offset="1" stop-color="#D98338"/></linearGradient></defs>
+<rect width="100" height="100" fill="${BG}"/>
 <g transform="translate(50 50) scale(${t.s * safe}) translate(-50 -50)">
 ${ell(t.o)}${t.i ? ell(t.i) : ""}
-<circle cx="50" cy="50" r="${t.pk}" fill="${INDIGO}"/><circle cx="50" cy="50" r="${t.pb}" fill="#fff"/>
+<circle cx="50" cy="50" r="${t.pk}" fill="${BG}"/><circle cx="50" cy="50" r="${t.pb}" fill="${INK}"/>
 <g transform="rotate(-25 50 50)">${arc(t.o)}${t.i ? arc(t.i) : ""}</g>
-${moon(t.m1, LIME)}${t.m2 ? moon(t.m2, "#fff") : ""}
+${moon(t.m1, MOON)}${t.m2 ? moon(t.m2, INK) : ""}
 </g></svg>`;
 };
 

@@ -10,6 +10,13 @@ import { TASK_SELECT, normalizeTasks } from "@/lib/tasks.server";
 import { dashStats, paymentItems, urgentItems } from "@/lib/agreements.dashboard";
 import { formatAmount } from "@/lib/money";
 import DashboardHome, { type HomeData } from "@/components/dashboard/home";
+import HeadHome from "@/components/dashboard/head-home";
+import OrganizerHome from "@/components/dashboard/organizer-home";
+import EngineerHome from "@/components/dashboard/engineer-home";
+import { buildEngineerData } from "@/lib/dashboard.engineer";
+import { buildHeadData } from "@/lib/dashboard.head";
+import { buildOrganizerData } from "@/lib/dashboard.organizer";
+import { addDays } from "@/lib/agreements";
 import type { SparePart, TaskStatus } from "@/lib/types";
 
 const SYMBOLS: Record<string, string> = { TRY: "₺", EUR: "€", USD: "$" };
@@ -36,8 +43,10 @@ export default async function DashboardPage() {
   await generateDueAgreementVisits(supabase);
   const [{ data: tasks }, { data: sp }, { data: profs }, agr] = await Promise.all([
     supabase.from("tasks").select(TASK_SELECT).order("position"),
-    supabase.from("spare_parts").select("id, name, quantity, min_quantity"),
-    supabase.from("profiles").select("id, full_name, first_name").order("full_name"),
+    supabase
+      .from("spare_parts")
+      .select("id, name, part_number, quantity, min_quantity, company:company_id(name)"),
+    supabase.from("profiles").select("id, full_name, first_name, role").order("full_name"),
     loadAgreementsDashboardData(supabase),
   ]);
   const allTasks = normalizeTasks(tasks);
@@ -143,6 +152,122 @@ export default async function DashboardPage() {
     lowStock: parts.filter((p) => (p.min_quantity ?? 0) > 0 && p.quantity <= (p.min_quantity ?? 0))
       .length,
   };
+
+  // Parts attached to each task waiting for approval (head and organizer).
+  const partsByTask = new Map<string, number>();
+  if (profile.role === "head" || profile.role === "organizer" || profile.role === "engineer") {
+    const approvalIds =
+      profile.role === "engineer"
+        ? allTasks.filter((task) => task.status !== "done" && isMine(task)).map((task) => task.id)
+        : allTasks.filter((task) => task.status === "pending_approval").map((task) => task.id);
+    if (approvalIds.length) {
+      const { data: tp } = await supabase.from("task_parts").select("task_id").in("task_id", approvalIds);
+      for (const row of tp ?? []) {
+        partsByTask.set(row.task_id, (partsByTask.get(row.task_id) ?? 0) + 1);
+      }
+    }
+  }
+
+  if (profile.role === "engineer") {
+    const myVisits = visits
+      .filter((v) => !v.done_at && v.due_date >= today && live(v.agreement_id))
+      .filter((v) => {
+        const a = byId.get(v.agreement_id)!;
+        return a.assignee_id === profile.id || a.technician_names.includes(profile.full_name);
+      })
+      .sort((a, b) => a.due_date.localeCompare(b.due_date))
+      .map((v) => {
+        const a = byId.get(v.agreement_id)!;
+        return {
+          key: v.id,
+          agreement_id: a.id,
+          date: v.due_date,
+          name: a.customer_name,
+          sub: [a.machine_labels.slice(0, 2).join(", "), t(`ag.type.${a.plan}` as const)]
+            .filter(Boolean)
+            .join(" · "),
+        };
+      });
+    return (
+      <EngineerHome
+        greeting={{
+          hello: t(greetingKey()),
+          name: profile.first_name || profile.full_name || "there",
+        }}
+        today={today}
+        data={buildEngineerData({ profileId: profile.id, tasks: allTasks, today, partsByTask, myVisits })}
+      />
+    );
+  }
+
+  if (profile.role === "organizer") {
+    const weekEnd = addDays(today, 6);
+    const weekVisits = visits.filter((v) => !v.done_at && v.due_date <= weekEnd && live(v.agreement_id));
+    const lateVisits = urgent.filter((u) => u.kind === "visit-late");
+    const organizer = buildOrganizerData({
+      tasks: allTasks,
+      today,
+      agreements,
+      parts: (sp ?? []) as unknown as Parameters<typeof buildOrganizerData>[0]["parts"],
+      partsByTask,
+      symbols: SYMBOLS,
+      unassignedLabel: t("task.unassigned"),
+      visitsWeek: { total: weekVisits.length, late: weekVisits.filter((v) => v.due_date < today).length },
+      warrantyEnding: stats.warrantyEnding.count,
+      comingUp: [
+        ...lateVisits.map((u) => ({
+          key: u.key,
+          date: u.date,
+          name: u.name,
+          sub: `${u.days} ${t("ag.daysLate")}`,
+          late: true,
+        })),
+        ...upcoming.map((v) => ({ key: v.key, date: v.date, name: v.name, sub: v.sub, late: false })),
+      ],
+      chase: payments,
+    });
+    return (
+      <OrganizerHome
+        greeting={{
+          hello: t(greetingKey()),
+          name: profile.first_name || profile.full_name || "there",
+        }}
+        today={today}
+        data={organizer}
+      />
+    );
+  }
+
+  if (profile.role === "head") {
+    const overdueNow = payments.filter((p) => p.overdueDays != null);
+    const money = new Map<string, number>();
+    for (const p of overdueNow) money.set(p.currency, (money.get(p.currency) ?? 0) + p.amount);
+
+    const head = buildHeadData({
+      tasks: allTasks,
+      today,
+      people: (profs ?? [])
+        .filter((p) => p.role === "engineer")
+        .map((p) => ({ id: p.id, name: p.first_name || p.full_name })),
+      partsByTask,
+      unassignedLabel: t("task.unassigned"),
+      lateVisits: urgent.filter((u) => u.kind === "visit-late").length,
+      overdue: {
+        count: overdueNow.length,
+        money: [...money].map(([code, amount]) => ({ code, amount, symbol: SYMBOLS[code] ?? `${code} ` })),
+      },
+    });
+    return (
+      <HeadHome
+        greeting={{
+          hello: t(greetingKey()),
+          name: profile.first_name || profile.full_name || "there",
+        }}
+        today={today}
+        data={head}
+      />
+    );
+  }
 
   return <DashboardHome data={data} />;
 }
